@@ -1,8 +1,6 @@
 <?php
 namespace JukeBox\Api;
 
-require_once 'htdocs/api/playlist.php';
-
 use PHPUnit\Framework\TestCase;
 use phpmock\phpunit\PHPMock;
 
@@ -18,6 +16,7 @@ class PlayListTest extends TestCase {
                 "DEBUG_WebApp_API" => "FALSE"
             ));
         $_SERVER['REQUEST_METHOD'] = '';
+        require_once 'htdocs/api/playlist.php';
     }
 
     /**
