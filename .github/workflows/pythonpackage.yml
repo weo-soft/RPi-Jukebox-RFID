@@ -29,7 +29,7 @@ jobs:
         set -euo pipefail
         # Ensure build tools are available
         sudo apt-get update
-        sudo apt-get install -y build-essential unzip
+        sudo apt-get install -y build-essential
         # build lg from source for lgpio
         CUR_DIR="$(pwd)"
         mkdir -p tmp && cd tmp && wget -q http://abyz.me.uk/lg/lg.zip && unzip lg.zip > /dev/null && cd lg && make && sudo make install
