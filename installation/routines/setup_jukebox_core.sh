@@ -144,7 +144,7 @@ _jukebox_core_install_settings() {
   # Plugins store credentials (API keys, passwords) in this file.
   local SECRETS_FILE="${SETTINGS_PATH}/secrets.yaml"
   if [ ! -f "$SECRETS_FILE" ]; then
-    echo "{}" > "$SECRETS_FILE"
+    echo "" > "$SECRETS_FILE"
     chmod 600 "$SECRETS_FILE"
     print_lc "  Created secrets.yaml: ${SECRETS_FILE} (chmod 600)"
   fi
