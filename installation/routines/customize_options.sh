@@ -391,8 +391,12 @@ You will be asked for each one individually."
 
   # Read plugin entries from plugin_registry.yaml using grep/awk
   # (venv is not available at this stage, so we avoid Python dependency)
+  # IMPORTANT: grep must skip commented lines (starting with #) to avoid
+  # picking up the YAML comment header which contains example entries.
   local plugin_entries
-  plugin_entries=$(grep -A2 '  - name:' "$registry_file" | awk -F': ' '
+  plugin_entries=$(grep -A2 '  - name:' "$registry_file" | \
+    grep -v '^[[:space:]]*#' | \
+    awk -F': ' '
     /name:/ { name=$2 }
     /description:/ { desc=$2; print name "|" desc }
   ')
