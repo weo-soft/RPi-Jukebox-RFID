@@ -63,16 +63,3 @@ class CallbackHandler:
     def has_callbacks(self):
         """:data:`True` if there are any registered callbacks. Read-only property"""
         return len(self._callbacks) > 0
-
-
-from enum import Enum
-
-
-class PlayCardState(Enum):
-    """States for play_card callbacks.
-
-    NOTE: The numeric values must match the original definition in
-    components/playermpd/playcontentcallback.py for binary compatibility.
-    """
-    firstSwipe = 0
-    secondSwipe = 1

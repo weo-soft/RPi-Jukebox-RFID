@@ -1,7 +1,12 @@
 from enum import Enum
 from typing import Callable, Generic, TypeVar
 
-from jukebox.callingback import CallbackHandler, PlayCardState  # noqa: F401 (re-export)
+from jukebox.callingback import CallbackHandler
+
+
+class PlayCardState(Enum):
+    firstSwipe = 0,
+    secondSwipe = 1
 
 
 STATE = TypeVar('STATE', bound=Enum)
