@@ -116,6 +116,16 @@ _jukebox_core_install_settings() {
   print_lc "  Register Jukebox settings"
   cp -f "${INSTALLATION_PATH}/resources/default-settings/jukebox.default.yaml" "${SETTINGS_PATH}/jukebox.yaml"
   cp -f "${INSTALLATION_PATH}/resources/default-settings/logger.default.yaml" "${SETTINGS_PATH}/logger.yaml"
+
+  # Create empty secrets.yaml template with restrictive permissions (chmod 600)
+  # Only the file owner can read/write secrets.
+  # Plugins store credentials (API keys, passwords) in this file.
+  local SECRETS_FILE="${SETTINGS_PATH}/secrets.yaml"
+  if [ ! -f "$SECRETS_FILE" ]; then
+    echo "{}" > "$SECRETS_FILE"
+    chmod 600 "$SECRETS_FILE"
+    print_lc "  Created secrets.yaml: ${SECRETS_FILE} (chmod 600)"
+  fi
 }
 
 _jukebox_core_register_as_service() {
