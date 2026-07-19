@@ -1,12 +1,4 @@
 install() {
-  # [DEBUG] Install entry point
-  log "  [DEBUG] install() entered at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-  log "  [DEBUG] INSTALLATION_PATH='${INSTALLATION_PATH}', GIT_USER='${GIT_USER}', GIT_BRANCH='${GIT_BRANCH}'"
-  log "  [DEBUG] CURRENT_USER='${CURRENT_USER}', HOME_PATH='${HOME_PATH}'"
-  log "  [DEBUG] SETTINGS_PATH='${SETTINGS_PATH}', VIRTUAL_ENV='${VIRTUAL_ENV}'"
-  log "  [DEBUG] SELECTED_PLUGINS='${SELECTED_PLUGINS}', CUSTOM_PLUGINS='${CUSTOM_PLUGINS}'"
-  log "  [DEBUG] PLUGIN_REGISTRY file exists: $(test -f "${INSTALLATION_PATH}/resources/default-settings/plugin_registry.yaml" && echo 'YES' || echo 'NO')"
-
   clear_c
   customize_options
   clear_c

@@ -27,10 +27,6 @@ _setup_single_plugin() {
 
     log "  Installing plugin: ${plugin_name}"
 
-    # [DEBUG] Plugin installation step
-    log "  [DEBUG] _setup_single_plugin: name='${plugin_name}', repo='${plugin_repo}', dir='${plugin_dir}'"
-    log "  [DEBUG] INSTALLATION_PATH='${INSTALLATION_PATH}', VIRTUAL_ENV='${VIRTUAL_ENV}'"
-
     # 1) Plugin-Repository klonen
     if [[ ! -d "$plugin_dir" ]]; then
         print_c "    Cloning ${plugin_name} from ${plugin_repo}..."

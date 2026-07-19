@@ -143,16 +143,10 @@ _jukebox_core_install_settings() {
   # Only the file owner can read/write secrets.
   # Plugins store credentials (API keys, passwords) in this file.
   local SECRETS_FILE="${SETTINGS_PATH}/secrets.yaml"
-  log "  [DEBUG] _jukebox_core_install_settings: SETTINGS_PATH='${SETTINGS_PATH}'"
-  log "  [DEBUG] secrets.yaml target: '${SECRETS_FILE}'"
-  log "  [DEBUG] secrets.yaml pre-exists: $(test -f "$SECRETS_FILE" && echo 'YES' || echo 'NO')"
   if [ ! -f "$SECRETS_FILE" ]; then
     echo "{}" > "$SECRETS_FILE"
     chmod 600 "$SECRETS_FILE"
     print_lc "  Created secrets.yaml: ${SECRETS_FILE} (chmod 600)"
-    log "  [DEBUG] secrets.yaml created, permissions: $(ls -la "$SECRETS_FILE" 2>&1)"
-  else
-    log "  [DEBUG] secrets.yaml already exists, skipping creation"
   fi
 }
 
