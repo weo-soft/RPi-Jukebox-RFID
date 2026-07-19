@@ -379,6 +379,8 @@ Do you want to build the Web App? [Y/n]"
 _option_plugins() {
   local registry_file="${INSTALLATION_PATH}/resources/default-settings/plugin_registry.yaml"
 
+  log "  [DEBUG] _option_plugins: registry_file='${registry_file}'"
+
   if [[ ! -f "$registry_file" ]]; then
     log "Plugin registry not found. Skipping plugin selection."
     return
@@ -396,6 +398,7 @@ You will be asked for each one individually."
     /name:/ { name=$2 }
     /description:/ { desc=$2; print name "|" desc }
   ')
+  log "  [DEBUG] Parsed plugin entries from registry: ${plugin_entries:-'(none)'}"
   while IFS='|' read -r plugin_name plugin_desc; do
     [[ -z "$plugin_name" ]] && continue
 
