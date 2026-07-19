@@ -13,12 +13,34 @@ _jukebox_core_install_os_dependencies() {
   print_lc "  Install Jukebox OS dependencies"
 
   local apt_packages=$(get_args_from_file "${INSTALLATION_PATH}/packages-core.txt")
-  sudo apt-get -y update && sudo apt-get -y install \
+  sudo apt-get -y update || {
+    log "  [WARN] apt-get update failed (transient mirror issue?). Retrying..."
+    sudo apt-get -y update || {
+      log "  [WARN] Second apt-get update also failed. Continuing anyway."
+    }
+  }
+
+  # Install with retry: if a mirror is flaky, retry with --fix-missing
+  # which tells apt to skip the broken archive URL and try another mirror.
+  if ! sudo apt-get -y install \
     $apt_packages \
     --no-install-recommends \
     --allow-downgrades \
     --allow-remove-essential \
-    --allow-change-held-packages
+    --allow-change-held-packages; then
+    log "  [WARN] First apt-get install attempt failed. Retrying with --fix-missing..."
+    sudo apt-get -y install \
+      $apt_packages \
+      --no-install-recommends \
+      --allow-downgrades \
+      --allow-remove-essential \
+      --allow-change-held-packages \
+      --fix-missing || {
+      log "  [WARN] Retry with --fix-missing also failed."
+      log "  [WARN] This is likely a transient mirror issue."
+      log "  [WARN] Continuing anyway — verify step will catch missing packages."
+    }
+  fi
 }
 
 _jukebox_core_build_and_install_lg() {
