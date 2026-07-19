@@ -123,12 +123,12 @@ _download_jukebox_source() {
 }
 
 _load_sources() {
-    # Load / Source dependencies
-    for i in "${INSTALLATION_PATH}"/installation/includes/*; do
+    # Load / Source dependencies (shell scripts only - skip .py, .md etc.)
+    for i in "${INSTALLATION_PATH}"/installation/includes/*.sh; do
         source "$i" || exit_on_error
     done
 
-    for j in "${INSTALLATION_PATH}"/installation/routines/*; do
+    for j in "${INSTALLATION_PATH}"/installation/routines/*.sh; do
         source "$j" || exit_on_error
     done
 }
