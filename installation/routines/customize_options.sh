@@ -389,17 +389,30 @@ _option_plugins() {
 The following optional plugins are available.
 You will be asked for each one individually."
 
-  # Read plugin entries from plugin_registry.yaml using grep/awk
-  # (venv is not available at this stage, so we avoid Python dependency)
-  # IMPORTANT: grep must skip commented lines (starting with #) to avoid
-  # picking up the YAML comment header which contains example entries.
+  # Read plugin entries from plugin_registry.yaml using Python.
+  # setup_jukebox_core runs before customize_options (per M7 design),
+  # so the venv with ruamel.yaml is available for reliable YAML parsing.
+  # The .strip() check on "  - name:" ensures commented-out example entries
+  # (which start with "#  - name:") are skipped — only uncommented entries
+  # at indentation level 2 (4 spaces) are real plugin definitions.
   local plugin_entries
-  plugin_entries=$(grep -A2 '  - name:' "$registry_file" | \
-    grep -v '^[[:space:]]*#' | \
-    awk -F': ' '
-    /name:/ { name=$2 }
-    /description:/ { desc=$2; print name "|" desc }
-  ')
+  if command -v "$VIRTUAL_ENV/bin/python3" &> /dev/null; then
+    plugin_entries=$("$VIRTUAL_ENV/bin/python3" -c "
+import sys
+with open('$registry_file') as f:
+    for line in f:
+        ls = line.lstrip()
+        if ls.startswith('- name:'):
+            name = ls.split(':', 1)[1].strip()
+        elif ls.startswith('description:') and not line.strip().startswith('#'):
+            desc = ls.split(':', 1)[1].strip().strip('\"')
+            if name and desc:
+                print(f'{name}|{desc}')
+                name = ''
+                desc = ''
+")
+  fi
+
   while IFS='|' read -r plugin_name plugin_desc; do
     [[ -z "$plugin_name" ]] && continue
 
