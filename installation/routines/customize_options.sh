@@ -408,7 +408,9 @@ ${plugin_name}:
   ${plugin_desc}
 
 Do you want to install ${plugin_name}? [y/N]"
-    read -r response
+    # Must read from /dev/tty (not stdin) because the surrounding
+    # while...done <<< redirects stdin from the plugin_entries string.
+    read -r response </dev/tty
     case "$response" in
       [yY][eE][sS]|[yY])
         if [[ -z "$SELECTED_PLUGINS" ]]; then
