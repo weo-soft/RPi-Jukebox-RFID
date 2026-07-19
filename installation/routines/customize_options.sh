@@ -389,14 +389,12 @@ _option_plugins() {
 The following optional plugins are available.
 You will be asked for each one individually."
 
-  # Read plugin entries from plugin_registry.yaml using Python.
-  # A standalone script in installation/includes/ handles the parsing
-  # reliably (skipping commented example entries in the YAML header).
-  # Uses bare 'python3' since venv may not be available at this stage.
+  # Read plugin entries from plugin_registry.yaml.
+  # Uses an awk-based script that skips commented lines (example entries in YAML header).
   local plugin_entries
-  local parser_script="${INSTALLATION_PATH}/installation/includes/read_plugin_registry.py"
-  if [[ -f "$parser_script" ]] && command -v python3 &> /dev/null; then
-    plugin_entries=$(python3 "$parser_script" "$registry_file")
+  local parser_script="${INSTALLATION_PATH}/installation/includes/read_plugin_registry.sh"
+  if [[ -f "$parser_script" ]]; then
+    plugin_entries=$(bash "$parser_script" "$registry_file")
   fi
 
   while IFS='|' read -r plugin_name plugin_desc; do

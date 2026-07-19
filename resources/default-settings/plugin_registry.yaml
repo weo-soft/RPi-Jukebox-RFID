@@ -1,16 +1,15 @@
 # =============================================================================
 # Jukebox Plugin Registry
 # =============================================================================
-# Diese Datei definiert alle Plugins, die während der Installation
-# zur Auswahl stehen.
+# This file defines all plugins that are presented during installation.
 #
-# Um ein neues Plugin hinzuzufügen, füge einen Eintrag unter 'plugins' hinzu:
+# To add a new plugin, add an entry under 'plugins':
 #
 # plugins:
-#   - name: mein_plugin                   # Eindeutiger Name (= modules.others Eintrag)
-#     description: "Meine Beschreibung"   # Wird in der Installer-Abfrage angezeigt
-#     repository: "https://github.com/..." # Git-Repository-URL
-#     config_key: mein_plugin             # (optional) top-level Config-Key
+#   - name: my_plugin                    # Unique name (= modules.others entry)
+#     description: "My description"      # Shown in the installer prompt
+#     repository: "https://github.com/..." # Git repository URL
+#     config_key: my_plugin              # (optional) top-level config key in jukebox.yaml
 #
 # =============================================================================
 

@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 
 # ---------------------------------------------------------------------------
-# Generische, datengetriebene Plugin-Setup-Routine
+# Generic, data-driven plugin setup routine.
 #
-# Liest die Plugin-Registry aus resources/default-settings/plugin_registry.yaml
-# und installiert alle Plugins, für die der User sich entschieden hat.
+# Reads the plugin registry from resources/default-settings/plugin_registry.yaml
+# and installs all plugins the user opted in for during customization.
 #
-# Diese Routine ist TYP-AGNOSTISCH — sie behandelt jedes Plugin gleich,
-# unabhängig davon ob es ein MediaProvider, RFID-Reader, o.ä. ist.
+# This routine is TYPE-AGNOSTIC — it treats every plugin the same,
+# regardless of whether it is a MediaProvider, RFID reader, etc.
 # ---------------------------------------------------------------------------
 
 PLUGIN_REGISTRY="${INSTALLATION_PATH}/resources/default-settings/plugin_registry.yaml"
 
-# Wird in customize_options.sh gesetzt und von _option_plugins() befüllt
+# Set in customize_options.sh by _option_plugins()
 # SELECTED_PLUGINS=""
 # CUSTOM_PLUGINS=""
 
 # ---------------------------------------------------------------------------
-# EINZELNE PLUGIN-INSTALLATION
+# SINGLE PLUGIN INSTALLATION
 # ---------------------------------------------------------------------------
 
 _setup_single_plugin() {
@@ -27,7 +27,7 @@ _setup_single_plugin() {
 
     log "  Installing plugin: ${plugin_name}"
 
-    # 1) Plugin-Repository klonen
+    # 1) Clone plugin repository
     if [[ ! -d "$plugin_dir" ]]; then
         print_c "    Cloning ${plugin_name} from ${plugin_repo}..."
         git clone "$plugin_repo" "$plugin_dir" || {
@@ -38,7 +38,7 @@ _setup_single_plugin() {
         log "    Plugin directory already exists: ${plugin_dir}. Skipping clone."
     fi
 
-    # 2) Plugin-eigene System-Abhängigkeiten installieren (falls vorhanden)
+    # 2) Install plugin-specific system dependencies (if present)
     local deps_script="${plugin_dir}/install_dependencies.sh"
     if [[ -f "$deps_script" ]]; then
         print_c "    Running plugin dependency installer..."
@@ -47,7 +47,7 @@ _setup_single_plugin() {
         }
     fi
 
-    # 3) Plugin-eigene pip requirements installieren (falls vorhanden)
+    # 3) Install plugin-specific pip requirements (if present)
     local pip_reqs="${plugin_dir}/requirements.txt"
     if [[ -f "$pip_reqs" ]]; then
         print_c "    Installing Python requirements for ${plugin_name}..."
@@ -57,7 +57,7 @@ _setup_single_plugin() {
         }
     fi
 
-    # 4) Post-Install-Konfiguration ausführen (falls vorhanden)
+    # 4) Run post-install configuration script (if present)
     local configure_script="${plugin_dir}/configure.sh"
     if [[ -f "$configure_script" ]]; then
         print_c "    Running post-install configuration for ${plugin_name}..."
@@ -69,7 +69,7 @@ _setup_single_plugin() {
 }
 
 # ---------------------------------------------------------------------------
-# CONFIG-AKTIVIERUNG: Plugin-Namen in modules.others eintragen
+# CONFIG ENABLEMENT: Add plugin names to modules.others
 # ---------------------------------------------------------------------------
 
 _enable_plugins_in_config() {
@@ -116,7 +116,7 @@ for p in added:
 }
 
 # ---------------------------------------------------------------------------
-# HAUPT-ROUTINE
+# MAIN ROUTINE
 # ---------------------------------------------------------------------------
 
 _run_setup_plugins() {
@@ -127,7 +127,7 @@ _run_setup_plugins() {
         return
     fi
 
-    # Registry-basierte Plugins
+    # Registry-based plugins
     for selected in $SELECTED_PLUGINS; do
         local repo_url
         repo_url=$("$VIRTUAL_ENV/bin/python3" -c "
@@ -148,13 +148,13 @@ for p in data.get('plugins', []):
         _setup_single_plugin "$selected" "$repo_url"
     done
 
-    # Custom/user-provided plugins (keine Registry-Auflösung nötig)
+    # Custom/user-provided plugins (no registry lookup needed)
     for custom_entry in $CUSTOM_PLUGINS; do
         local custom_name="${custom_entry%%|*}"
         local custom_repo="${custom_entry##*|}"
         if [[ -n "$custom_name" && -n "$custom_repo" ]]; then
             _setup_single_plugin "$custom_name" "$custom_repo"
-            # Custom plugin names ebenfalls zu SELECTED_PLUGINS hinzufügen für config
+            # Also add custom plugin names to SELECTED_PLUGINS for config
             if [[ -z "$SELECTED_PLUGINS" ]]; then
                 SELECTED_PLUGINS="$custom_name"
             else
