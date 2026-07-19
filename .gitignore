@@ -33,5 +33,5 @@ __pycache__/
 /**/scratch_*
 
 # Local development artifacts (not for upstream)
-AGENTS.md
-documentation/developers/mediaprovider/
+/AGENTS.md
+/documentation/developers/mediaprovider
