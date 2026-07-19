@@ -31,3 +31,7 @@ __pycache__/
 # Development Scratchpads
 /**/scratch
 /**/scratch_*
+
+# Local development artifacts (not for upstream)
+AGENTS.md
+documentation/developers/mediaprovider/
