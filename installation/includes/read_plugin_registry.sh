@@ -3,8 +3,6 @@
 # Skips commented-out lines (lines starting with #).
 # Usage: source'd or run directly with <path-to-plugin_registry.yaml>
 
-set -euo pipefail
-
 REGISTRY_FILE="${1:-}"
 
 if [[ ! -f "$REGISTRY_FILE" ]]; then
