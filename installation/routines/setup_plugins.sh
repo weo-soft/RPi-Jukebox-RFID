@@ -58,8 +58,10 @@ _setup_single_plugin() {
     fi
 
     # 4) Run post-install configuration script (if present)
-    # If stdin is a terminal, delegate to the plugin script with terminal input.
-    # Otherwise, provide empty input so the script uses its defaults without hanging.
+    # Export SETTINGS_PATH and VIRTUAL_ENV so configure.sh can find jukebox.yaml
+    # and secrets.yaml (these are set by the installer's main shell but not exported).
+    export SETTINGS_PATH="${SHARED_PATH}/settings"
+    export VIRTUAL_ENV="${INSTALLATION_PATH}/.venv"
     local configure_script="${plugin_dir}/configure.sh"
     if [[ -f "$configure_script" ]]; then
         print_c "    Running post-install configuration for ${plugin_name}..."
