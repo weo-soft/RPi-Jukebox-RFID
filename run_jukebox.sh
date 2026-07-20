@@ -10,6 +10,15 @@ SCRIPT_DIR="$(dirname "$SOURCE")"
 PROJECT_ROOT="$SCRIPT_DIR"
 cd "$PROJECT_ROOT" || { echo "Could not change directory"; exit 1; }
 
+# Bootstrap secrets from secrets.conf (optional)
+SECRETS_FILE="$PROJECT_ROOT/shared/settings/secrets.conf"
+if [ -f "$SECRETS_FILE" ] && [ -r "$SECRETS_FILE" ]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$SECRETS_FILE"
+  set +a
+fi
+
 source .venv/bin/activate || { echo "ERROR: Failed to activate virtual environment for python"; exit 1; }
 
 cd src/jukebox || { echo "Could not change directory"; exit 1; }

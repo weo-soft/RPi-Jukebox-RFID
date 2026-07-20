@@ -13,12 +13,34 @@ _jukebox_core_install_os_dependencies() {
   print_lc "  Install Jukebox OS dependencies"
 
   local apt_packages=$(get_args_from_file "${INSTALLATION_PATH}/packages-core.txt")
-  sudo apt-get -y update && sudo apt-get -y install \
+  sudo apt-get -y update || {
+    log "  [WARN] apt-get update failed (transient mirror issue?). Retrying..."
+    sudo apt-get -y update || {
+      log "  [WARN] Second apt-get update also failed. Continuing anyway."
+    }
+  }
+
+  # Install with retry: if a mirror is flaky, retry with --fix-missing
+  # which tells apt to skip the broken archive URL and try another mirror.
+  if ! sudo apt-get -y install \
     $apt_packages \
     --no-install-recommends \
     --allow-downgrades \
     --allow-remove-essential \
-    --allow-change-held-packages
+    --allow-change-held-packages; then
+    log "  [WARN] First apt-get install attempt failed. Retrying with --fix-missing..."
+    sudo apt-get -y install \
+      $apt_packages \
+      --no-install-recommends \
+      --allow-downgrades \
+      --allow-remove-essential \
+      --allow-change-held-packages \
+      --fix-missing || {
+      log "  [WARN] Retry with --fix-missing also failed."
+      log "  [WARN] This is likely a transient mirror issue."
+      log "  [WARN] Continuing anyway — verify step will catch missing packages."
+    }
+  fi
 }
 
 _jukebox_core_build_and_install_lg() {
@@ -29,10 +51,10 @@ _jukebox_core_build_and_install_lg() {
     # always build lg and lgpio from source as pypi wheels are incomplete (armv6, python3.13) or broken (bullseye)
     # build needs apt packages "swig python3-dev"
     mkdir -p "${tmp_path}" && cd "${tmp_path}" || exit_on_error
-    download_from_url "http://abyz.me.uk/lg/${lg_zip_filename}" "${lg_zip_filename}"
-    unzip ${lg_zip_filename} || exit_on_error
+    download_with_retry "http://abyz.me.uk/lg/${lg_zip_filename}" "${lg_zip_filename}" || exit_on_error "Failed to download lg library (GPIO control required)"
+    unzip ${lg_zip_filename} || exit_on_error "Failed to unzip lg library"
     cd "${lg_filename}" || exit_on_error
-    make && sudo make install
+    make && sudo make install || exit_on_error "Failed to build/install lg library"
     cd "${INSTALLATION_PATH}" && sudo rm -rf "${tmp_path}"
 }
 
@@ -66,8 +88,8 @@ _jukebox_core_build_libzmq_with_drafts() {
   local cpu_count=${CPU_COUNT:-$(python3 -c "import os; print(os.cpu_count())")}
 
   cd "${JUKEBOX_ZMQ_TMP_DIR}" || exit_on_error
-  wget --quiet https://github.com/zeromq/libzmq/releases/download/v${JUKEBOX_ZMQ_VERSION}/${zmq_tar_filename} || exit_on_error "Download failed"
-  tar -xzf ${zmq_tar_filename}
+  download_with_retry "https://github.com/zeromq/libzmq/releases/download/v${JUKEBOX_ZMQ_VERSION}/${zmq_tar_filename}" "${zmq_tar_filename}" || exit_on_error "Failed to download libzmq source"
+  tar -xzf ${zmq_tar_filename} || exit_on_error "Failed to extract libzmq archive"
   rm -f ${zmq_tar_filename}
   cd ${zmq_filename} || exit_on_error
   ./configure --prefix=${JUKEBOX_ZMQ_PREFIX} --enable-drafts --disable-Werror
@@ -80,8 +102,8 @@ _jukebox_core_download_prebuilt_libzmq_with_drafts() {
   ARCH=$(get_architecture)
 
   cd "${JUKEBOX_ZMQ_TMP_DIR}" || exit_on_error
-  wget --quiet https://github.com/pabera/libzmq/releases/download/v${JUKEBOX_ZMQ_VERSION}/libzmq5-${ARCH}-${JUKEBOX_ZMQ_VERSION}.tar.gz -O ${zmq_tar_filename} || exit_on_error "Download failed"
-  tar -xzf ${zmq_tar_filename}
+  download_with_retry "https://github.com/pabera/libzmq/releases/download/v${JUKEBOX_ZMQ_VERSION}/libzmq5-${ARCH}-${JUKEBOX_ZMQ_VERSION}.tar.gz" "${zmq_tar_filename}" || exit_on_error "Failed to download pre-built libzmq"
+  tar -xzf ${zmq_tar_filename} || exit_on_error "Failed to extract libzmq archive"
   rm -f ${zmq_tar_filename}
   sudo rsync -a ./* ${JUKEBOX_ZMQ_PREFIX}/
 }
@@ -116,6 +138,16 @@ _jukebox_core_install_settings() {
   print_lc "  Register Jukebox settings"
   cp -f "${INSTALLATION_PATH}/resources/default-settings/jukebox.default.yaml" "${SETTINGS_PATH}/jukebox.yaml"
   cp -f "${INSTALLATION_PATH}/resources/default-settings/logger.default.yaml" "${SETTINGS_PATH}/logger.yaml"
+
+  # Create empty secrets.yaml template with restrictive permissions (chmod 600)
+  # Only the file owner can read/write secrets.
+  # Plugins store credentials (API keys, passwords) in this file.
+  local SECRETS_FILE="${SETTINGS_PATH}/secrets.yaml"
+  if [ ! -f "$SECRETS_FILE" ]; then
+    echo "" > "$SECRETS_FILE"
+    chmod 600 "$SECRETS_FILE"
+    print_lc "  Created secrets.yaml: ${SECRETS_FILE} (chmod 600)"
+  fi
 }
 
 _jukebox_core_register_as_service() {

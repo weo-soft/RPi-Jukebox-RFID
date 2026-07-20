@@ -127,11 +127,50 @@ validate_url() {
     return $?
 }
 
+# Download with retries and timeout.
+# Usage: download_with_retry <url> <output_filename>
+# Returns 0 on success, 1 after all retries are exhausted.
+download_with_retry() {
+    local url="$1"
+    local output_filename="$2"
+    local max_retries="${3:-3}"
+    local timeout="${4:-30}"
+    local attempt=1
+
+    while [ $attempt -le $max_retries ]; do
+        log "    Download attempt $attempt/$max_retries: $url"
+        if wget --timeout="$timeout" --tries=2 --wait=5 \
+                "$url" -O "$output_filename" 2>/dev/null; then
+            return 0
+        fi
+        log "    [WARN] Download failed (attempt $attempt/$max_retries)"
+        attempt=$((attempt + 1))
+        [ $attempt -le $max_retries ] && sleep 3
+    done
+    return 1
+}
+
 download_from_url() {
     local url=$1
     local output_filename=$2
-    wget ${url} -O ${output_filename} || exit_on_error "Download failed"
-    return $?
+    if ! download_with_retry "$url" "$output_filename"; then
+        exit_on_error "Download failed: $url"
+    fi
+    return 0
+}
+
+# Non-fatal download: logs a warning instead of aborting.
+# Usage: try_download <url> <output_filename>
+# Returns 0 on success, 1 on failure (caller should check).
+try_download() {
+    local url="$1"
+    local output_filename="$2"
+    if ! download_with_retry "$url" "$output_filename"; then
+        log "  [WARN] Could not download ${url}"
+        log "  [WARN] Skipping. This may affect functionality."
+        return 1
+    fi
+    return 0
 }
 
 get_string_length() {
@@ -207,52 +246,50 @@ print_verify_installation() {
 }
 
 # Check if the file(s) exists
+# Supports filenames with spaces when passed as properly quoted arguments.
 verify_files_exists() {
-    local files="$@"
-    log "  Verify '${files}' exists"
+    log "  Verify files exist: '$*'"
 
-    if [[ -z "${files}" ]]; then
+    if [[ $# -eq 0 ]]; then
         exit_on_error "ERROR: at least one parameter value is missing!"
     fi
 
-    for file in $files
-    do
-        test ! -f ${file} && exit_on_error "ERROR: '${file}' does not exists or is not a file!"
+    for file in "$@"; do
+        test ! -f "$file" && exit_on_error "ERROR: '${file}' does not exist or is not a file!"
     done
     log "  CHECK"
 }
 
 # Check if the dir(s) exists
+# Supports directory names with spaces when passed as properly quoted arguments.
 verify_dirs_exists() {
-    local dirs="$@"
-    log "  Verify '${dirs}' exists"
+    log "  Verify dirs exist: '$*'"
 
-    if [[ -z "${dirs}" ]]; then
+    if [[ $# -eq 0 ]]; then
         exit_on_error "ERROR: at least one parameter value is missing!"
     fi
 
-    for dir in $dirs
-    do
-        test ! -d ${dir} && exit_on_error "ERROR: '${dir}' does not exists or is not a dir!"
+    for dir in "$@"; do
+        test ! -d "$dir" && exit_on_error "ERROR: '${dir}' does not exist or is not a dir!"
     done
     log "  CHECK"
 }
 
 # Check if the file(s) has/have the expected owner and modifications
+# Supports filenames with spaces when passed as properly quoted arguments.
 verify_files_chmod_chown() {
     local mod_expected=$1
     local user_expected=$2
     local group_expected=$3
-    local files="${@:4}"
-    log "  Verify '${mod_expected}' '${user_expected}:${group_expected}' is set for '${files}'"
+    shift 3
+    log "  Verify '${mod_expected}' '${user_expected}:${group_expected}' is set for '$*'"
 
-    if [[ -z "${mod_expected}" || -z "${user_expected}" || -z "${group_expected}" || -z "${files}" ]]; then
+    if [[ -z "${mod_expected}" || -z "${user_expected}" || -z "${group_expected}" || $# -eq 0 ]]; then
         exit_on_error "ERROR: at least one parameter value is missing!"
     fi
 
-    for file in $files
-    do
-        test ! -f ${file} && exit_on_error "ERROR: '${file}' does not exists or is not a file!"
+    for file in "$@"; do
+        test ! -f "$file" && exit_on_error "ERROR: '${file}' does not exist or is not a file!"
 
         mod_actual=$(stat --format '%a' "${file}")
         user_actual=$(stat -c '%U' "${file}")
@@ -265,20 +302,20 @@ verify_files_chmod_chown() {
 }
 
 # Check if the dir(s) has/have the expected owner and modifications
+# Supports directory names with spaces when passed as properly quoted arguments.
 verify_dirs_chmod_chown() {
     local mod_expected=$1
     local user_expected=$2
     local group_expected=$3
-    local dirs="${@:4}"
-    log "  Verify '${mod_expected}' '${user_expected}:${group_expected}' is set for '${dirs}'"
+    shift 3
+    log "  Verify '${mod_expected}' '${user_expected}:${group_expected}' is set for '$*'"
 
-    if [[ -z "${mod_expected}" || -z "${user_expected}" || -z "${group_expected}" || -z "${dirs}" ]]; then
+    if [[ -z "${mod_expected}" || -z "${user_expected}" || -z "${group_expected}" || $# -eq 0 ]]; then
         exit_on_error "ERROR: at least one parameter value is missing!"
     fi
 
-    for dir in $dirs
-    do
-        test ! -d ${dir} && exit_on_error "ERROR: '${dir}' does not exists or is not a dir!"
+    for dir in "$@"; do
+        test ! -d "$dir" && exit_on_error "ERROR: '${dir}' does not exist or is not a dir!"
 
         mod_actual=$(stat --format '%a' "${dir}")
         user_actual=$(stat -c '%U' "${dir}")

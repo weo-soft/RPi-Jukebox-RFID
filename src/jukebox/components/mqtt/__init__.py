@@ -209,8 +209,13 @@ def initialize():
 
     if mqtt_enabled:
         client_id = cfg.setndefault("mqtt", "client_id", value="phoniebox-future3")
-        username = cfg.setndefault("mqtt", "username", value="phoniebox-dev")
-        password = cfg.setndefault("mqtt", "password", value="phoniebox-dev")
+        # Resolve credentials via secrets module (env > secrets.yaml > yaml default)
+        # Environment variables: MQTT_USERNAME, MQTT_PASSWORD
+        from jukebox.secrets import retrieve
+        username = retrieve('mqtt', 'username', env_var='MQTT_USERNAME', default='phoniebox-dev')
+        password = retrieve('mqtt', 'password', env_var='MQTT_PASSWORD', default=None)
+        if not password:
+            logger.warning("MQTT password not configured. Connection may fail.")
         host = cfg.setndefault("mqtt", "host", value="127.0.0.1")
         port = cfg.setndefault("mqtt", "port", value=1883)
 
