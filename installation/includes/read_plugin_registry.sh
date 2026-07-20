@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-REGISTRY_FILE="${1}"
+REGISTRY_FILE="${1:-}"
 
 if [[ ! -f "$REGISTRY_FILE" ]]; then
     exit 0
