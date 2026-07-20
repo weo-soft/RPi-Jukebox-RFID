@@ -58,10 +58,12 @@ _setup_single_plugin() {
     fi
 
     # 4) Run post-install configuration script (if present)
+    # Must pass stdin from /dev/tty so interactive read prompts work correctly
+    # when called from within the installer's log frame.
     local configure_script="${plugin_dir}/configure.sh"
     if [[ -f "$configure_script" ]]; then
         print_c "    Running post-install configuration for ${plugin_name}..."
-        bash "$configure_script" "$plugin_name" || {
+        bash "$configure_script" "$plugin_name" </dev/tty || {
             print_c "    WARNING: Configuration for ${plugin_name} failed."
             print_c "    You can re-run it later: bash ${configure_script}"
         }
