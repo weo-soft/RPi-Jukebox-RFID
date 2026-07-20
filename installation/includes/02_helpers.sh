@@ -1,4 +1,4 @@
-l#!/usr/bin/env bash
+#!/usr/bin/env bash
 
 ### Helpers
 
@@ -246,52 +246,50 @@ print_verify_installation() {
 }
 
 # Check if the file(s) exists
+# Supports filenames with spaces when passed as properly quoted arguments.
 verify_files_exists() {
-    local files="$@"
-    log "  Verify '${files}' exists"
+    log "  Verify files exist: '$*'"
 
-    if [[ -z "${files}" ]]; then
+    if [[ $# -eq 0 ]]; then
         exit_on_error "ERROR: at least one parameter value is missing!"
     fi
 
-    for file in $files
-    do
-        test ! -f ${file} && exit_on_error "ERROR: '${file}' does not exists or is not a file!"
+    for file in "$@"; do
+        test ! -f "$file" && exit_on_error "ERROR: '${file}' does not exist or is not a file!"
     done
     log "  CHECK"
 }
 
 # Check if the dir(s) exists
+# Supports directory names with spaces when passed as properly quoted arguments.
 verify_dirs_exists() {
-    local dirs="$@"
-    log "  Verify '${dirs}' exists"
+    log "  Verify dirs exist: '$*'"
 
-    if [[ -z "${dirs}" ]]; then
+    if [[ $# -eq 0 ]]; then
         exit_on_error "ERROR: at least one parameter value is missing!"
     fi
 
-    for dir in $dirs
-    do
-        test ! -d ${dir} && exit_on_error "ERROR: '${dir}' does not exists or is not a dir!"
+    for dir in "$@"; do
+        test ! -d "$dir" && exit_on_error "ERROR: '${dir}' does not exist or is not a dir!"
     done
     log "  CHECK"
 }
 
 # Check if the file(s) has/have the expected owner and modifications
+# Supports filenames with spaces when passed as properly quoted arguments.
 verify_files_chmod_chown() {
     local mod_expected=$1
     local user_expected=$2
     local group_expected=$3
-    local files="${@:4}"
-    log "  Verify '${mod_expected}' '${user_expected}:${group_expected}' is set for '${files}'"
+    shift 3
+    log "  Verify '${mod_expected}' '${user_expected}:${group_expected}' is set for '$*'"
 
-    if [[ -z "${mod_expected}" || -z "${user_expected}" || -z "${group_expected}" || -z "${files}" ]]; then
+    if [[ -z "${mod_expected}" || -z "${user_expected}" || -z "${group_expected}" || $# -eq 0 ]]; then
         exit_on_error "ERROR: at least one parameter value is missing!"
     fi
 
-    for file in $files
-    do
-        test ! -f ${file} && exit_on_error "ERROR: '${file}' does not exists or is not a file!"
+    for file in "$@"; do
+        test ! -f "$file" && exit_on_error "ERROR: '${file}' does not exist or is not a file!"
 
         mod_actual=$(stat --format '%a' "${file}")
         user_actual=$(stat -c '%U' "${file}")
@@ -304,20 +302,20 @@ verify_files_chmod_chown() {
 }
 
 # Check if the dir(s) has/have the expected owner and modifications
+# Supports directory names with spaces when passed as properly quoted arguments.
 verify_dirs_chmod_chown() {
     local mod_expected=$1
     local user_expected=$2
     local group_expected=$3
-    local dirs="${@:4}"
-    log "  Verify '${mod_expected}' '${user_expected}:${group_expected}' is set for '${dirs}'"
+    shift 3
+    log "  Verify '${mod_expected}' '${user_expected}:${group_expected}' is set for '$*'"
 
-    if [[ -z "${mod_expected}" || -z "${user_expected}" || -z "${group_expected}" || -z "${dirs}" ]]; then
+    if [[ -z "${mod_expected}" || -z "${user_expected}" || -z "${group_expected}" || $# -eq 0 ]]; then
         exit_on_error "ERROR: at least one parameter value is missing!"
     fi
 
-    for dir in $dirs
-    do
-        test ! -d ${dir} && exit_on_error "ERROR: '${dir}' does not exists or is not a dir!"
+    for dir in "$@"; do
+        test ! -d "$dir" && exit_on_error "ERROR: '${dir}' does not exist or is not a dir!"
 
         mod_actual=$(stat --format '%a' "${dir}")
         user_actual=$(stat -c '%U' "${dir}")
