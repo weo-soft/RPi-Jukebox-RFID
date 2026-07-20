@@ -8,7 +8,8 @@ set -euo pipefail
 REGISTRY_FILE="${1:-}"
 
 if [[ ! -f "$REGISTRY_FILE" ]]; then
-    exit 0
+    # Return if sourced (source context), exit if run directly
+    return 0 2>/dev/null || exit 0
 fi
 
 # Parse YAML: extract name and description from non-commented lines.
