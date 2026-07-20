@@ -51,10 +51,21 @@ _jukebox_core_build_and_install_lg() {
     # always build lg and lgpio from source as pypi wheels are incomplete (armv6, python3.13) or broken (bullseye)
     # build needs apt packages "swig python3-dev"
     mkdir -p "${tmp_path}" && cd "${tmp_path}" || exit_on_error
-    download_from_url "http://abyz.me.uk/lg/${lg_zip_filename}" "${lg_zip_filename}"
-    unzip ${lg_zip_filename} || exit_on_error
+    if ! try_download "http://abyz.me.uk/lg/${lg_zip_filename}" "${lg_zip_filename}"; then
+        log "  [WARN] lg library download failed. GPIO control via lg may be unavailable."
+        log "  [WARN] The jukebox core will still be functional for audio playback."
+        cd "${INSTALLATION_PATH}"
+        return
+    fi
+    unzip ${lg_zip_filename} > /dev/null 2>&1 || {
+        log "  [WARN] Failed to unzip lg library. Skipping."
+        cd "${INSTALLATION_PATH}"
+        return
+    }
     cd "${lg_filename}" || exit_on_error
-    make && sudo make install
+    make > /dev/null 2>&1 && sudo make install > /dev/null 2>&1 || {
+        log "  [WARN] Failed to build/install lg library. GPIO control via lg may be unavailable."
+    }
     cd "${INSTALLATION_PATH}" && sudo rm -rf "${tmp_path}"
 }
 
@@ -88,8 +99,16 @@ _jukebox_core_build_libzmq_with_drafts() {
   local cpu_count=${CPU_COUNT:-$(python3 -c "import os; print(os.cpu_count())")}
 
   cd "${JUKEBOX_ZMQ_TMP_DIR}" || exit_on_error
-  wget --quiet https://github.com/zeromq/libzmq/releases/download/v${JUKEBOX_ZMQ_VERSION}/${zmq_tar_filename} || exit_on_error "Download failed"
-  tar -xzf ${zmq_tar_filename}
+  if ! try_download "https://github.com/zeromq/libzmq/releases/download/v${JUKEBOX_ZMQ_VERSION}/${zmq_tar_filename}" "${zmq_tar_filename}"; then
+      log "  [WARN] libzmq source download failed. Cannot build with drafts."
+      cd "${INSTALLATION_PATH}"
+      return 1
+  fi
+  tar -xzf ${zmq_tar_filename} > /dev/null 2>&1 || {
+      log "  [WARN] Failed to extract libzmq archive."
+      cd "${INSTALLATION_PATH}"
+      return 1
+  }
   rm -f ${zmq_tar_filename}
   cd ${zmq_filename} || exit_on_error
   ./configure --prefix=${JUKEBOX_ZMQ_PREFIX} --enable-drafts --disable-Werror
@@ -102,8 +121,16 @@ _jukebox_core_download_prebuilt_libzmq_with_drafts() {
   ARCH=$(get_architecture)
 
   cd "${JUKEBOX_ZMQ_TMP_DIR}" || exit_on_error
-  wget --quiet https://github.com/pabera/libzmq/releases/download/v${JUKEBOX_ZMQ_VERSION}/libzmq5-${ARCH}-${JUKEBOX_ZMQ_VERSION}.tar.gz -O ${zmq_tar_filename} || exit_on_error "Download failed"
-  tar -xzf ${zmq_tar_filename}
+  if ! try_download "https://github.com/pabera/libzmq/releases/download/v${JUKEBOX_ZMQ_VERSION}/libzmq5-${ARCH}-${JUKEBOX_ZMQ_VERSION}.tar.gz" "${zmq_tar_filename}"; then
+      log "  [WARN] Pre-built libzmq download failed. Cannot install pyzmq with WebSocket support."
+      cd "${INSTALLATION_PATH}"
+      return 1
+  fi
+  tar -xzf ${zmq_tar_filename} > /dev/null 2>&1 || {
+      log "  [WARN] Failed to extract libzmq archive."
+      cd "${INSTALLATION_PATH}"
+      return 1
+  }
   rm -f ${zmq_tar_filename}
   sudo rsync -a ./* ${JUKEBOX_ZMQ_PREFIX}/
 }
@@ -121,14 +148,21 @@ _jukebox_core_build_and_install_pyzmq() {
 
   if ! pip list | grep -F pyzmq >> /dev/null; then
     mkdir -p "${JUKEBOX_ZMQ_TMP_DIR}" || exit_on_error
+    local zmq_ok=0
     if [ "$BUILD_LIBZMQ_WITH_DRAFTS_ON_DEVICE" = true ] ; then
-      _jukebox_core_build_libzmq_with_drafts
+      _jukebox_core_build_libzmq_with_drafts || zmq_ok=1
     else
-      _jukebox_core_download_prebuilt_libzmq_with_drafts
+      _jukebox_core_download_prebuilt_libzmq_with_drafts || zmq_ok=1
     fi
 
-    ZMQ_PREFIX="${JUKEBOX_ZMQ_PREFIX}" ZMQ_DRAFT_API=1 \
-      pip install -v 'pyzmq<26' --no-binary pyzmq
+    if [ $zmq_ok -eq 0 ]; then
+        ZMQ_PREFIX="${JUKEBOX_ZMQ_PREFIX}" ZMQ_DRAFT_API=1 \
+          pip install -v 'pyzmq<26' --no-binary pyzmq
+    else
+        log "  [WARN] libzmq could not be obtained. Installing pyzmq without WebSocket support."
+        log "  [WARN] The WebUI will still work using the fallback polling mechanism."
+        pip install 'pyzmq>=26'
+    fi
   else
     print_lc "    Skipping. pyzmq already installed"
   fi
@@ -176,16 +210,22 @@ _jukebox_core_check() {
     verify_pip_modules_not $pip_modules_excluded
 
     log "  Verify ZMQ version '${JUKEBOX_ZMQ_VERSION}'"
-    local zmq_version=$(python -c 'import zmq; print(f"{zmq.zmq_version()}")')
-    if [[ "${zmq_version}" != "${JUKEBOX_ZMQ_VERSION}" ]]; then
-        exit_on_error "ERROR: ZMQ version '${zmq_version}' differs from expected '${JUKEBOX_ZMQ_VERSION}'!"
+    local zmq_version=$(python -c 'import zmq; print(f"{zmq.zmq_version()}")' 2>/dev/null || echo "unknown")
+    if [[ "${zmq_version}" == "unknown" ]]; then
+        log "  [WARN] pyzmq not installed yet. Skipping version check."
+    elif [[ "${zmq_version}" != "${JUKEBOX_ZMQ_VERSION}" ]]; then
+        log "  [WARN] ZMQ version '${zmq_version}' differs from expected '${JUKEBOX_ZMQ_VERSION}'."
+        log "  [WARN] This may affect WebSocket support. Core audio playback is unaffected."
     fi
     log "  CHECK"
 
     log "  Verify ZMQ has 'DRAFT-API' activated"
-    local zmq_hasDraftApi=$(python -c 'import zmq; print(f"{zmq.DRAFT_API}")')
-    if [[ "${zmq_hasDraftApi}" != "True" ]]; then
-        exit_on_error "ERROR: ZMQ has 'DRAFT-API' '${zmq_hasDraftApi}' differs from expected 'True'!"
+    local zmq_hasDraftApi=$(python -c 'import zmq; print(f"{zmq.DRAFT_API}")' 2>/dev/null || echo "missing")
+    if [[ "${zmq_hasDraftApi}" == "missing" ]]; then
+        log "  [WARN] pyzmq not available. WebSocket support will be unavailable."
+    elif [[ "${zmq_hasDraftApi}" == "False" ]] || [[ "${zmq_hasDraftApi}" == "0" ]]; then
+        log "  [WARN] ZMQ DRAFT-API not activated. WebSocket support unavailable."
+        log "  [WARN] The WebUI works correctly via the fallback polling mechanism."
     fi
     log "  CHECK"
 

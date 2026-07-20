@@ -127,11 +127,50 @@ validate_url() {
     return $?
 }
 
+# Download with retries and timeout.
+# Usage: download_with_retry <url> <output_filename>
+# Returns 0 on success, 1 after all retries are exhausted.
+download_with_retry() {
+    local url="$1"
+    local output_filename="$2"
+    local max_retries="${3:-3}"
+    local timeout="${4:-30}"
+    local attempt=1
+
+    while [ $attempt -le $max_retries ]; do
+        log "    Download attempt $attempt/$max_retries: $url"
+        if wget --timeout="$timeout" --tries=2 --wait=5 \
+                "$url" -O "$output_filename" 2>/dev/null; then
+            return 0
+        fi
+        log "    [WARN] Download failed (attempt $attempt/$max_retries)"
+        attempt=$((attempt + 1))
+        [ $attempt -le $max_retries ] && sleep 3
+    done
+    return 1
+}
+
 download_from_url() {
     local url=$1
     local output_filename=$2
-    wget ${url} -O ${output_filename} || exit_on_error "Download failed"
-    return $?
+    if ! download_with_retry "$url" "$output_filename"; then
+        exit_on_error "Download failed: $url"
+    fi
+    return 0
+}
+
+# Non-fatal download: logs a warning instead of aborting.
+# Usage: try_download <url> <output_filename>
+# Returns 0 on success, 1 on failure (caller should check).
+try_download() {
+    local url="$1"
+    local output_filename="$2"
+    if ! download_with_retry "$url" "$output_filename"; then
+        log "  [WARN] Could not download ${url}"
+        log "  [WARN] Skipping. This may affect functionality."
+        return 1
+    fi
+    return 0
 }
 
 get_string_length() {
