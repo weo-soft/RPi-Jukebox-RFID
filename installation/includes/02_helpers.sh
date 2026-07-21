@@ -62,14 +62,28 @@ run_with_log_frame() {
 
 get_architecture() {
     local arch=""
-    if [ "$(uname -m)" = "armv7l" ]; then
-        arch="armv7"
-    elif [ "$(uname -m)" = "armv6l" ]; then
-        arch="armv6"
-    elif [ "$(uname -m)" = "aarch64" ]; then
-        arch="arm64"
-    else
-        arch="$(uname -m)"
+    # Use dpkg to detect the actual userland architecture, not just the kernel.
+    # This correctly distinguishes armhf (32-bit) from arm64 (64-bit) on systems
+    # that run a 32-bit userland on a 64-bit kernel (common on Raspberry Pi).
+    if command -v dpkg &>/dev/null; then
+        local dpkg_arch
+        dpkg_arch=$(dpkg --print-architecture 2>/dev/null || true)
+        case "$dpkg_arch" in
+            arm64) arch="arm64" ;;
+            armhf) arch="armv7" ;;
+        esac
+    fi
+    # Fallback to uname if dpkg not available or didn't match
+    if [[ -z "$arch" ]]; then
+        if [ "$(uname -m)" = "armv7l" ]; then
+            arch="armv7"
+        elif [ "$(uname -m)" = "armv6l" ]; then
+            arch="armv6"
+        elif [ "$(uname -m)" = "aarch64" ]; then
+            arch="arm64"
+        else
+            arch="$(uname -m)"
+        fi
     fi
 
     echo $arch
