@@ -29,6 +29,7 @@ const FIELD_COMPONENTS = {
   string: ({ field, value, onChange }) => (
     <TextField
       fullWidth
+      type={field.sensitive ? 'password' : 'text'}
       label={field.label}
       helperText={field.description}
       placeholder={field.placeholder}
