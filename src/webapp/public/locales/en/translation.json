@@ -303,6 +303,12 @@
     },
     "systemcontrols": {
       "title": "System Controls"
+    },
+    "plugins": {
+      "save": "Save",
+      "saving": "Saving ...",
+      "reset": "Reset",
+      "saved-restart-required": "Configuration saved. Please restart the Jukebox for changes to take effect."
     }
   }
 }

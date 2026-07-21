@@ -282,6 +282,26 @@ const commands = {
     argKeys: ['settings'],
   },
 
+  // Plugin Configuration (M11)
+  getPluginSchemas: {
+    _package: 'misc',
+    plugin: 'get_plugin_schemas',
+  },
+  getPluginConfigs: {
+    _package: 'misc',
+    plugin: 'get_plugin_configs',
+  },
+  setPluginConfig: {
+    _package: 'misc',
+    plugin: 'set_plugin_config',
+    argKeys: ['plugin_name', 'config'],
+  },
+  setPluginSecret: {
+    _package: 'misc',
+    plugin: 'set_plugin_secret',
+    argKeys: ['plugin_name', 'key', 'value'],
+  },
+
   // Synchronisation
   'sync_rfidcards_all': {
     _package: 'sync_rfidcards',
