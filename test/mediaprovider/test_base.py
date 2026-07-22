@@ -1,6 +1,15 @@
 """Tests for MediaProvider base class play_card() behavior."""
 
+import pytest
 from jukebox.mediaprovider import MediaProvider, get_manager
+
+
+_mpd_available = False
+try:
+    import mpd  # noqa: F401
+    _mpd_available = True
+except ImportError:
+    pass
 
 
 class _MockMinimalProvider(MediaProvider):
@@ -88,17 +97,25 @@ class _MockMinimalProvider(MediaProvider):
         return "mock"
 
 
+
+class _FakeCallbacks:
+    """Fake callbacks object with run_callbacks for testing."""
+    def run_callbacks(self, folder, state):
+        pass
+
+
 def setup_manager():
     """Set up the manager with callbacks and second_swipe_action."""
     mgr = get_manager()
-    fake_callbacks = object()
-    mgr.set_play_card_callbacks(fake_callbacks)
+    mgr.set_play_card_callbacks(_FakeCallbacks())
     mgr.set_second_swipe_action(None)  # No second-swipe action
     mgr.set_last_played_folder('')
     return mgr
 
 
 class TestPlayCardInheritance:
+    @pytest.mark.skipif(not _mpd_available,
+                        reason="mpd module not available")
     def test_play_card_not_overridden(self):
         """MpdMediaProvider inherits play_card, does not override it."""
         from components.playermpd.mpd_provider import MpdMediaProvider

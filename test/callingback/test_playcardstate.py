@@ -1,5 +1,6 @@
 """Tests for PlayCardState enum in jukebox.callingback."""
 
+import pytest
 from jukebox.callingback import PlayCardState
 
 
@@ -9,10 +10,21 @@ def test_playcardstate_values():
     assert PlayCardState.secondSwipe.value == 1
 
 
-def test_playcardstate_importable_from_playcontentcallback():
-    """Backward compat: PlayCardState is re-exported from playcontentcallback."""
-    from components.playermpd.playcontentcallback import PlayCardState as PCS2
-    assert PCS2 is PlayCardState
+mpd_available = False
+try:
+    import mpd  # noqa: F401
+    mpd_available = True
+except ImportError:
+    pass
+
+
+@pytest.mark.skipif(not mpd_available, reason="mpd module not available")
+def test_playcardstate_re_exported_from_playcontentcallback():
+    """Backward compat: playcontentcallback module re-exports PlayCardState
+    from callingback without defining its own class."""
+    import components.playermpd.playcontentcallback as pcc
+    assert hasattr(pcc, 'PlayCardState')
+    assert pcc.PlayCardState is PlayCardState
 
 
 def test_playcardstate_comparison():
