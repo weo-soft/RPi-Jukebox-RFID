@@ -417,8 +417,9 @@ class PlayerMPD:
 
         Will reset settings to folder config"""
         logger.debug("Replay")
+        from jukebox.mediaprovider import get_manager
         with self.mpd_lock:
-            self.play_folder(self.music_player_status['player_status']['last_played_folder'])
+            self.play_folder(get_manager().get_last_played_folder())
 
     @plugs.tag
     def toggle(self):
@@ -434,9 +435,10 @@ class PlayerMPD:
         > [!NOTE]
         > To me this seems much like the behaviour of play,
         > but we keep it as it is specifically implemented in box 2.X"""
+        from jukebox.mediaprovider import get_manager
         with self.mpd_lock:
             if self.mpd_status['state'] == 'stop':
-                self.play_folder(self.music_player_status['player_status']['last_played_folder'])
+                self.play_folder(get_manager().get_last_played_folder())
 
     # Shuffle
     def _shuffle(self, random):
@@ -502,7 +504,7 @@ class PlayerMPD:
             logger.error(f"'{option}' does not exist for 'repeat'")
 
     @plugs.tag
-    def get_current_song(self, param):
+    def get_current_song(self) -> Optional[dict]:
         return self.mpd_status
 
     @plugs.tag
@@ -559,9 +561,10 @@ class PlayerMPD:
         #     * TODO: last_played_folder is restored after box start, so first swipe of last played card may look like
         #       second swipe
         #
-        logger.debug(f"last_played_folder = {self.music_player_status['player_status']['last_played_folder']}")
+        from jukebox.mediaprovider import get_manager
+        logger.debug(f"last_played_folder = {get_manager().get_last_played_folder()}")
         with self.mpd_lock:
-            is_second_swipe = self.music_player_status['player_status']['last_played_folder'] == folder
+            is_second_swipe = get_manager().get_last_played_folder() == folder
         if self.second_swipe_action is not None and is_second_swipe:
             logger.debug('Calling second swipe action')
 
@@ -638,7 +641,8 @@ class PlayerMPD:
             except Exception as e:
                 logger.error(f"{e.__class__.__qualname__}: {e} at uri {uri}")
 
-            self.music_player_status['player_status']['last_played_folder'] = folder
+            from jukebox.mediaprovider import get_manager
+            get_manager().set_last_played_folder(folder)
 
             self.current_folder_status = self.music_player_status['audio_folder_status'].get(folder)
             if self.current_folder_status is None:
@@ -773,6 +777,31 @@ def initialize():
 
     global play_card_callbacks
     play_card_callbacks = PlayContentCallbacks[PlayCardState]('play_card_callbacks', logger, context=player_ctrl.mpd_lock)
+
+    # Inject callbacks, persist callback, and second_swipe_action into Manager
+    from jukebox.mediaprovider import get_manager
+    get_manager().set_play_card_callbacks(play_card_callbacks)
+    get_manager().set_second_swipe_action(player_ctrl.second_swipe_action)
+
+    def _persist_to_music_player_status(folder: str):
+        if 'player_status' not in player_ctrl.music_player_status:
+            player_ctrl.music_player_status['player_status'] = {}
+        player_ctrl.music_player_status['player_status']['last_played_folder'] = folder
+        player_ctrl.music_player_status.save_to_json()
+    get_manager().set_persist_callback(_persist_to_music_player_status)
+
+    # Restore persisted _last_played_folder into Manager
+    restored = player_ctrl.music_player_status.get('player_status', {}).get('last_played_folder', '')
+    get_manager().set_last_played_folder(restored)
+
+    # Register MPD as MediaProvider
+    from .mpd_provider import MpdMediaProvider
+    mpd_provider = MpdMediaProvider()
+    mpd_provider._player = player_ctrl
+    mpd_provider.initialize()
+    get_manager().register_provider('mpd', mpd_provider)
+    get_manager().set_default('mpd')
+    plugs.register(mpd_provider, package='player', name='provider')
 
     # Update mpc library
     library_update = cfg.setndefault('playermpd', 'library', 'update_on_startup', value=True)
