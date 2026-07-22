@@ -6,7 +6,14 @@ Provides a generic callback handler
 import logging
 import threading
 import traceback
+from enum import Enum
 from typing import Callable, Optional, List
+
+
+class PlayCardState(Enum):
+    """States for play_card callbacks in PlayContentCallbacks"""
+    firstSwipe = 0
+    secondSwipe = 1
 
 
 class CallbackHandler:
