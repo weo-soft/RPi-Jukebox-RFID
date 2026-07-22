@@ -89,7 +89,6 @@ class _MockProvider(MediaProvider):
 @pytest.fixture(autouse=True)
 def _reset_manager():
     """Reset singleton state between tests to avoid cross-test interference."""
-    mgr = get_manager()
     # Create a new manager instance to wipe state
     import jukebox.mediaprovider.manager as mgr_module
     mgr_module._manager_instance = mgr_module.MediaProviderManager()

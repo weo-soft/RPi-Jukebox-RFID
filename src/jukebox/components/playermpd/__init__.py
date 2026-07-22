@@ -88,6 +88,7 @@ import logging
 import time
 import functools
 from pathlib import Path
+from typing import Optional
 import components.player
 import jukebox.cfghandler
 import jukebox.utils as utils
