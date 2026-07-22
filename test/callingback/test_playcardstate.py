@@ -10,15 +10,17 @@ def test_playcardstate_values():
     assert PlayCardState.secondSwipe.value == 1
 
 
-mpd_available = False
+_full_env_available = False
 try:
     import mpd  # noqa: F401
-    mpd_available = True
+    import zmq  # noqa: F401
+    _full_env_available = True
 except ImportError:
     pass
 
 
-@pytest.mark.skipif(not mpd_available, reason="mpd module not available")
+@pytest.mark.skipif(not _full_env_available,
+                    reason="Requires full Phoniebox environment (mpd, zmq)")
 def test_playcardstate_re_exported_from_playcontentcallback():
     """Backward compat: playcontentcallback module re-exports PlayCardState
     from callingback without defining its own class."""

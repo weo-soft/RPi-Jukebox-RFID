@@ -4,10 +4,11 @@ import pytest
 from jukebox.mediaprovider import MediaProvider, get_manager
 
 
-_mpd_available = False
+_full_env_available = False
 try:
     import mpd  # noqa: F401
-    _mpd_available = True
+    import zmq  # noqa: F401
+    _full_env_available = True
 except ImportError:
     pass
 
@@ -114,8 +115,8 @@ def setup_manager():
 
 
 class TestPlayCardInheritance:
-    @pytest.mark.skipif(not _mpd_available,
-                        reason="mpd module not available")
+    @pytest.mark.skipif(not _full_env_available,
+                        reason="Requires full Phoniebox environment (mpd, zmq)")
     def test_play_card_not_overridden(self):
         """MpdMediaProvider inherits play_card, does not override it."""
         from components.playermpd.mpd_provider import MpdMediaProvider
