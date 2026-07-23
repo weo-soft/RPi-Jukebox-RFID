@@ -78,6 +78,10 @@ class JellyfinApiClient:
         :raises AuthenticationError: If credentials are invalid
                or the endpoint is unreachable
         """
+        auth_header = (
+            'MediaBrowser Client="Phoniebox", Device="RPi", '
+            'DeviceId="phoniebox-jellyfin", Version="1.0.0"'
+        )
         try:
             r = self._session.post(
                 f"{self.host}/Users/AuthenticateByName",
@@ -85,6 +89,7 @@ class JellyfinApiClient:
                     'Username': self._username,
                     'Pw': self._password,
                 },
+                headers={'X-Emby-Authorization': auth_header},
             )
             r.raise_for_status()
         except requests.exceptions.ConnectionError as e:

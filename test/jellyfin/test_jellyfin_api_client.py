@@ -117,6 +117,7 @@ class TestAuthenticate:
             mock_post.assert_called_once_with(
                 "http://jellyfin:8096/Users/AuthenticateByName",
                 json={'Username': 'user1', 'Pw': 'pass1'},
+                headers=mock.ANY,
             )
             # Token should be set
             assert client._session.headers['X-Emby-Token'] == 'token-abc'
@@ -157,7 +158,10 @@ class TestAuthByCredentials:
             mock_post.assert_called_once_with(
                 "http://jellyfin:8096/Users/AuthenticateByName",
                 json={'Username': 'user1', 'Pw': 'pass1'},
+                headers=mock.ANY,
             )
+            assert mock_post.call_args[1]['headers'] is not None
+            assert 'X-Emby-Authorization' in mock_post.call_args[1]['headers']
             assert client._session.headers['X-Emby-Token'] == "token-123"
 
     def test_no_token_in_response_raises(self):
