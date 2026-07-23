@@ -29,8 +29,9 @@ const commands = {
     argKeys: ['song_url']
   },
   folderList: {
-    _package: 'misc',
-    plugin: 'aggregated_get_folder_content',
+    _package: 'player',
+    plugin: 'ctrl',
+    method: 'get_folder_content',
   },
   cardsList: {
     _package: 'cards',
