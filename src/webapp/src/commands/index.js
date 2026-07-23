@@ -10,14 +10,12 @@ const commands = {
     method: 'get_album_coverart',
   },
   directoryTreeOfAudiofolder: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'list_all_dirs',
+    _package: 'misc',
+    plugin: 'aggregated_list_all_dirs',
   },
   albumList: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'list_albums',
+    _package: 'misc',
+    plugin: 'aggregated_list_albums',
   },
   songList: {
     _package: 'player',
@@ -31,9 +29,8 @@ const commands = {
     argKeys: ['song_url']
   },
   folderList: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'get_folder_content',
+    _package: 'misc',
+    plugin: 'aggregated_get_folder_content',
   },
   cardsList: {
     _package: 'cards',
