@@ -121,25 +121,32 @@ class TestInitialize:
         with pytest.raises(ValueError, match="host"):
             provider.initialize()
 
-    def test_raises_on_missing_api_key(self, monkeypatch):
-        """initialize() raises ValueError when api_key is empty."""
+    def test_raises_on_no_auth(self, monkeypatch):
+        """initialize() raises ValueError when no auth method is set."""
         mpd = _MockMpdBackend()
         provider = JellyfinMediaProvider(mpd_backend=mpd)
         from jukebox.cfghandler import get_handler
         cfg = get_handler('jukebox')
         cfg.setn('jellyfin', 'host', value='http://jellyfin:8096')
         cfg.setn('jellyfin', 'api_key', value='')
-        with pytest.raises(ValueError, match="api_key"):
+        cfg.setn('jellyfin', 'username', value='')
+        cfg.setn('jellyfin', 'password', value='')
+        with pytest.raises(ValueError, match="must set either"):
             provider.initialize()
 
-    def test_creates_client_and_authenticates(self, monkeypatch):
-        """initialize() creates API client and calls authenticate()."""
+    def test_creates_client_with_api_key_and_authenticates(
+        self, monkeypatch,
+    ):
+        """initialize() creates API client with api_key and calls
+        authenticate()."""
         mpd = _MockMpdBackend()
         provider = JellyfinMediaProvider(mpd_backend=mpd)
         from jukebox.cfghandler import get_handler
         cfg = get_handler('jukebox')
         cfg.setn('jellyfin', 'host', value='http://jellyfin:8096')
         cfg.setn('jellyfin', 'api_key', value='test-key')
+        cfg.setn('jellyfin', 'username', value='')
+        cfg.setn('jellyfin', 'password', value='')
         with mock.patch(
             'components.jellyfin.jellyfin_api_client.JellyfinApiClient',
         ) as mock_client_cls:
@@ -147,7 +154,32 @@ class TestInitialize:
             mock_client_cls.return_value = mock_client
             provider.initialize()
             mock_client_cls.assert_called_once_with(
-                'http://jellyfin:8096', 'test-key',
+                'http://jellyfin:8096',
+                api_key='test-key', username='', password='',
+            )
+            mock_client.authenticate.assert_called_once()
+
+    def test_creates_client_with_credentials(
+        self, monkeypatch,
+    ):
+        """initialize() creates API client with username+password."""
+        mpd = _MockMpdBackend()
+        provider = JellyfinMediaProvider(mpd_backend=mpd)
+        from jukebox.cfghandler import get_handler
+        cfg = get_handler('jukebox')
+        cfg.setn('jellyfin', 'host', value='http://jellyfin:8096')
+        cfg.setn('jellyfin', 'api_key', value='')
+        cfg.setn('jellyfin', 'username', value='user1')
+        cfg.setn('jellyfin', 'password', value='pass1')
+        with mock.patch(
+            'components.jellyfin.jellyfin_api_client.JellyfinApiClient',
+        ) as mock_client_cls:
+            mock_client = mock.Mock()
+            mock_client_cls.return_value = mock_client
+            provider.initialize()
+            mock_client_cls.assert_called_once_with(
+                'http://jellyfin:8096',
+                api_key='', username='user1', password='pass1',
             )
             mock_client.authenticate.assert_called_once()
 

@@ -7,7 +7,7 @@ generation.
 
 Reference: https://api.jellyfin.org/
 
-Authentication by API key (X-Emby-Token header).
+Authentication: tries API key first, falls back to username+password.
 """
 
 import logging
@@ -23,7 +23,7 @@ class JellyfinApiClientError(Exception):
 
 
 class AuthenticationError(JellyfinApiClientError):
-    """Raised when API key validation fails."""
+    """Raised when authentication fails (token or credentials)."""
 
 
 class JellyfinApiClient:
@@ -31,37 +31,96 @@ class JellyfinApiClient:
     Client for the Jellyfin REST API.
 
     Provides methods for:
-    - Authentication (API key validation)
+    - Authentication (API key, or username + password)
     - Library queries (views, items, albums)
     - Stream URL generation
     - Cover art URL generation
+
+    Authentication priority:
+    1. API key via X-Emby-Token header (preferred)
+    2. Username + password via /Users/AuthenticateByName (fallback)
     """
 
-    def __init__(self, host: str, api_key: str):
+    def __init__(self, host: str, api_key: str = '',
+                 username: str = '', password: str = ''):
         """
         :param host: Jellyfin server URL (e.g. http://jellyfin.local:8096)
-        :param api_key: Jellyfin API key (created in Dashboard → API Keys)
+        :param api_key: Jellyfin API key (Dashboard → API Keys)
+        :param username: Jellyfin username (fallback if no api_key)
+        :param password: Jellyfin password (fallback if no api_key)
         """
         self.host = host.rstrip('/')
         self.api_key = api_key
+        self._username = username
+        self._password = password
         self._session = requests.Session()
         self._session.headers.update({
-            'X-Emby-Token': api_key,
             'Content-Type': 'application/json',
         })
+        if api_key:
+            self._session.headers['X-Emby-Token'] = api_key
         self._user_id: Optional[str] = None
+        self._token_from_credentials: Optional[str] = None
 
     # ------------------------------------------------------------------
     # Authentication
     # ------------------------------------------------------------------
 
+    def _authenticate_by_credentials(self) -> str:
+        """
+        Authenticate using username + password.
+
+        POSTs to /Users/AuthenticateByName and returns the access
+        token. The token is stored and used as X-Emby-Token for
+        subsequent requests.
+
+        :return: The access token string
+        :raises AuthenticationError: If credentials are invalid
+               or the endpoint is unreachable
+        """
+        try:
+            r = self._session.post(
+                f"{self.host}/Users/AuthenticateByName",
+                json={
+                    'Username': self._username,
+                    'Pw': self._password,
+                },
+            )
+            r.raise_for_status()
+        except requests.exceptions.ConnectionError as e:
+            raise AuthenticationError(
+                f"Cannot connect to Jellyfin at {self.host}: {e}"
+            ) from e
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code if e.response is not None else '?'
+            raise AuthenticationError(
+                f"Jellyfin credential auth failed (HTTP {status})"
+            ) from e
+
+        data = r.json()
+        token = data.get('AccessToken')
+        if not token:
+            raise AuthenticationError(
+                "Jellyfin credential auth succeeded but no "
+                "AccessToken in response"
+            )
+        self._token_from_credentials = token
+        self._session.headers['X-Emby-Token'] = token
+        logger.info(
+            f"Authenticated to Jellyfin as user '{self._username}'"
+        )
+        return token
+
     def _resolve_user(self) -> str:
         """
-        Resolve the user ID associated with the API key.
+        Resolve the user ID of the authenticated session.
 
         Makes a GET request to /Users/Me and caches the user ID.
         This is needed for user-specific endpoints like
         /Users/{id}/Views.
+
+        If we authenticated via credentials, the user ID from
+        /Users/AuthenticateByName response may already be cached.
         """
         if self._user_id:
             return self._user_id
@@ -70,36 +129,53 @@ class JellyfinApiClient:
         self._user_id = r.json().get('Id')
         if not self._user_id:
             raise AuthenticationError(
-                "Could not resolve Jellyfin user ID from API key"
+                "Could not resolve Jellyfin user ID"
             )
         logger.debug(f"Resolved Jellyfin user ID: {self._user_id}")
         return self._user_id
 
     def authenticate(self) -> bool:
         """
-        Validate the API key against the Jellyfin server.
+        Validate connection to the Jellyfin server.
 
-        Makes a GET request to /System/Info. If the server responds
-        with HTTP 200, the API key is valid.
+        Tries API key first. If no API key is set, falls back to
+        username + password authentication via
+        /Users/AuthenticateByName.
 
         :return: True if authentication succeeded
-        :raises AuthenticationError: If the server cannot be reached
-               or the API key is invalid
+        :raises AuthenticationError: If authentication fails
         """
         try:
             r = self._session.get(f"{self.host}/System/Info")
             r.raise_for_status()
-            logger.info(f"Connected to Jellyfin server: {self.host}")
-            return True
         except requests.exceptions.ConnectionError as e:
             raise AuthenticationError(
                 f"Cannot connect to Jellyfin at {self.host}: {e}"
             ) from e
         except requests.exceptions.HTTPError as e:
-            status = e.response.status_code if e.response is not None else '?'
-            raise AuthenticationError(
-                f"Jellyfin authentication failed (HTTP {status}): {e}"
-            ) from e
+            # If we have an API key and it failed, it's invalid
+            if self.api_key:
+                status = (
+                    e.response.status_code
+                    if e.response is not None else '?'
+                )
+                raise AuthenticationError(
+                    f"Jellyfin API key rejected (HTTP {status})"
+                ) from e
+            # No API key — try username + password
+            try:
+                self._authenticate_by_credentials()
+                # Re-validate with the new token
+                r = self._session.get(f"{self.host}/System/Info")
+                r.raise_for_status()
+            except Exception as cred_e:
+                raise AuthenticationError(
+                    f"Jellyfin authentication failed with both "
+                    f"API key and credentials: {cred_e}"
+                ) from cred_e
+
+        logger.info(f"Connected to Jellyfin server: {self.host}")
+        return True
 
     # ------------------------------------------------------------------
     # Library / Items

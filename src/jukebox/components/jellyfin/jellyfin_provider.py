@@ -47,29 +47,35 @@ class JellyfinMediaProvider(MediaProvider):
         Connect to Jellyfin server.
 
         Reads configuration from jukebox.yaml:
-          jellyfin.host
-          jellyfin.api_key
+          jellyfin.host (required)
+          jellyfin.api_key (preferred auth method)
+          jellyfin.username + jellyfin.password (fallback auth)
 
-        Validates that all required config values are present and
-        raises ValueError with a descriptive message if not.
+        Validates that host is present. At least one auth method
+        (api_key or username+password) must be configured.
         """
         host = cfg.getn('jellyfin', 'host', default=None)
         api_key = cfg.getn('jellyfin', 'api_key', default=None)
+        username = cfg.getn('jellyfin', 'username', default=None)
+        password = cfg.getn('jellyfin', 'password', default=None)
 
-        errors = []
         if not host:
-            errors.append("'jellyfin.host' is not set")
-        if not api_key:
-            errors.append("'jellyfin.api_key' is not set")
-
-        if errors:
             raise ValueError(
-                "Jellyfin configuration incomplete:\n  "
-                + "\n  ".join(errors)
+                "Jellyfin configuration incomplete: "
+                "'jellyfin.host' is not set"
+            )
+        if not api_key and not (username and password):
+            raise ValueError(
+                "Jellyfin configuration incomplete: must set either "
+                "('jellyfin.api_key') or "
+                "('jellyfin.username' + 'jellyfin.password')"
             )
 
         from .jellyfin_api_client import JellyfinApiClient
-        self._api = JellyfinApiClient(host, api_key)
+        self._api = JellyfinApiClient(
+            host, api_key=api_key or '',
+            username=username or '', password=password or '',
+        )
         self._api.authenticate()
         logger.info(f"JellyfinMediaProvider initialized. Server: {host}")
 
