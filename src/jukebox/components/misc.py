@@ -193,7 +193,12 @@ def aggregated_list_all_dirs() -> list:
 def aggregated_get_folder_content(folder: str = '') -> list:
     """List folder content from all registered media providers.
 
-    The folder path is passed to each provider. Each result item
-    gets a '_provider' key.
+    For the root folder (./), calls list_all_dirs on each provider
+    instead, since get_folder_content with an empty/root path is not
+    meaningful for non-filesystem providers like Jellyfin.
+
+    Each result item gets a '_provider' key.
     """
+    if folder in ('', '/', './', '.'):
+        return _call_all_providers('list_all_dirs')
     return _call_all_providers('get_folder_content', folder)
