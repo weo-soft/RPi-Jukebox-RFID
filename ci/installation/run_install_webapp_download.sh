@@ -21,6 +21,7 @@ export ENABLE_WEBAPP_PROD_DOWNLOAD=true
 # n - deactivate bluetooth
 # n - disable on-chip audio
 # - - mpd overwrite config (only with existing installation)
+# n - setup Spotify
 # n - setup rfid reader
 # n - setup samba
 # y - setup webapp
@@ -29,6 +30,7 @@ export ENABLE_WEBAPP_PROD_DOWNLOAD=true
 # n - reboot
 
 "${LOCAL_INSTALL_SCRIPT_PATH}/install-jukebox.sh" <<< 'y
+n
 n
 n
 n

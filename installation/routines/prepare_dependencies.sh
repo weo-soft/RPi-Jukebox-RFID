@@ -32,6 +32,10 @@ _collect_apt_packages() {
         _add_apt_packages mpd mpc
     fi
 
+    if [[ "$SETUP_SPOTIFY" == true ]]; then
+        _add_apt_packages cargo libpulse-dev libssl-dev pkg-config
+    fi
+
     if [[ "$ENABLE_SAMBA" == true ]]; then
         _add_apt_packages samba samba-common-bin
     fi

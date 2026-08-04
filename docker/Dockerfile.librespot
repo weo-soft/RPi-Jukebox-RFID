@@ -1,0 +1,49 @@
+FROM rust:1.85-slim-bookworm AS build
+
+ARG LIBRESPOT_REV=303026bba2af4c31e710afefc3aad4a89e38c812
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpulse-dev \
+    libssl-dev \
+    pkg-config \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN cargo install librespot \
+    --git https://github.com/librespot-org/librespot.git \
+    --rev "${LIBRESPOT_REV}" \
+    --locked \
+    --root /opt/librespot \
+    --no-default-features \
+    --features native-tls,pulseaudio-backend,with-libmdns
+
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libpulse0 \
+    libssl3 \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG UID
+ARG USER
+RUN useradd -m -u "${UID}" "${USER}" \
+    && usermod -aG audio "${USER}" \
+    && mkdir /cache \
+    && chown "${USER}:${USER}" /cache
+
+COPY --from=build /opt/librespot/bin/librespot /usr/local/bin/librespot
+
+USER ${USER}
+CMD ["librespot", \
+    "--name", "Phoniebox", \
+    "--backend", "pulseaudio", \
+    "--bitrate", "320", \
+    "--cache", "/cache", \
+    "--cache-size-limit", "1G", \
+    "--system-cache", "/cache", \
+    "--volume-ctrl", "fixed", \
+    "--enable-oauth", \
+    "--oauth-port", "0"]

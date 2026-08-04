@@ -21,6 +21,7 @@ LOCAL_INSTALL_SCRIPT_PATH="${LOCAL_INSTALL_SCRIPT_PATH%/}"
 # y - deactivate bluetooth
 # y - disable on-chip audio
 # - - mpd overwrite config (only with existing installation)
+# n - setup Spotify
 # n - setup rfid reader
 # n - setup samba
 # n - setup webapp
@@ -34,6 +35,7 @@ y
 n
 y
 y
+n
 n
 n
 n

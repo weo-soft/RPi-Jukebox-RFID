@@ -189,6 +189,46 @@ Would you like to overwrite your configuration? [Y/n]"
     fi
 }
 
+_option_spotify() {
+  clear_c
+  print_c "----------------------- SPOTIFY -------------------------
+
+Spotify playback requires a Premium account and a Spotify
+developer app. Librespot will be installed as a user service.
+
+Would you like to install Spotify support? [y/N]"
+  read -r response
+  case "$response" in
+    [yY][eE][sS]|[yY])
+      SETUP_SPOTIFY=true
+      ;;
+    *)
+      SETUP_SPOTIFY=false
+      ;;
+  esac
+
+  if [[ "${SETUP_SPOTIFY}" == true ]]; then
+    while [[ -z "${SPOTIFY_CLIENT_ID}" ]]; do
+      print_c "Spotify developer app client ID:"
+      read -r SPOTIFY_CLIENT_ID
+    done
+    while [[ -z "${SPOTIFY_REDIRECT_URI}" ]]; do
+      print_c "Spotify OAuth redirect URI:"
+      read -r SPOTIFY_REDIRECT_URI
+    done
+    print_c "Spotify Connect device name [${SPOTIFY_DEVICE_NAME}]:"
+    read -r response
+    response="${response:-$SPOTIFY_DEVICE_NAME}"
+    if [[ ! "${response}" =~ ^[A-Za-z0-9._\ -]+$ ]]; then
+      print_c "Invalid device name. Using '${SPOTIFY_DEVICE_NAME}'."
+    else
+      SPOTIFY_DEVICE_NAME="${response}"
+    fi
+  fi
+
+  log "SETUP_SPOTIFY=${SETUP_SPOTIFY}"
+}
+
 _option_rfid_reader() {
   # ENABLE_RFID_READER
   clear_c
@@ -360,6 +400,7 @@ _run_customize_options() {
   _option_bluetooth
   _option_disable_onboard_audio
   _option_mpd
+  _option_spotify
   _option_rfid_reader
   _option_samba
   _option_webapp
