@@ -419,12 +419,22 @@ class TestPlugsTag:
     @pytest.mark.parametrize("method_name", rpc_methods)
     def test_method_has_plugs_tag(self, provider, method_name):
         """Each RPC-callable method must have plugs_callable=True."""
-        method = getattr(provider, method_name)
-        assert getattr(method.__func__, 'plugs_callable', False) is True, (
-            f"{method_name} is not decorated with @plugs.tag"
-        )
+        # Access raw function via class __dict__ to bypass
+        # ABC/descriptor protocol attribute hiding (CPython 3.13).
+        for cls in type(provider).__mro__:
+            raw = cls.__dict__.get(method_name)
+            if raw is not None:
+                assert getattr(raw, 'plugs_callable', False) is True, (
+                    f"{method_name} is not decorated with @plugs.tag"
+                )
+                return
+        pytest.fail(f"{method_name} not found in MRO")
 
     def test_methods_are_tagged(self, provider):
         """Non-overridden methods (like play_card) must also be callable."""
-        # play_card is inherited from MediaProvider and already tagged
-        assert getattr(provider.play_card, 'plugs_callable', False) is True
+        for cls in type(provider).__mro__:
+            raw = cls.__dict__.get('play_card')
+            if raw is not None:
+                assert getattr(raw, 'plugs_callable', False) is True
+                return
+        pytest.fail("play_card not found in MRO")
