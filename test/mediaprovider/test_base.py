@@ -1,6 +1,5 @@
 """Tests for MediaProvider base class play_card() behavior."""
 
-import pytest
 from jukebox.mediaprovider import MediaProvider, get_manager
 
 
@@ -96,7 +95,6 @@ class _MockMinimalProvider(MediaProvider):
 
     def get_player_type_and_version(self):
         return "mock"
-
 
 
 class _FakeCallbacks:
