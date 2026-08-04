@@ -339,8 +339,10 @@ class FakeTimer:
 
 
 class FakePlaybackApi:
-    def __init__(self):
+    def __init__(self, *, active=False, play_errors=None):
         self.calls = []
+        self.active = active
+        self.play_errors = list(play_errors or [])
 
     def get(self, path, params=None):
         self.calls.append(('GET', path, params, None))
@@ -348,7 +350,7 @@ class FakePlaybackApi:
             return {'devices': [{
                 'id': 'device-id',
                 'name': 'Phoniebox',
-                'is_active': False,
+                'is_active': self.active,
             }]}
         if path == '/me/player':
             return None
@@ -356,6 +358,8 @@ class FakePlaybackApi:
 
     def put(self, path, params=None, json_body=None):
         self.calls.append(('PUT', path, params, json_body))
+        if path == '/me/player/play' and self.play_errors:
+            raise self.play_errors.pop(0)
 
     def post(self, path, params=None, json_body=None):
         self.calls.append(('POST', path, params, json_body))
@@ -465,6 +469,69 @@ def test_player_starts_curated_track_as_single_uri(monkeypatch):
         {'device_id': 'device-id'},
         {'uris': ['spotify:track:track-id']},
     )
+
+
+def test_player_retries_restriction_after_device_transfer(monkeypatch):
+    monkeypatch.setattr(
+        spotify_backend.multitimer,
+        'GenericEndlessTimerClass',
+        FakeTimer,
+    )
+    sleep = Mock()
+    monkeypatch.setattr(spotify_backend.time, 'sleep', sleep)
+    api = FakePlaybackApi(play_errors=[
+        SpotifyError(
+            'Player command failed: Restriction violated',
+            status=403,
+        ),
+    ])
+    service = SimpleNamespace(
+        api=api,
+        catalog=SimpleNamespace(),
+        device_name='Phoniebox',
+        oauth=SimpleNamespace(connected=True),
+    )
+    player = SpotifyPlayer(service)
+    player._active = True
+
+    player.play_album('Artist', 'Album', 'spotify:album:album-id')
+
+    play_calls = [call for call in api.calls if call[1] == '/me/player/play']
+    assert len(play_calls) == 2
+    assert play_calls[0] == play_calls[1]
+    sleep.assert_called_once_with(spotify_backend.TRANSFER_RETRY_DELAY)
+
+
+def test_player_does_not_retry_restriction_on_active_device(monkeypatch):
+    monkeypatch.setattr(
+        spotify_backend.multitimer,
+        'GenericEndlessTimerClass',
+        FakeTimer,
+    )
+    sleep = Mock()
+    monkeypatch.setattr(spotify_backend.time, 'sleep', sleep)
+    api = FakePlaybackApi(
+        active=True,
+        play_errors=[
+            SpotifyError(
+                'Player command failed: Restriction violated',
+                status=403,
+            ),
+        ],
+    )
+    service = SimpleNamespace(
+        api=api,
+        catalog=SimpleNamespace(),
+        device_name='Phoniebox',
+        oauth=SimpleNamespace(connected=True),
+    )
+    player = SpotifyPlayer(service)
+    player._active = True
+
+    with pytest.raises(SpotifyError, match='Restriction violated'):
+        player.play_album('Artist', 'Album', 'spotify:album:album-id')
+
+    sleep.assert_not_called()
 
 
 def test_player_status_matches_existing_mpd_webapp_contract():

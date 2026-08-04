@@ -2,6 +2,7 @@
 
 import logging
 import threading
+import time
 
 import jukebox.multitimer as multitimer
 import jukebox.publishing as publishing
@@ -10,6 +11,7 @@ from ..spotify import SpotifyCatalog, SpotifyError, _first_image
 
 
 logger = logging.getLogger('jb.player.spotify')
+TRANSFER_RETRY_DELAY = 0.5
 
 
 class SpotifyPlayer:
@@ -41,8 +43,7 @@ class SpotifyPlayer:
         return 'Spotify Web API with librespot'
 
     def play(self):
-        device_id = self._ensure_device()
-        self.api.put('/me/player/play', params={'device_id': device_id})
+        self._start_playback()
         self._poll_status()
 
     def stop(self):
@@ -126,12 +127,7 @@ class SpotifyPlayer:
         return self._status.get(param) if param else self._status
 
     def play_single(self, song_url):
-        device_id = self._ensure_device()
-        self.api.put(
-            '/me/player/play',
-            params={'device_id': device_id},
-            json_body={'uris': [song_url]},
-        )
+        self._start_playback({'uris': [song_url]})
         self._poll_status()
 
     def play_album(self, albumartist, album, content_uri=None):
@@ -140,7 +136,6 @@ class SpotifyPlayer:
                 'Spotify album and playlist cards require a content_uri.',
                 code='missing_spotify_uri',
             )
-        device_id = self._ensure_device()
         if content_uri == SpotifyCatalog.SAVED_TRACKS_URI:
             track_uris = self.catalog.saved_track_uris()
             if not track_uris:
@@ -150,11 +145,7 @@ class SpotifyPlayer:
             body = {'uris': [content_uri]}
         else:
             body = {'context_uri': content_uri}
-        self.api.put(
-            '/me/player/play',
-            params={'device_id': device_id},
-            json_body=body,
-        )
+        self._start_playback(body)
         self._poll_status()
 
     def get_single_coverart(self, song_url):
@@ -225,6 +216,33 @@ class SpotifyPlayer:
         self._status_timer.close()
         return self._status_timer.timer_thread
 
+    def _start_playback(self, body=None):
+        device_id, transferred = self._ensure_device()
+        try:
+            self.api.put(
+                '/me/player/play',
+                params={'device_id': device_id},
+                json_body=body,
+            )
+        except SpotifyError as error:
+            is_transfer_race = (
+                transferred
+                and error.status == 403
+                and 'restriction violated' in str(error).lower()
+            )
+            if not is_transfer_race:
+                raise
+            logger.info(
+                "Retrying playback after activating Spotify device '%s'",
+                self.device_name,
+            )
+            time.sleep(TRANSFER_RETRY_DELAY)
+            self.api.put(
+                '/me/player/play',
+                params={'device_id': device_id},
+                json_body=body,
+            )
+
     def _ensure_device(self):
         devices = self.api.get('/me/player/devices').get('devices', [])
         matching = next(
@@ -238,12 +256,13 @@ class SpotifyPlayer:
                 code='spotify_device_unavailable',
             )
         self._device_id = matching['id']
-        if not matching.get('is_active'):
+        transferred = not matching.get('is_active')
+        if transferred:
             self.api.put(
                 '/me/player',
                 json_body={'device_ids': [self._device_id], 'play': False},
             )
-        return self._device_id
+        return self._device_id, transferred
 
     def _device_params(self):
         return {'device_id': self._device_id} if self._device_id else None
