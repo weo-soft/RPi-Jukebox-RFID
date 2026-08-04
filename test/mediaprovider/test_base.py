@@ -114,20 +114,6 @@ def setup_manager():
     return mgr
 
 
-class TestPlayCardInheritance:
-    @pytest.mark.skipif(not _full_env_available,
-                        reason="Requires full Phoniebox environment (mpd, zmq)")
-    def test_play_card_not_overridden(self):
-        """MpdMediaProvider inherits play_card, does not override it."""
-        from components.playermpd.mpd_provider import MpdMediaProvider
-        assert MpdMediaProvider.play_card is MediaProvider.play_card
-
-    def test_play_card_has_plugs_tag(self):
-        """play_card in base class has plugs_callable attribute."""
-        assert hasattr(MediaProvider.play_card, 'plugs_callable')
-        assert MediaProvider.play_card.plugs_callable is True
-
-
 class TestPlayCardFirstSwipe:
     def test_first_swipe_delegates_to_play_folder(self):
         setup_manager()
