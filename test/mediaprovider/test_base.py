@@ -6,7 +6,6 @@ from jukebox.mediaprovider import MediaProvider, get_manager
 _full_env_available = False
 try:
     import mpd  # noqa: F401
-    import zmq  # noqa: F401
     _full_env_available = True
 except ImportError:
     pass
