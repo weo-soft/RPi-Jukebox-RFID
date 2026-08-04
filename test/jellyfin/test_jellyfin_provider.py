@@ -420,7 +420,7 @@ class TestPlugsTag:
     def test_method_has_plugs_tag(self, provider, method_name):
         """Each RPC-callable method must have plugs_callable=True."""
         method = getattr(provider, method_name)
-        assert getattr(method, 'plugs_callable', False) is True, (
+        assert getattr(method.__func__, 'plugs_callable', False) is True, (
             f"{method_name} is not decorated with @plugs.tag"
         )
 
