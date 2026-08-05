@@ -124,3 +124,17 @@ def set_app_settings(settings={}):
     """Set configuration settings for the web app."""
     for key, value in settings.items():
         cfg.setn('webapp', key, value=value)
+
+
+@plugin.register
+def list_providers() -> list:
+    """List all registered media providers."""
+    from jukebox.mediaprovider import get_manager
+    return get_manager().list_providers()
+
+
+@plugin.register
+def get_default_provider() -> str:
+    """Get the name of the current default provider."""
+    from jukebox.mediaprovider import get_manager
+    return get_manager().get_default() or ''
