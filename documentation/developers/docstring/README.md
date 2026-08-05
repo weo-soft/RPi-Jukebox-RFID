@@ -101,6 +101,12 @@
   * [PlayContentCallbacks](#components.playermpd.playcontentcallback.PlayContentCallbacks)
     * [register](#components.playermpd.playcontentcallback.PlayContentCallbacks.register)
     * [run\_callbacks](#components.playermpd.playcontentcallback.PlayContentCallbacks.run_callbacks)
+* [components.playermpd.mpd\_provider](#components.playermpd.mpd_provider)
+  * [MpdMediaProvider](#components.playermpd.mpd_provider.MpdMediaProvider)
+    * [initialize](#components.playermpd.mpd_provider.MpdMediaProvider.initialize)
+    * [play\_folder](#components.playermpd.mpd_provider.MpdMediaProvider.play_folder)
+    * [clear\_playlist](#components.playermpd.mpd_provider.MpdMediaProvider.clear_playlist)
+    * [add\_to\_playlist](#components.playermpd.mpd_provider.MpdMediaProvider.add_to_playlist)
 * [components.jingle.alsawave](#components.jingle.alsawave)
   * [AlsaWave](#components.jingle.alsawave.AlsaWave)
     * [play](#components.jingle.alsawave.AlsaWave.play)
@@ -424,10 +430,17 @@
   * [ApiServer](#jukebox.api.server.ApiServer)
 * [jukebox.api](#jukebox.api)
 * [jukebox.callingback](#jukebox.callingback)
+  * [PlayCardState](#jukebox.callingback.PlayCardState)
   * [CallbackHandler](#jukebox.callingback.CallbackHandler)
     * [register](#jukebox.callingback.CallbackHandler.register)
     * [run\_callbacks](#jukebox.callingback.CallbackHandler.run_callbacks)
     * [has\_callbacks](#jukebox.callingback.CallbackHandler.has_callbacks)
+* [jukebox.mediaprovider](#jukebox.mediaprovider)
+  * [MediaProvider](#jukebox.mediaprovider.MediaProvider)
+    * [play\_card](#jukebox.mediaprovider.MediaProvider.play_card)
+* [jukebox.mediaprovider.manager](#jukebox.mediaprovider.manager)
+  * [MediaProviderManager](#jukebox.mediaprovider.manager.MediaProviderManager)
+  * [get\_manager](#jukebox.mediaprovider.manager.get_manager)
 * [jukebox.rpc.server](#jukebox.rpc.server)
   * [RpcServer](#jukebox.rpc.server.RpcServer)
     * [\_\_init\_\_](#jukebox.rpc.server.RpcServer.__init__)
@@ -1716,6 +1729,89 @@ Callback signature is
 def run_callbacks(folder: str, state: STATE)
 ```
 
+
+
+<a id="components.playermpd.mpd_provider"></a>
+
+# components.playermpd.mpd\_provider
+
+MpdMediaProvider — Adapter that implements the MediaProvider interface
+by delegating to the existing PlayerMPD instance.
+
+Does NOT override play_card(), which is inherited from the
+MediaProvider base class.
+
+
+<a id="components.playermpd.mpd_provider.MpdMediaProvider"></a>
+
+## MpdMediaProvider Objects
+
+```python
+class MpdMediaProvider(MediaProvider)
+```
+
+Adapter that implements the MediaProvider interface for MPD.
+
+Delegates all calls to the existing PlayerMPD instance.
+The PlayerMPD instance is injected after creation by the plugin's
+@initialize.
+
+Does NOT override play_card(). The base class
+MediaProvider.play_card() is inherited, which handles:
+- Global second-swipe detection (via Manager._last_played_folder)
+- Global second-swipe action (via Manager._second_swipe_action)
+- Global play_card_callbacks (via Manager)
+- Delegates to self.play_folder() on first swipe
+
+All methods are decorated with @plugs.tag so they are RPC-callable.
+
+
+<a id="components.playermpd.mpd_provider.MpdMediaProvider.initialize"></a>
+
+#### initialize
+
+```python
+def initialize()
+```
+
+MPD connection is handled by PlayerMPD.__init__().
+
+
+<a id="components.playermpd.mpd_provider.MpdMediaProvider.play_folder"></a>
+
+#### play\_folder
+
+```python
+def play_folder(folder: str, recursive: bool = False)
+```
+
+Play folder or single file via MPD.
+
+Auto-detects file vs directory: if 'folder' resolves to a file
+path, routes internally to play_single(). Otherwise delegates
+to PlayerMPD.play_folder().
+
+
+<a id="components.playermpd.mpd_provider.MpdMediaProvider.clear_playlist"></a>
+
+#### clear\_playlist
+
+```python
+def clear_playlist()
+```
+
+Clear the playlist without starting playback.
+
+
+<a id="components.playermpd.mpd_provider.MpdMediaProvider.add_to_playlist"></a>
+
+#### add\_to\_playlist
+
+```python
+def add_to_playlist(song_url: str)
+```
+
+Add a single track URL to the playlist without clearing.
 
 
 <a id="components.jingle.alsawave"></a>
@@ -6426,6 +6522,17 @@ HTTP and WebSocket API for browser clients.
 Provides a generic callback handler
 
 
+<a id="jukebox.callingback.PlayCardState"></a>
+
+## PlayCardState Objects
+
+```python
+class PlayCardState(Enum)
+```
+
+States for play_card callbacks in PlayContentCallbacks
+
+
 <a id="jukebox.callingback.CallbackHandler"></a>
 
 ## CallbackHandler Objects
@@ -6483,6 +6590,552 @@ Exceptions are not raised upwards!
 def has_callbacks()
 ```
 
+
+
+<a id="jukebox.mediaprovider"></a>
+
+# jukebox.mediaprovider
+
+MediaProvider — Abstract Base Class for media source providers.
+
+Usage:
+
+    from jukebox.mediaprovider import MediaProvider, get_manager
+
+    class MyProvider(MediaProvider):
+        ...
+
+
+<a id="jukebox.mediaprovider.MediaProvider"></a>
+
+## MediaProvider Objects
+
+```python
+class MediaProvider(ABC)
+```
+
+Abstract base class for all media source providers.
+
+Implementations: MpdMediaProvider (core), JellyfinMediaProvider, etc.
+Each provider is implemented as a plugin under src/jukebox/components/.
+Each provider registers itself with plugs.register(instance, package='<package>', name='provider').
+Second-swipe logic is implemented in play_card() and inherited by ALL providers.
+MpdMediaProvider does NOT override play_card() — it inherits the base implementation.
+
+
+<a id="jukebox.mediaprovider.MediaProvider.initialize"></a>
+
+#### initialize
+
+```python
+def initialize()
+```
+
+Initialize the provider (connect, authenticate, etc.)
+
+
+<a id="jukebox.mediaprovider.MediaProvider.shutdown"></a>
+
+#### shutdown
+
+```python
+def shutdown()
+```
+
+Shutdown the provider gracefully
+
+
+<a id="jukebox.mediaprovider.MediaProvider.play_card"></a>
+
+#### play\_card
+
+```python
+def play_card(folder: str, recursive: bool = False)
+```
+
+Play content triggered by RFID card.
+
+Second swipe detection is implemented here (inherited by ALL providers).
+Uses globally-shared _last_played_folder and _second_swipe_action from the MediaProviderManager.
+MpdMediaProvider MUST NOT override this method.
+The 'folder' parameter is provider-opaque: MPD - relative library path; Jellyfin - item ID; SMB - share:/path.
+
+
+<a id="jukebox.mediaprovider.MediaProvider.status"></a>
+
+#### status
+
+```python
+def status() -> dict
+```
+
+Get current player status
+
+
+<a id="jukebox.mediaprovider.MediaProvider.get_current_song"></a>
+
+#### get\_current\_song
+
+```python
+def get_current_song() -> Optional[dict]
+```
+
+Get currently playing song metadata
+
+
+<a id="jukebox.mediaprovider.MediaProvider.play"></a>
+
+#### play
+
+```python
+def play()
+```
+
+Resume playback
+
+
+<a id="jukebox.mediaprovider.MediaProvider.stop"></a>
+
+#### stop
+
+```python
+def stop()
+```
+
+Stop playback
+
+
+<a id="jukebox.mediaprovider.MediaProvider.pause"></a>
+
+#### pause
+
+```python
+def pause(state: int = 1)
+```
+
+Pause or resume (1=pause, 0=resume)
+
+
+<a id="jukebox.mediaprovider.MediaProvider.toggle"></a>
+
+#### toggle
+
+```python
+def toggle()
+```
+
+Toggle pause/play
+
+
+<a id="jukebox.mediaprovider.MediaProvider.next"></a>
+
+#### next
+
+```python
+def next()
+```
+
+Next track
+
+
+<a id="jukebox.mediaprovider.MediaProvider.prev"></a>
+
+#### prev
+
+```python
+def prev()
+```
+
+Previous track
+
+
+<a id="jukebox.mediaprovider.MediaProvider.seek"></a>
+
+#### seek
+
+```python
+def seek(new_time: float)
+```
+
+Seek to position in seconds
+
+
+<a id="jukebox.mediaprovider.MediaProvider.rewind"></a>
+
+#### rewind
+
+```python
+def rewind()
+```
+
+Restart current playlist from first track
+
+
+<a id="jukebox.mediaprovider.MediaProvider.play_folder"></a>
+
+#### play\_folder
+
+```python
+def play_folder(folder: str, recursive: bool = False)
+```
+
+Play content from a folder/path identifier
+
+
+<a id="jukebox.mediaprovider.MediaProvider.play_single"></a>
+
+#### play\_single
+
+```python
+def play_single(song_url: str)
+```
+
+Play a single track by its URL/identifier
+
+
+<a id="jukebox.mediaprovider.MediaProvider.play_album"></a>
+
+#### play\_album
+
+```python
+def play_album(albumartist: str, album: str)
+```
+
+Play an album
+
+
+<a id="jukebox.mediaprovider.MediaProvider.clear_playlist"></a>
+
+#### clear\_playlist
+
+```python
+def clear_playlist()
+```
+
+Clear the current playlist without starting playback.
+
+Used by external providers (Jellyfin, SMB) to clear the playlist once before adding multiple tracks.
+
+
+<a id="jukebox.mediaprovider.MediaProvider.add_to_playlist"></a>
+
+#### add\_to\_playlist
+
+```python
+def add_to_playlist(song_url: str)
+```
+
+Add a single track to the current playlist without clearing or playing.
+
+Used by external providers to build a playlist incrementally.
+
+
+<a id="jukebox.mediaprovider.MediaProvider.playlistinfo"></a>
+
+#### playlistinfo
+
+```python
+def playlistinfo() -> list
+```
+
+Get current playlist
+
+
+<a id="jukebox.mediaprovider.MediaProvider.list_albums"></a>
+
+#### list\_albums
+
+```python
+def list_albums() -> list
+```
+
+List all available albums
+
+
+<a id="jukebox.mediaprovider.MediaProvider.get_folder_content"></a>
+
+#### get\_folder\_content
+
+```python
+def get_folder_content(folder: str) -> list
+```
+
+List content of a folder/directory
+
+
+<a id="jukebox.mediaprovider.MediaProvider.list_all_dirs"></a>
+
+#### list\_all\_dirs
+
+```python
+def list_all_dirs() -> list
+```
+
+List all top-level directories/collections
+
+
+<a id="jukebox.mediaprovider.MediaProvider.get_single_coverart"></a>
+
+#### get\_single\_coverart
+
+```python
+def get_single_coverart(song_url: str) -> Optional[str]
+```
+
+Get cover art for a single track. Returns filename or URL.
+
+
+<a id="jukebox.mediaprovider.MediaProvider.get_album_coverart"></a>
+
+#### get\_album\_coverart
+
+```python
+def get_album_coverart(albumartist: str, album: str) -> Optional[str]
+```
+
+Get cover art for an album
+
+
+<a id="jukebox.mediaprovider.MediaProvider.update"></a>
+
+#### update
+
+```python
+def update()
+```
+
+Trigger library update
+
+
+<a id="jukebox.mediaprovider.MediaProvider.update_wait"></a>
+
+#### update\_wait
+
+```python
+def update_wait()
+```
+
+Trigger library update and wait for completion
+
+
+<a id="jukebox.mediaprovider.MediaProvider.get_player_type_and_version"></a>
+
+#### get\_player\_type\_and\_version
+
+```python
+def get_player_type_and_version() -> str
+```
+
+Get provider identifier and version string
+
+
+<a id="jukebox.mediaprovider.manager"></a>
+
+# jukebox.mediaprovider.manager
+
+MediaProviderManager — Singleton for provider registration and resolution.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager"></a>
+
+## MediaProviderManager Objects
+
+```python
+class MediaProviderManager()
+```
+
+Manages multiple media providers simultaneously.
+
+- Providers register themselves during plugin @initialize.
+- MPD is always the default provider (audio backend).
+- Centralizes _last_played_folder, _second_swipe_action and play_card_callbacks.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.register_provider"></a>
+
+#### register\_provider
+
+```python
+def register_provider(name: str, provider)
+```
+
+Register a media provider under a given name
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.set_default"></a>
+
+#### set\_default
+
+```python
+def set_default(name: str)
+```
+
+Set the default provider (for RPC fallback). Raises KeyError if not registered.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.get_default"></a>
+
+#### get\_default
+
+```python
+def get_default() -> Optional[str]
+```
+
+Get the name of the default provider.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.resolve"></a>
+
+#### resolve
+
+```python
+def resolve(provider_name: str = None)
+```
+
+Resolve a provider by name. Falls back to default if name is None.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.get_provider"></a>
+
+#### get\_provider
+
+```python
+def get_provider(name: str)
+```
+
+Get a provider by name. Raises KeyError if not found.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.list_providers"></a>
+
+#### list\_providers
+
+```python
+def list_providers() -> list
+```
+
+List all registered provider names.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.get_last_played_folder"></a>
+
+#### get\_last\_played\_folder
+
+```python
+def get_last_played_folder() -> str
+```
+
+Get the globally-persisted last played folder value.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.set_last_played_folder"></a>
+
+#### set\_last\_played\_folder
+
+```python
+def set_last_played_folder(folder: str)
+```
+
+Set the globally-persisted last played folder value.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.set_persist_callback"></a>
+
+#### set\_persist\_callback
+
+```python
+def set_persist_callback(callback: Callable[[str], None])
+```
+
+Set a callback for persisting _last_played_folder. Injected by playermpd/__init__.py.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.persist_last_played_folder"></a>
+
+#### persist\_last\_played\_folder
+
+```python
+def persist_last_played_folder()
+```
+
+Persist the current _last_played_folder using the injected callback.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.set_second_swipe_action"></a>
+
+#### set\_second\_swipe\_action
+
+```python
+def set_second_swipe_action(action: Optional[Callable])
+```
+
+Set the globally-shared second swipe action. Called by playermpd/__init__.py's @initialize.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.get_second_swipe_action"></a>
+
+#### get\_second\_swipe\_action
+
+```python
+def get_second_swipe_action() -> Optional[Callable]
+```
+
+Get the globally-shared second swipe action callable.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.set_play_card_callbacks"></a>
+
+#### set\_play\_card\_callbacks
+
+```python
+def set_play_card_callbacks(callbacks)
+```
+
+Set the globally-shared PlayContentCallbacks instance. Called by playermpd/__init__.py.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.get_play_card_callbacks"></a>
+
+#### get\_play\_card\_callbacks
+
+```python
+def get_play_card_callbacks()
+```
+
+Get the globally-shared PlayContentCallbacks instance.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.get_play_card_state_first"></a>
+
+#### get\_play\_card\_state\_first
+
+```python
+def get_play_card_state_first()
+```
+
+Get PlayCardState.firstSwipe enum value.
+
+
+<a id="jukebox.mediaprovider.manager.MediaProviderManager.get_play_card_state_second"></a>
+
+#### get\_play\_card\_state\_second
+
+```python
+def get_play_card_state_second()
+```
+
+Get PlayCardState.secondSwipe enum value.
+
+
+<a id="jukebox.mediaprovider.manager.get_manager"></a>
+
+#### get\_manager
+
+```python
+def get_manager() -> MediaProviderManager
+```
+
+Factory function for the MediaProviderManager singleton.
 
 
 <a id="jukebox.rpc.server"></a>

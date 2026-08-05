@@ -9,6 +9,7 @@ import atexit
 from typing import (Optional)
 
 from misc import flatten
+import jukebox.mediaprovider  # noqa: F401 ensure MediaProviderManager is initialized
 import jukebox.plugs as plugin
 import jukebox.utils
 import jukebox.publishing as publishing
