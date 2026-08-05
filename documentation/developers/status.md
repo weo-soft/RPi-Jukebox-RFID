@@ -113,6 +113,12 @@ Topics marked _in progress_ are already in the process of implementation by comm
 
 ### MPD Player
 
+- [x] MediaProvider interface + MPD adapter (`jukebox.mediaprovider`, `player.provider.*`)
+  - [x] Abstract base class `MediaProvider` with unified playback/status/library API
+  - [x] `MediaProviderManager` module-singleton for provider registration and routing
+  - [x] `MpdMediaProvider` adapter delegating to `PlayerMPD`, registered as `player.provider`
+  - [x] Shared second-swipe state (`_last_played_folder`) via manager for all providers
+  - [x] Central `play_card_callbacks` injected into manager (shared by all providers)
 - [ ] Thread safety for status information / configuration (_in progress_)
 - [ ] Differential status post (_in progress_)
 - [ ] Second swipe option setter via RPC (_in progress_)

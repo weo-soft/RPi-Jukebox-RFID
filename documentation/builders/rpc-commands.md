@@ -108,3 +108,16 @@ You will find some more examples the configuration of the [Card Database](card-d
 To send RPC commands for testing and debugging purpose you can use the [CLI Tool](../developers/coreapps.md#RPC).
 Also here is a ready-to-use decoding functions which decodes an RPC command (with or without alias)
 from a YAML entry:func:`jukebox.utils.decode_rpc_command`.
+
+## Media providers
+
+Media sources are abstracted behind the [MediaProvider interface](../developers/mediaprovider.md).
+The default MPD backend is available under two RPC namespaces:
+
+| RPC | Description |
+|---|---|
+| `player.ctrl.play_folder("Album")` | Direct `PlayerMPD` access (classic, backward compatible) |
+| `player.provider.play_folder("Album")` | MediaProvider interface access (uniform provider API) |
+| `player.provider.play_card("Album")` | Inherited base-class second-swipe logic |
+
+`player.ctrl.*` remains fully backward compatible; both namespaces share the same second-swipe state.
