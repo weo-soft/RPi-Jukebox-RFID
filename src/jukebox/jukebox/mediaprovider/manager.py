@@ -167,7 +167,7 @@ class MediaProviderManager:
         (with MPD lock context). All providers access this via
         get_play_card_callbacks().
         """
-        from jukebox.callingback import PlayCardState
+        from components.player.playcontentcallback import PlayCardState
         self._play_card_callbacks = callbacks
         self._play_card_state_first = PlayCardState.firstSwipe
         self._play_card_state_second = PlayCardState.secondSwipe
