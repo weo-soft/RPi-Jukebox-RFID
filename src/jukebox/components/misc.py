@@ -138,3 +138,67 @@ def get_default_provider() -> str:
     """Get the name of the current default provider."""
     from jukebox.mediaprovider import get_manager
     return get_manager().get_default() or ''
+
+
+# ------------------------------------------------------------------
+# Aggregated library queries — merge results from ALL providers
+# ------------------------------------------------------------------
+
+def _call_all_providers(method_name: str, *args, **kwargs) -> list:
+    """Call a method on every registered provider and merge results.
+
+    Each result item gets a '_provider' key with the provider name.
+    Errors from individual providers are logged and skipped.
+    """
+    from jukebox.mediaprovider import get_manager
+    merged = []
+    mgr = get_manager()
+    for name in mgr.list_providers():
+        try:
+            provider = mgr.get_provider(name)
+            method = getattr(provider, method_name)
+            results = method(*args, **kwargs)
+            if isinstance(results, list):
+                for item in results:
+                    if isinstance(item, dict) and '_provider' not in item:
+                        item['_provider'] = name
+                    merged.append(item)
+        except Exception as e:
+            logger.error(
+                f"Aggregated query '{method_name}' failed for "
+                f"provider '{name}': {e}"
+            )
+    return merged
+
+
+@plugin.register
+def aggregated_list_albums() -> list:
+    """List albums from all registered media providers.
+
+    Each album has a '_provider' key (e.g., 'mpd', 'jellyfin').
+    """
+    return _call_all_providers('list_albums')
+
+
+@plugin.register
+def aggregated_list_all_dirs() -> list:
+    """List top-level directories from all registered media providers.
+
+    Each item has a '_provider' key.
+    """
+    return _call_all_providers('list_all_dirs')
+
+
+@plugin.register
+def aggregated_get_folder_content(folder: str = '') -> list:
+    """List folder content from all registered media providers.
+
+    For the root folder (./), calls list_all_dirs on each provider
+    instead, since get_folder_content with an empty/root path is not
+    meaningful for non-filesystem providers like Jellyfin.
+
+    Each result item gets a '_provider' key.
+    """
+    if folder in ('', '/', './', '.'):
+        return _call_all_providers('list_all_dirs')
+    return _call_all_providers('get_folder_content', folder)

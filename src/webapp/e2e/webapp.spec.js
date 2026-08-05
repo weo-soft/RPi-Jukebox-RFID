@@ -32,7 +32,7 @@ const rpcResults = {
   },
   get_volume: 42,
   get_single_coverart: 'test-cover.png',
-  list_albums: [
+  aggregated_list_albums: [
     { albumartist: 'Daft Punk', album: ['Discovery', 'Random Access Memories'] },
     { albumartist: 'Massive Attack', album: 'Mezzanine' },
   ],
