@@ -10,7 +10,7 @@ implemented** state of this architecture.
 
 ## Concepts
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │ MediaProviderManager (jukebox/mediaprovider/manager.py)             │
 │   - Module singleton (get_manager())                                │
@@ -88,7 +88,7 @@ The manager centralizes:
 
 ### Second-swipe behaviour (shared)
 
-```
+```text
 Card swipe -> decode_card_command() -> {provider}.provider.play_card(folder)
   -> MediaProvider.play_card() (inherited by all providers)
     -> Manager: last_played_folder == folder ? second swipe : first swipe
