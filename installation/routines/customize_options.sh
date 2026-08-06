@@ -212,10 +212,12 @@ Would you like to install Spotify support? [y/N]"
       print_c "Spotify developer app client ID:"
       read -r SPOTIFY_CLIENT_ID
     done
-    while [[ -z "${SPOTIFY_REDIRECT_URI}" ]]; do
-      print_c "Spotify OAuth redirect URI:"
-      read -r SPOTIFY_REDIRECT_URI
-    done
+    if [[ -z "${SPOTIFY_REDIRECT_URI}" ]]; then
+      print_c "Register this exact redirect URI in your Spotify developer app.
+Spotify OAuth redirect URI [${SPOTIFY_DEFAULT_REDIRECT_URI}]:"
+      read -r response
+      SPOTIFY_REDIRECT_URI="${response:-$SPOTIFY_DEFAULT_REDIRECT_URI}"
+    fi
     print_c "Spotify Connect device name [${SPOTIFY_DEVICE_NAME}]:"
     read -r response
     response="${response:-$SPOTIFY_DEVICE_NAME}"

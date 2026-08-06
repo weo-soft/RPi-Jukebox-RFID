@@ -59,7 +59,9 @@ For a new installation, follow the regular
 
 1. Enable Spotify support.
 2. Enter the developer app Client ID.
-3. Enter the exact redirect URI configured in the Spotify dashboard.
+3. Register the displayed redirect URI in the Spotify dashboard and press
+   Enter to accept it. Enter a different URI only for custom HTTPS or tunnel
+   setups.
 4. Choose a Spotify Connect device name or keep `Phoniebox`.
 
 The installer builds the pinned librespot version, creates its user service,
