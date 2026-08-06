@@ -1,9 +1,13 @@
 import re
+import subprocess
 from pathlib import Path
 
 
 ROOT = Path(__file__).parents[2]
 SETUP = ROOT / 'installation' / 'routines' / 'setup_spotify.sh'
+PREPARE_DEPENDENCIES = (
+    ROOT / 'installation' / 'routines' / 'prepare_dependencies.sh'
+)
 DOCKERFILE = ROOT / 'docker' / 'Dockerfile.librespot'
 
 
@@ -13,8 +17,49 @@ def _revision(contents, pattern):
     return match.group(1)
 
 
+def _run_install_function(home_path, cargo_status):
+    harness = r'''
+HOME_PATH="$1"
+SETUP_PATH="$2"
+CARGO_STATUS="$3"
+
+print_lc() {
+    :
+}
+
+cargo() {
+    printf '%s\n%s\n' "${TMPDIR}" "${CARGO_HOME}" \
+        > "${HOME_PATH}/cargo-paths"
+    return "${CARGO_STATUS}"
+}
+
+exit_on_error() {
+    printf '%s' "$1" > "${HOME_PATH}/installer-error"
+    exit 42
+}
+
+source "${SETUP_PATH}"
+_spotify_install_librespot
+'''
+    return subprocess.run(
+        [
+            'bash',
+            '-c',
+            harness,
+            'test-librespot-installer',
+            str(home_path),
+            str(SETUP),
+            str(cargo_status),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
 def test_installer_and_docker_pin_the_same_librespot_revision():
     setup = SETUP.read_text()
+    prepare_dependencies = PREPARE_DEPENDENCIES.read_text()
     dockerfile = DOCKERFILE.read_text()
 
     setup_revision = _revision(
@@ -31,3 +76,141 @@ def test_installer_and_docker_pin_the_same_librespot_revision():
     assert '--rev "${LIBRESPOT_REVISION}"' in setup
     assert '--git https://github.com/librespot-org/librespot.git' in dockerfile
     assert '--rev "${LIBRESPOT_REV}"' in dockerfile
+    assert 'cargo libpulse-dev libssl-dev pkg-config' not in prepare_dependencies
+
+
+def test_installer_builds_outside_system_tmp_and_cleans_up(tmp_path):
+    result = _run_install_function(tmp_path, cargo_status=0)
+
+    assert result.returncode == 0, result.stderr
+    cargo_tmp, cargo_home = (tmp_path / 'cargo-paths').read_text().splitlines()
+    cargo_tmp_dir = Path(cargo_tmp)
+    assert cargo_tmp_dir.parent == tmp_path / '.cache'
+    assert cargo_tmp_dir.name.startswith('librespot-build.')
+    assert Path(cargo_home) == cargo_tmp_dir / 'cargo-home'
+    assert not cargo_tmp_dir.exists()
+    assert not (tmp_path / 'installer-error').exists()
+
+
+def test_installer_cleans_up_and_aborts_when_cargo_fails(tmp_path):
+    result = _run_install_function(tmp_path, cargo_status=1)
+
+    assert result.returncode == 42
+    cargo_tmp_dir = Path(
+        (tmp_path / 'cargo-paths').read_text().splitlines()[0],
+    )
+    assert not cargo_tmp_dir.exists()
+    assert (tmp_path / 'installer-error').read_text() == (
+        'Failed to compile and install librespot.'
+    )
+
+
+def test_installer_tracks_only_build_dependencies_it_introduces(tmp_path):
+    commands = tmp_path / 'commands'
+    packages_to_remove = tmp_path / 'packages-to-remove'
+    harness = r'''
+SETUP_PATH="$1"
+COMMANDS_PATH="$2"
+PACKAGES_PATH="$3"
+
+print_lc() {
+    :
+}
+
+dpkg-query() {
+    local package
+    for package in "$@"; do
+        :
+    done
+    case "${package}" in
+        cargo|libssl-dev)
+            return 1
+            ;;
+        *)
+            printf '%s\n' "install ok installed"
+            ;;
+    esac
+}
+
+sudo() {
+    printf '%s\n' "$*" >> "${COMMANDS_PATH}"
+}
+
+exit_on_error() {
+    exit 42
+}
+
+source "${SETUP_PATH}"
+_spotify_install_build_dependencies
+printf '%s\n' "${LIBRESPOT_BUILD_DEPENDENCIES_TO_REMOVE[@]}" \
+    > "${PACKAGES_PATH}"
+'''
+    result = subprocess.run(
+        [
+            'bash',
+            '-c',
+            harness,
+            'test-librespot-dependencies',
+            str(SETUP),
+            str(commands),
+            str(packages_to_remove),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert packages_to_remove.read_text().splitlines() == [
+        'cargo',
+        'libssl-dev',
+    ]
+    assert commands.read_text().splitlines() == [
+        (
+            'apt-get -y install --no-install-recommends '
+            'cargo libpulse-dev libssl-dev pkg-config'
+        ),
+    ]
+
+
+def test_cleanup_preserves_runtime_libraries_and_removes_build_chain(tmp_path):
+    commands = tmp_path / 'commands'
+    harness = r'''
+SETUP_PATH="$1"
+COMMANDS_PATH="$2"
+
+print_lc() {
+    :
+}
+
+sudo() {
+    printf '%s\n' "$*" >> "${COMMANDS_PATH}"
+}
+
+source "${SETUP_PATH}"
+LIBRESPOT_BUILD_DEPENDENCIES_TO_REMOVE=(cargo libssl-dev)
+_spotify_runtime_package_owners() {
+    printf '%s\n' libssl3t64:arm64 libpulse0:arm64
+}
+_spotify_cleanup_build_dependencies
+'''
+    result = subprocess.run(
+        [
+            'bash',
+            '-c',
+            harness,
+            'test-librespot-cleanup',
+            str(SETUP),
+            str(commands),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert commands.read_text().splitlines() == [
+        'apt-mark manual libpulse0:arm64 libssl3t64:arm64',
+        'apt-get -y purge cargo libssl-dev',
+        'apt-get -y autoremove --purge',
+    ]
