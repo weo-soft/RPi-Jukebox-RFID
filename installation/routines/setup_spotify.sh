@@ -308,7 +308,8 @@ _spotify_check() {
   "${HOME_PATH}/.local/bin/librespot" --version \
     || exit_on_error "The librespot binary cannot be executed."
   verify_files_chown "${CURRENT_USER}" "${CURRENT_USER_GROUP}" \
-    "${HOME_PATH}/.local/bin/librespot" \
+    "${HOME_PATH}/.local/bin/librespot"
+  verify_dirs_chown "${CURRENT_USER}" "${CURRENT_USER_GROUP}" \
     "${HOME_PATH}/.cache/librespot"
   verify_files_chown root root \
     "${LIBRESPOT_SERVICE_PATH}" \

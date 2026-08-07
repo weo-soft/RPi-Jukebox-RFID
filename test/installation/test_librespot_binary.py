@@ -208,6 +208,55 @@ def test_invalid_archive_is_rejected_and_cleaned_up(tmp_path):
     assert not list((tmp_path / '.cache').glob('librespot-install.*'))
 
 
+def test_installation_check_uses_directory_verifier_for_cache(tmp_path):
+    binary = tmp_path / '.local' / 'bin' / 'librespot'
+    binary.parent.mkdir(parents=True)
+    binary.write_text('#!/bin/sh\nexit 0\n')
+    binary.chmod(0o755)
+    (tmp_path / '.cache' / 'librespot').mkdir(parents=True)
+    calls = tmp_path / 'verification-calls'
+    harness = r'''
+HOME_PATH="$1"
+SETUP_PATH="$2"
+CALLS="$3"
+CURRENT_USER=pi
+CURRENT_USER_GROUP=pi
+
+print_verify_installation() { :; }
+verify_apt_packages() { :; }
+verify_files_chown() { printf 'file:%s\n' "$*" >> "${CALLS}"; }
+verify_dirs_chown() { printf 'dir:%s\n' "$*" >> "${CALLS}"; }
+verify_file_contains_string() { :; }
+verify_service_enablement() { :; }
+exit_on_error() { exit 42; }
+
+source "${SETUP_PATH}"
+_spotify_check
+'''
+    result = subprocess.run(
+        [
+            'bash',
+            '-c',
+            harness,
+            'test-librespot-check',
+            str(tmp_path),
+            str(SETUP),
+            str(calls),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    verification_calls = calls.read_text().splitlines()
+    assert f'file:pi pi {binary}' in verification_calls
+    assert (
+        f'dir:pi pi {tmp_path / ".cache" / "librespot"}'
+        in verification_calls
+    )
+
+
 def test_committed_checksums_cover_every_supported_architecture():
     entries = {
         line.split()[1]: line.split()[0]
