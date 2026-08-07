@@ -191,6 +191,17 @@ Would you like to overwrite your configuration? [Y/n]"
 
 _option_spotify() {
   clear_c
+
+  if [[ "$(get_architecture)" == "armv6" ]]; then
+    print_c "----------------------- SPOTIFY -------------------------
+
+Spotify is not yet supported on ARMv6 Raspberry Pi models.
+Spotify support will not be installed."
+    SETUP_SPOTIFY=false
+    log "SETUP_SPOTIFY=${SETUP_SPOTIFY}"
+    return
+  fi
+
   print_c "----------------------- SPOTIFY -------------------------
 
 Spotify playback requires a Premium account and a Spotify

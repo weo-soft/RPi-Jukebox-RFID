@@ -64,9 +64,15 @@ For a new installation, follow the regular
    setups.
 4. Choose a Spotify Connect device name or keep `Phoniebox`.
 
-The installer builds the pinned librespot version, creates its user service,
-enables Spotify in `shared/settings/jukebox.yaml`, and makes
-`jukebox-daemon` depend on librespot.
+The installer downloads the pinned, checksum-verified librespot build for
+ARMv7, ARM64, or AMD64, creates its user service, enables Spotify in
+`shared/settings/jukebox.yaml`, and makes `jukebox-daemon` depend on
+librespot. Spotify is not yet available on ARMv6 models; the installer warns
+and continues without enabling it.
+
+Source compilation is a recovery option rather than an automatic fallback.
+To opt in when no release binary is available, start the installer with
+`LIBRESPOT_ALLOW_SOURCE_BUILD=true`.
 
 For an existing future3 installation, rerun the installer and select Spotify
 support. This is preferred over only editing YAML because the librespot
@@ -141,6 +147,11 @@ players:
 The Docker librespot image advertises itself as `Phoniebox`, so
 `device_name` must keep that value unless the container command is customized.
 Restart the `jukebox` container after changing this file.
+
+The Docker image uses the same verified release archive as the physical
+installer. Forks that publish their own `librespot-builds` release can set
+`LIBRESPOT_SOURCE_REPOSITORY=OWNER/RPi-Jukebox-RFID` before running Compose;
+the upstream repository remains the fallback.
 
 ### Prepare Host Audio
 

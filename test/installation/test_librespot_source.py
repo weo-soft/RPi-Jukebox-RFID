@@ -9,6 +9,7 @@ PREPARE_DEPENDENCIES = (
     ROOT / 'installation' / 'routines' / 'prepare_dependencies.sh'
 )
 DOCKERFILE = ROOT / 'docker' / 'Dockerfile.librespot'
+BUILD_DOCKERFILE = ROOT / 'docker' / 'Dockerfile.librespot-build'
 
 
 def _revision(contents, pattern):
@@ -22,6 +23,7 @@ def _run_install_function(home_path, cargo_status):
 HOME_PATH="$1"
 SETUP_PATH="$2"
 CARGO_STATUS="$3"
+INSTALLATION_PATH="$(dirname "$(dirname "$(dirname "${SETUP_PATH}")")")"
 
 print_lc() {
     :
@@ -39,7 +41,13 @@ exit_on_error() {
 }
 
 source "${SETUP_PATH}"
-_spotify_install_librespot
+_spotify_install_build_dependencies() {
+    :
+}
+_spotify_cleanup_build_dependencies() {
+    :
+}
+_spotify_install_librespot_from_source
 '''
     return subprocess.run(
         [
@@ -60,22 +68,31 @@ _spotify_install_librespot
 def test_installer_and_docker_pin_the_same_librespot_revision():
     setup = SETUP.read_text()
     prepare_dependencies = PREPARE_DEPENDENCIES.read_text()
-    dockerfile = DOCKERFILE.read_text()
+    build_dockerfile = BUILD_DOCKERFILE.read_text()
+    runtime_dockerfile = DOCKERFILE.read_text()
 
     setup_revision = _revision(
         setup,
         r'^LIBRESPOT_REVISION="([0-9a-f]{40})"$',
     )
     docker_revision = _revision(
-        dockerfile,
+        build_dockerfile,
         r'^ARG LIBRESPOT_REV=([0-9a-f]{40})$',
     )
 
     assert setup_revision == docker_revision
     assert '--git "${LIBRESPOT_REPOSITORY}"' in setup
     assert '--rev "${LIBRESPOT_REVISION}"' in setup
-    assert '--git https://github.com/librespot-org/librespot.git' in dockerfile
-    assert '--rev "${LIBRESPOT_REV}"' in dockerfile
+    assert 'fetch --depth 1 origin "${LIBRESPOT_REV}"' in build_dockerfile
+    assert 'rust:1.85-slim-bookworm' in build_dockerfile
+    assert 'ARG LIBRESPOT_SOURCE_DATE_EPOCH=1775501277' in build_dockerfile
+    assert 'SOURCE_DATE_EPOCH="${LIBRESPOT_SOURCE_DATE_EPOCH}"' in (
+        build_dockerfile
+    )
+    assert 'cargo install' in build_dockerfile
+    assert 'libpulse0' in runtime_dockerfile
+    assert 'libssl3t64' in runtime_dockerfile
+    assert 'cargo install' not in runtime_dockerfile
     assert 'cargo libpulse-dev libssl-dev pkg-config' not in prepare_dependencies
 
 
@@ -214,3 +231,78 @@ _spotify_cleanup_build_dependencies
         'apt-get -y purge cargo libssl-dev',
         'apt-get -y autoremove --purge',
     ]
+
+
+def test_source_build_is_only_used_when_explicitly_enabled(tmp_path):
+    marker = tmp_path / 'source-build'
+    harness = r'''
+HOME_PATH="$1"
+SETUP_PATH="$2"
+MARKER="$3"
+INSTALLATION_PATH="$(dirname "$(dirname "$(dirname "${SETUP_PATH}")")")"
+GIT_USER=contributor
+GIT_REPO_NAME=RPi-Jukebox-RFID
+
+print_lc() {
+    :
+}
+
+exit_on_error() {
+    printf '%s' "$1" > "${HOME_PATH}/installer-error"
+    exit 42
+}
+
+source "${SETUP_PATH}"
+_spotify_install_prebuilt_librespot() {
+    return 1
+}
+_spotify_install_librespot_from_source() {
+    touch "${MARKER}"
+}
+_spotify_install_librespot
+'''
+
+    env = {'PATH': '/usr/bin:/bin', 'LIBRESPOT_ALLOW_SOURCE_BUILD': 'false'}
+    result = subprocess.run(
+        [
+            'bash',
+            '-c',
+            harness,
+            'test-librespot-source-fallback',
+            str(tmp_path),
+            str(SETUP),
+            str(marker),
+        ],
+        check=False,
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 42
+    assert not marker.exists()
+    assert 'LIBRESPOT_ALLOW_SOURCE_BUILD=true' in (
+        tmp_path / 'installer-error'
+    ).read_text()
+
+    env['LIBRESPOT_ALLOW_SOURCE_BUILD'] = 'true'
+    (tmp_path / 'installer-error').unlink()
+    result = subprocess.run(
+        [
+            'bash',
+            '-c',
+            harness,
+            'test-librespot-source-fallback',
+            str(tmp_path),
+            str(SETUP),
+            str(marker),
+        ],
+        check=False,
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert marker.exists()
+    assert not (tmp_path / 'installer-error').exists()
