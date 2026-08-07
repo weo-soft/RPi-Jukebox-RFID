@@ -60,6 +60,7 @@ INSTALLATION_PATH="$(dirname "$(dirname "$(dirname "${SETUP_PATH}")")")"
 GIT_USER=contributor
 GIT_UPSTREAM_USER=MiczFlor
 GIT_REPO_NAME=RPi-Jukebox-RFID
+INSTALL_FUNCTION_CALLED="${HOME_PATH}/install-function-called"
 
 print_lc() {
     :
@@ -83,6 +84,10 @@ wget() {
 }
 
 source "${SETUP_PATH}"
+install() {
+    touch "${INSTALL_FUNCTION_CALLED}"
+    return 1
+}
 _spotify_install_prebuilt_librespot
 '''
     env = os.environ.copy()
@@ -153,6 +158,7 @@ def test_source_repository_is_preferred_and_archive_is_cleaned_up(tmp_path):
         ),
     ]
     assert (tmp_path / '.local' / 'bin' / 'librespot').stat().st_mode & 0o111
+    assert not (tmp_path / 'install-function-called').exists()
     assert not list((tmp_path / '.cache').glob('librespot-install.*'))
 
 

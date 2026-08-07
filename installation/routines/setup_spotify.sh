@@ -142,7 +142,7 @@ _spotify_install_prebuilt_librespot() {
   fi
   if ! tar -xzf "${archive_path}" -C "${extract_dir}" \
       || [[ ! -f "${extract_dir}/librespot" ]] \
-      || ! install -m 755 \
+      || ! command install -m 755 \
         "${extract_dir}/librespot" "${HOME_PATH}/.local/bin/librespot"; then
     rm -rf "${install_tmp_dir}"
     return 1
