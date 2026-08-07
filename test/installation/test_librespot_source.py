@@ -10,6 +10,10 @@ PREPARE_DEPENDENCIES = (
 )
 DOCKERFILE = ROOT / 'docker' / 'Dockerfile.librespot'
 BUILD_DOCKERFILE = ROOT / 'docker' / 'Dockerfile.librespot-build'
+DEFAULTS = ROOT / 'installation' / 'includes' / '01_default_config.sh'
+OPTIONS = ROOT / 'installation' / 'routines' / 'customize_options.sh'
+OPTIMIZE_BOOT = ROOT / 'installation' / 'routines' / 'optimize_boot_time.sh'
+WEBAPP_SETUP = ROOT / 'installation' / 'routines' / 'setup_jukebox_webapp.sh'
 
 
 def _revision(contents, pattern):
@@ -94,6 +98,58 @@ def test_installer_and_docker_pin_the_same_librespot_revision():
     assert 'libssl3t64' in runtime_dockerfile
     assert 'cargo install' not in runtime_dockerfile
     assert 'cargo libpulse-dev libssl-dev pkg-config' not in prepare_dependencies
+
+
+def test_installer_no_longer_offers_or_disables_ipv6():
+    assert 'DISABLE_IPv6' not in DEFAULTS.read_text()
+    assert '_option_ipv6' not in OPTIONS.read_text()
+    assert 'ipv6.disable=1' not in OPTIMIZE_BOOT.read_text()
+    assert 'DISABLE_IPv6' not in WEBAPP_SETUP.read_text()
+
+
+def test_spotify_removes_legacy_ipv6_disable_kernel_option(tmp_path):
+    cmdline = tmp_path / 'cmdline.txt'
+    cmdline.write_text(
+        'console=serial0,115200 ipv6.disable=1 rootwait quiet\n',
+    )
+    harness = r'''
+CMDLINE="$1"
+SETUP_PATH="$2"
+
+get_boot_cmdline_path() {
+    printf '%s\n' "${CMDLINE}"
+}
+print_lc() {
+    :
+}
+sudo() {
+    "$@"
+}
+exit_on_error() {
+    exit 42
+}
+
+source "${SETUP_PATH}"
+_spotify_enable_ipv6
+'''
+    result = subprocess.run(
+        [
+            'bash',
+            '-c',
+            harness,
+            'test-enable-ipv6',
+            str(cmdline),
+            str(SETUP),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert cmdline.read_text() == (
+        'console=serial0,115200 rootwait quiet\n'
+    )
 
 
 def test_installer_builds_outside_system_tmp_and_cleans_up(tmp_path):

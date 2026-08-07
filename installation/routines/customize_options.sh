@@ -28,26 +28,6 @@ Set a static IP? [Y/n]"
   log "ENABLE_STATIC_IP=${ENABLE_STATIC_IP}"
 }
 
-_option_ipv6() {
-  # DISABLE_IPv6
-  clear_c
-  print_c "------------------------- IP V6 -------------------------
-
-IPv6 is only needed if you intend to use it.
-Otherwise it can be disabled.
-
-Do you want to disable IPv6? [Y/n]"
-  read -r response
-  case "$response" in
-    [nN][oO]|[nN])
-      DISABLE_IPv6=false
-      ;;
-    *)
-      ;;
-  esac
-  log "DISABLE_IPv6=${DISABLE_IPv6}"
-}
-
 _option_autohotspot() {
     # ENABLE_AUTOHOTSPOT
     clear_c
@@ -407,7 +387,6 @@ _configure_webapp_bundle_download() {
 }
 
 _run_customize_options() {
-  _option_ipv6
   _option_static_ip
   _option_autohotspot
   _option_bluetooth

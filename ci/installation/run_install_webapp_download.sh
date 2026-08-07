@@ -15,7 +15,6 @@ export ENABLE_WEBAPP_PROD_DOWNLOAD=true
 # Run installation (in interactive mode)
 # y - start setup
 # n - use static ip
-# n - deactivate ipv6
 # n - setup autohotspot
 # - -   change default configuration (only with autohotspot = y)
 # n - deactivate bluetooth
@@ -30,7 +29,6 @@ export ENABLE_WEBAPP_PROD_DOWNLOAD=true
 # n - reboot
 
 "${LOCAL_INSTALL_SCRIPT_PATH}/install-jukebox.sh" <<< 'y
-n
 n
 n
 n

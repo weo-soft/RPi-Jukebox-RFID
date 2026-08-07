@@ -21,6 +21,25 @@ _spotify_validate_configuration() {
   fi
 }
 
+_spotify_enable_ipv6() {
+  local cmdline_file
+  local updated_cmdline
+  cmdline_file=$(get_boot_cmdline_path)
+  [[ -f "${cmdline_file}" ]] || return
+
+  if grep -Eq '(^|[[:space:]])ipv6\.disable=1([[:space:]]|$)' "${cmdline_file}"; then
+    print_lc "  Re-enable IPv6 for librespot discovery"
+    updated_cmdline=$(sed -E \
+      -e 's/(^|[[:space:]])ipv6\.disable=1([[:space:]]|$)/ /g' \
+      -e 's/[[:space:]]+/ /g' \
+      -e 's/^ //; s/ $//' \
+      "${cmdline_file}") \
+      || exit_on_error "Failed to remove ipv6.disable=1 from ${cmdline_file}."
+    printf '%s\n' "${updated_cmdline}" | sudo tee "${cmdline_file}" >/dev/null \
+      || exit_on_error "Failed to update ${cmdline_file}."
+  fi
+}
+
 _spotify_librespot_architecture() {
   case "${1:-$(uname -m)}" in
     armv7l|armv7)
@@ -321,6 +340,7 @@ _spotify_check() {
 
 _run_setup_spotify() {
   _spotify_validate_configuration
+  _spotify_enable_ipv6
   _spotify_install_librespot
   _spotify_configure
   _spotify_check
