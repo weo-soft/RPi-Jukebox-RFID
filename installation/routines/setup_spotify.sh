@@ -290,6 +290,28 @@ Then rerun the installation. To compile locally instead, explicitly set
 LIBRESPOT_ALLOW_SOURCE_BUILD=true."
 }
 
+_spotify_append_finish_message() {
+  local message="Spotify is enabled. After reboot, select '${SPOTIFY_DEVICE_NAME}'
+once in an official Spotify app."
+
+  if [[ "${SPOTIFY_REDIRECT_URI}" == "${SPOTIFY_DEFAULT_REDIRECT_URI}" ]]; then
+    message="${message}
+
+To connect the Spotify Web API, run this on the computer where you
+will open the Phoniebox Web App:
+ssh -L 3000:127.0.0.1:80 ${CURRENT_USER:-USER}@$(hostname).local
+Keep the SSH session open, browse to http://127.0.0.1:3000, then
+select Settings > Spotify > Connect."
+  else
+    message="${message}
+Then open the Web App at the origin configured for
+${SPOTIFY_REDIRECT_URI}
+and select Settings > Spotify > Connect."
+  fi
+
+  FIN_MESSAGE="${FIN_MESSAGE:+$FIN_MESSAGE\n}${message}"
+}
+
 _spotify_configure() {
   print_lc "  Configure Spotify services"
 
@@ -315,9 +337,7 @@ _spotify_configure() {
   systemctl --user daemon-reload
   systemctl --user enable librespot.service
 
-  local message="Spotify is enabled. After reboot, select '${SPOTIFY_DEVICE_NAME}'
-once in an official Spotify app, then connect the Web API account under Settings."
-  FIN_MESSAGE="${FIN_MESSAGE:+$FIN_MESSAGE\n}${message}"
+  _spotify_append_finish_message
 }
 
 _spotify_check() {

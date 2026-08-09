@@ -199,16 +199,44 @@ Would you like to install Spotify support? [y/N]"
   esac
 
   if [[ "${SETUP_SPOTIFY}" == true ]]; then
-    while [[ -z "${SPOTIFY_CLIENT_ID}" ]]; do
-      print_c "Spotify developer app client ID:"
-      read -r SPOTIFY_CLIENT_ID
-    done
     if [[ -z "${SPOTIFY_REDIRECT_URI}" ]]; then
-      print_c "Register this exact redirect URI in your Spotify developer app.
+      print_c "Spotify requires an exact OAuth redirect URI.
+Press Enter to use the recommended URI below. A custom LAN or
+public redirect URI normally requires HTTPS.
+
 Spotify OAuth redirect URI [${SPOTIFY_DEFAULT_REDIRECT_URI}]:"
       read -r response
       SPOTIFY_REDIRECT_URI="${response:-$SPOTIFY_DEFAULT_REDIRECT_URI}"
     fi
+
+    print_c "Before continuing, create a Spotify developer app:
+
+1. Go to https://developer.spotify.com/dashboard
+2. Click 'Create app'.
+3. Enter an App name and App description, add this exact
+   Redirect URI, and select 'Web API':
+
+   ${SPOTIFY_REDIRECT_URI}
+
+4. Save the app.
+
+After creating the app, copy the Client ID from its
+Basic Information page and enter it below."
+    while [[ -z "${SPOTIFY_CLIENT_ID}" ]]; do
+      print_c "Spotify developer app client ID:"
+      read -r SPOTIFY_CLIENT_ID
+    done
+
+    if [[ "${SPOTIFY_REDIRECT_URI}" == "${SPOTIFY_DEFAULT_REDIRECT_URI}" ]]; then
+      print_c "After installation, run this command on the computer where
+you will open the Phoniebox Web App:
+
+ssh -L 3000:127.0.0.1:80 ${CURRENT_USER:-USER}@$(hostname).local
+
+Keep the SSH session open, browse to http://127.0.0.1:3000,
+then select Settings > Spotify > Connect."
+    fi
+
     print_c "Spotify Connect device name [${SPOTIFY_DEVICE_NAME}]:"
     read -r response
     response="${response:-$SPOTIFY_DEVICE_NAME}"
