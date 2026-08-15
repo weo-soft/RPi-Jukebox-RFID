@@ -14,6 +14,32 @@ export LC_ALL=C
 GIT_USER=${GIT_USER:-"MiczFlor"}
 GIT_BRANCH=${GIT_BRANCH:-"future3/main"}
 
+# === Non-interactive installation support (Phoniebox Installer GUI, M18) ===
+# The GUI uploads a flat KEY=VALUE file (install_config.env) and calls:
+#   bash install-jukebox.sh --config /tmp/install_config.env
+# This skips all interactive 'read' prompts and installs with the supplied options.
+INSTALL_CONFIG_FILE=""
+NON_INTERACTIVE=false
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --config)
+            INSTALL_CONFIG_FILE="$2"
+            NON_INTERACTIVE=true
+            shift 2
+            ;;
+        --non-interactive)
+            NON_INTERACTIVE=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--config <file>] [--non-interactive]"
+            exit 1
+            ;;
+    esac
+done
+
 # Constants
 GIT_REPO_NAME="RPi-Jukebox-RFID"
 GIT_URL="https://github.com/${GIT_USER}/${GIT_REPO_NAME}"
@@ -86,15 +112,65 @@ Check install log for details:"
   exit 1
 }
 
+# Load a non-interactive install configuration file (flat KEY=VALUE, see M18).
+# Must run after _setup_logging (needs print_lc/log) and before
+# _check_existing_installation (which consumes EXISTING_INSTALL_ACTION).
+_load_install_config() {
+    if [[ -n "$INSTALL_CONFIG_FILE" ]]; then
+        if [[ ! -f "$INSTALL_CONFIG_FILE" ]]; then
+            print_lc "ERROR: Config file not found: $INSTALL_CONFIG_FILE"
+            exit 1
+        fi
+        print_lc "Loading install configuration from: $INSTALL_CONFIG_FILE"
+
+        # The GUI uploads a flat KEY=VALUE file (install_config.env); no YAML
+        # parser is needed on the Pi — the values are simply sourced.
+        # shellcheck disable=SC1090
+        source "$INSTALL_CONFIG_FILE"
+        NON_INTERACTIVE=true
+
+        # GIT_USER/GIT_BRANCH may have been overridden by the config. GIT_URL
+        # was computed above (before sourcing) and must be recomputed for forks.
+        GIT_URL="https://github.com/${GIT_USER}/${GIT_REPO_NAME}"
+
+        log "Configuration loaded from: $INSTALL_CONFIG_FILE"
+    fi
+}
+
 _check_existing_installation() {
     if [[ -e "${INSTALLATION_PATH}" ]]; then
-        print_lc "
+        # Backward-compatible: the interactive flow keeps the hard abort.
+        if [[ "${NON_INTERACTIVE:-}" != "true" ]]; then
+            print_lc "
 ############## EXISTING INSTALLATION FOUND ##############
 Rerunning the installer over an existing installation is
 currently not supported (overwrites settings, etc).
 Please backup your 'shared' folder and manually changed
 files and run the installation on a fresh image."
-        exit 1
+            exit 1
+        fi
+
+        print_lc "
+############## EXISTING INSTALLATION FOUND ##############
+An existing installation was found at ${INSTALLATION_PATH}."
+
+        case "${EXISTING_INSTALL_ACTION:-backup}" in
+            remove)
+                print_lc "Removing existing installation (user chose 'Remove')."
+                rm -rf "${INSTALLATION_PATH}"
+                ;;
+            backup)
+                local ts backup_dir
+                ts=$(date +%Y%m%d-%H%M%S)
+                backup_dir="${INSTALLATION_PATH}.bak-${ts}"
+                print_lc "Backing up existing installation to ${backup_dir} (user chose 'Backup')."
+                mv "${INSTALLATION_PATH}" "${backup_dir}"
+                ;;
+            *)
+                print_lc "Unknown EXISTING_INSTALL_ACTION '${EXISTING_INSTALL_ACTION}'. Aborting."
+                exit 1
+                ;;
+        esac
     fi
 }
 
@@ -135,6 +211,9 @@ _load_sources() {
 
 ### SETUP LOGGING
 _setup_logging
+
+### LOAD NON-INTERACTIVE CONFIG (if any)
+_load_install_config
 
 ### CHECK PREREQUISITE
 _check_existing_installation
