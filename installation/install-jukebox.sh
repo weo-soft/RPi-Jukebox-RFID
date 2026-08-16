@@ -60,6 +60,9 @@ _setup_logging(){
         exec 3>&1 1>>"${INSTALLATION_LOGFILE}" 2>&1 || { echo "ERROR: Cannot create log file."; exit 1; }
     fi
     echo "Log start: ${INSTALL_ID}"
+    # Publish the log file path to the console so a driving GUI installer can
+    # tail it for a detailed live log.
+    print_lc "INSTALLATION_LOGFILE=${INSTALLATION_LOGFILE}"
 }
 
 # Function to log to both console and logfile
