@@ -43,8 +43,6 @@ done
 # Constants
 GIT_REPO_NAME="RPi-Jukebox-RFID"
 GIT_URL="https://github.com/${GIT_USER}/${GIT_REPO_NAME}"
-echo GIT_BRANCH $GIT_BRANCH
-echo GIT_URL $GIT_URL
 
 CURRENT_USER="${SUDO_USER:-$(whoami)}"
 CURRENT_USER_GROUP=$(id -gn "$CURRENT_USER")
@@ -214,6 +212,10 @@ _setup_logging
 
 ### LOAD NON-INTERACTIVE CONFIG (if any)
 _load_install_config
+
+# Echo the effective repo (after any --config override) for log clarity.
+echo GIT_BRANCH $GIT_BRANCH
+echo GIT_URL $GIT_URL
 
 ### CHECK PREREQUISITE
 _check_existing_installation
