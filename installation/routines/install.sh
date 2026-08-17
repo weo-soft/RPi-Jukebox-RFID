@@ -2,12 +2,12 @@ install() {
   clear_c
   # Only prompt for options in interactive mode. In non-interactive mode
   # (--config / --non-interactive) the options are supplied via a flat
-  # KEY=VALUE config file or environment variables (see M18).
+  # KEY=VALUE config file or environment variables.
   if [[ "${NON_INTERACTIVE:-}" != "true" ]]; then
       customize_options
   else
       # Enforce option consistency and re-run the WebApp bundle normalization
-      # that customize_options() would otherwise apply (M18).
+      # that customize_options() would otherwise apply.
       if [[ "$ENABLE_WEBAPP" != "true" ]]; then
           ENABLE_KIOSK_MODE=false        # Kiosk mode requires the WebApp
       fi
@@ -27,7 +27,7 @@ install() {
   setup_mpd
   setup_samba
   setup_jukebox_webapp
-  # Audio HAT overlay — only when a board was selected (M18). setup_hifiberry.sh
+  # Audio HAT overlay — only when a board was selected. setup_hifiberry.sh
   # already supports non-interactive 'enable <board>'.
   if [[ -n "${HIFIBERRY_BOARD}" ]]; then
       (cd "${INSTALLATION_PATH}/installation/components" && \

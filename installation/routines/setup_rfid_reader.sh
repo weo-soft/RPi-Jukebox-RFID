@@ -4,7 +4,7 @@ _run_setup_rfid_reader() {
     local script="${INSTALLATION_PATH}"/installation/components/setup_rfid_reader.sh
     local args=()
 
-    # Non-interactive (M18): forward the selected reader module so that
+    # Non-interactive: forward the selected reader module so that
     # run_register_rfid_reader.py does not prompt. In interactive mode the
     # module is chosen later inside the tool itself (no args -> interactive).
     if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then

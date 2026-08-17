@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Tests for the non-interactive installation support (M18):
+# Tests for the non-interactive installation support:
 # - 01_default_config.sh must not overwrite values set via --config/env (E1).
 # - _option_*() functions must skip their interactive prompts when
 #   NON_INTERACTIVE=true.
@@ -17,7 +17,7 @@ print_c() { :; }
 log() { :; }
 print_lc() { :; }
 
-# --- 01_default_config.sh must NOT overwrite pre-set values (M18 E1 fix) ---
+# --- 01_default_config.sh must NOT overwrite pre-set values ---
 ENABLE_STATIC_IP="false"
 DISABLE_IPv6="false"
 ENABLE_SAMBA="true"
@@ -37,7 +37,7 @@ unset ENABLE_SAMBA
 source "${REPOSITORY_ROOT}/installation/includes/01_default_config.sh"
 [[ "${ENABLE_SAMBA}" == "false" ]]
 
-# --- _option_*() skip prompts when NON_INTERACTIVE=true (M18 Phase 2) ---
+# --- _option_*() skip prompts when NON_INTERACTIVE=true ---
 source "${REPOSITORY_ROOT}/installation/routines/customize_options.sh"
 
 NON_INTERACTIVE="true"

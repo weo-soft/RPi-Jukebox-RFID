@@ -30,8 +30,8 @@ cd; tail -f ${INSTALLATION_LOGFILE}
 
 Let's set up your Phoniebox."
 
-  # Only ask for confirmation in interactive mode. The GUI installer runs
-  # non-interactively via --config and must not block on a read prompt.
+  # Only ask for confirmation in interactive mode. In non-interactive mode
+  # (--config / --non-interactive) the script must not block on a read prompt.
   if [[ "${NON_INTERACTIVE:-}" != "true" ]]; then
     print_c "Do you want to start the installation? [Y/n]"
     read -r response

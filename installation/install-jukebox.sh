@@ -14,8 +14,9 @@ export LC_ALL=C
 GIT_USER=${GIT_USER:-"MiczFlor"}
 GIT_BRANCH=${GIT_BRANCH:-"future3/main"}
 
-# === Non-interactive installation support (Phoniebox Installer GUI, M18) ===
-# The GUI uploads a flat KEY=VALUE file (install_config.env) and calls:
+# === Non-interactive installation support ===
+# In non-interactive mode all options are supplied via a flat KEY=VALUE
+# config file (install_config.env) which is passed as:
 #   bash install-jukebox.sh --config /tmp/install_config.env
 # This skips all interactive 'read' prompts and installs with the supplied options.
 INSTALL_CONFIG_FILE=""
@@ -60,8 +61,8 @@ _setup_logging(){
         exec 3>&1 1>>"${INSTALLATION_LOGFILE}" 2>&1 || { echo "ERROR: Cannot create log file."; exit 1; }
     fi
     echo "Log start: ${INSTALL_ID}"
-    # Publish the log file path to the console so a driving GUI installer can
-    # tail it for a detailed live log.
+    # Publish the log file path to the console so a headless (non-interactive)
+    # process can tail it for a detailed live log.
     print_lc "INSTALLATION_LOGFILE=${INSTALLATION_LOGFILE}"
 }
 
@@ -113,7 +114,7 @@ Check install log for details:"
   exit 1
 }
 
-# Load a non-interactive install configuration file (flat KEY=VALUE, see M18).
+# Load a non-interactive install configuration file (flat KEY=VALUE).
 # Must run after _setup_logging (needs print_lc/log) and before
 # _check_existing_installation (which consumes EXISTING_INSTALL_ACTION).
 _load_install_config() {
@@ -124,7 +125,7 @@ _load_install_config() {
         fi
         print_lc "Loading install configuration from: $INSTALL_CONFIG_FILE"
 
-        # The GUI uploads a flat KEY=VALUE file (install_config.env); no YAML
+        # The config file is a flat KEY=VALUE file (install_config.env); no YAML
         # parser is needed on the Pi — the values are simply sourced.
         # shellcheck disable=SC1090
         source "$INSTALL_CONFIG_FILE"
@@ -144,7 +145,7 @@ _check_existing_installation() {
         if [[ "${NON_INTERACTIVE:-}" != "true" ]]; then
             print_lc "
 ############## EXISTING INSTALLATION FOUND ##############
-Rerunning the installer over an existing installation is
+Rerunning the installation over an existing installation is
 currently not supported (overwrites settings, etc).
 Please backup your 'shared' folder and manually changed
 files and run the installation on a fresh image."
