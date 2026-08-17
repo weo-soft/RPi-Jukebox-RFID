@@ -257,8 +257,8 @@ def configure_reader(reader_name: str, dependency_install: str = 'auto') -> dict
 
     Unlike query_user_for_reader(), this does not prompt the user for the
     reader selection or reader-specific customization; the reader's module
-    defaults are used (config=None). Intended for the GUI installer, which
-    calls run_register_rfid_reader.py --reader <type> --deps auto --force.
+    defaults are used (config=None). Used by non-interactive installs, which
+    call run_register_rfid_reader.py --reader <type> --deps auto --force.
 
     :param reader_name: directory/module name of the reader (e.g. 'pn532_i2c_py532')
     :param dependency_install: how to handle installing of dependencies:

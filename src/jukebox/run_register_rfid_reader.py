@@ -70,7 +70,7 @@ def main():
     dependency_install = dinstall_lookup[args.deps]
 
     if args.reader:
-        # Non-interactive: configure a single reader without prompting (M18).
+        # Non-interactive: configure a single reader without prompting.
         config_dict = rfid_configure.configure_reader(
             args.reader, dependency_install=dependency_install)
     else:
