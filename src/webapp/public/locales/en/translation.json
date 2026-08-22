@@ -142,7 +142,8 @@
     },
     "sources": {
       "mpd": "Local",
-      "spotify": "Spotify"
+      "spotify": "Spotify",
+      "jellyfin": "Jellyfin"
     },
     "overview": {
       "group": "{{source}} {{view}}",
