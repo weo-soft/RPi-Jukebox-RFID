@@ -223,3 +223,12 @@ def test_host_trailing_slash_is_stripped():
     client = JellyfinApiClient(f'{HOST}/', API_KEY, session=session)
 
     assert client.host == HOST
+
+
+def test_host_without_scheme_is_prefixed():
+    session = FakeSession([FakeResponse({'Items': []})])
+    client = JellyfinApiClient('192.168.178.26:8096', API_KEY, session=session)
+
+    assert client.host == 'http://192.168.178.26:8096'
+    client.get_albums()
+    assert session.calls[0][1] == 'http://192.168.178.26:8096/Items'

@@ -38,7 +38,12 @@ class JellyfinApiClient:
             *,
             session: Optional[requests.Session] = None,
             timeout: float = DEFAULT_TIMEOUT):
-        self.host = (host or '').rstrip('/')
+        host = (host or '').strip()
+        # A scheme-less host (e.g. "192.168.178.26:8096") is treated as plain
+        # HTTP so that requests can build a valid URL.
+        if host and '://' not in host:
+            host = f'http://{host}'
+        self.host = host.rstrip('/')
         self.api_key = api_key or ''
         self.timeout = timeout
         self._session = session if session is not None else requests.Session()
