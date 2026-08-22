@@ -17,9 +17,14 @@ Run the installer and answer **yes** to the "Setup Jellyfin?" prompt.
 You will be asked for:
 
 1. **Server URL** — e.g. `http://jellyfin.local:8096`
-2. **API key** — created in Dashboard → API Keys → Create
+2. **Authentication method** — choose between:
+   - **API key** (created in Dashboard → API Keys → Create), or
+   - **Jellyfin username and password** (the resulting login token honors
+     the user's library permissions, so a restricted user only sees the
+     albums that user may access)
 
-The installer stores these in `jukebox.yaml` and enables the plugin.
+The installer stores the chosen credentials in `jukebox.yaml` and enables
+the plugin.
 
 ## Manual configuration
 

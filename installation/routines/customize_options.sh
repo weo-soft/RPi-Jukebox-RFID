@@ -304,8 +304,8 @@ The Phoniebox can use a Jellyfin media server as an additional
 music source. The Jellyfin player backend streams audio through
 MPD, so no extra playback daemon is installed.
 
-You will be asked for the Jellyfin server address and API key
-after installation.
+You will be asked for the Jellyfin server address and the
+authentication (API key or Jellyfin user login) after installation.
 
 Would you like to setup Jellyfin? [y/N]"
   read -r response

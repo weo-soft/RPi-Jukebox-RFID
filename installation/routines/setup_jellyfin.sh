@@ -6,19 +6,52 @@ _jellyfin_set_user_config() {
   print_lc "  Configure Jellyfin"
   print_lc "    Enter your Jellyfin server URL (e.g. http://jellyfin.local:8096):"
   read -r JELLYFIN_HOST
-  print_lc "    Enter your Jellyfin API key (Dashboard -> API Keys):"
-  read -r JELLYFIN_API_KEY
 
-  if [[ -z "$JELLYFIN_HOST" || -z "$JELLYFIN_API_KEY" ]]; then
-    print_c "  WARNING: Jellyfin server URL and API key are required. Skipping Jellyfin setup."
+  unset JELLYFIN_API_KEY JELLYFIN_USERNAME JELLYFIN_PASSWORD
+  print_c "    Authenticate with an API key or a Jellyfin user?
+1 - API key (Dashboard -> API Keys)
+2 - Jellyfin username and password (honors the user's library permissions)
+Choice [1/2]:"
+  read -r JELLYFIN_AUTH_METHOD
+  case "$JELLYFIN_AUTH_METHOD" in
+    2)
+      print_lc "    Enter the Jellyfin username:"
+      read -r JELLYFIN_USERNAME
+      print_lc "    Enter the Jellyfin password (input is hidden):"
+      read -r -s JELLYFIN_PASSWORD
+      echo
+      ;;
+    *)
+      print_lc "    Enter your Jellyfin API key (Dashboard -> API Keys):"
+      read -r JELLYFIN_API_KEY
+      ;;
+  esac
+
+  if [[ -z "$JELLYFIN_HOST" ]]; then
+    print_c "  WARNING: Jellyfin server URL is required. Skipping Jellyfin setup."
+    ENABLE_JELLYFIN=false
+    return
+  fi
+  if [[ "$JELLYFIN_AUTH_METHOD" == "2" ]]; then
+    if [[ -z "$JELLYFIN_USERNAME" || -z "$JELLYFIN_PASSWORD" ]]; then
+      print_c "  WARNING: Jellyfin username and password are required. Skipping Jellyfin setup."
+      ENABLE_JELLYFIN=false
+      return
+    fi
+  elif [[ -z "$JELLYFIN_API_KEY" ]]; then
+    print_c "  WARNING: Jellyfin API key is required. Skipping Jellyfin setup."
     ENABLE_JELLYFIN=false
     return
   fi
 
   # The Python heredoc reads the values from the environment, never from shell
-  # interpolation, so special characters in host/key are preserved. The
-  # delimiter is quoted to prevent any shell expansion inside the Python code.
-  JELLYFIN_HOST="$JELLYFIN_HOST" JELLYFIN_API_KEY="$JELLYFIN_API_KEY" \
+  # interpolation, so special characters in host and credentials are
+  # preserved. The delimiter is quoted to prevent any shell expansion inside
+  # the Python code.
+  JELLYFIN_HOST="$JELLYFIN_HOST" \
+  JELLYFIN_API_KEY="${JELLYFIN_API_KEY:-}" \
+  JELLYFIN_USERNAME="${JELLYFIN_USERNAME:-}" \
+  JELLYFIN_PASSWORD="${JELLYFIN_PASSWORD:-}" \
   JELLYFIN_SETTINGS_FILE="$JELLYFIN_SETTINGS_FILE" \
   "$VIRTUAL_ENV/bin/python3" - << 'PYEOF'
 from ruamel.yaml import YAML
@@ -30,12 +63,17 @@ settings_file = os.environ['JELLYFIN_SETTINGS_FILE']
 with open(settings_file, 'r') as stream:
     data = yaml.load(stream) or {}
 data.setdefault('players', {})
-data['players'].setdefault('jellyfin', {})
-data['players']['jellyfin'] = {
+jellyfin = {
     'enabled': True,
     'host': os.environ['JELLYFIN_HOST'],
-    'api_key': os.environ['JELLYFIN_API_KEY'],
 }
+if os.environ.get('JELLYFIN_API_KEY'):
+    jellyfin['api_key'] = os.environ['JELLYFIN_API_KEY']
+if os.environ.get('JELLYFIN_USERNAME'):
+    jellyfin['username'] = os.environ['JELLYFIN_USERNAME']
+if os.environ.get('JELLYFIN_PASSWORD'):
+    jellyfin['password'] = os.environ['JELLYFIN_PASSWORD']
+data['players']['jellyfin'] = jellyfin
 with open(settings_file, 'w') as stream:
     yaml.dump(data, stream)
 PYEOF
@@ -53,7 +91,9 @@ _jellyfin_check() {
 setup_jellyfin() {
   if [[ "$ENABLE_JELLYFIN" == true ]]; then
     run_with_log_frame _jellyfin_set_user_config "Setup Jellyfin"
-    _jellyfin_check
+    if [[ "$ENABLE_JELLYFIN" == true ]]; then
+      _jellyfin_check
+    fi
   else
     log "Jellyfin setup skipped."
   fi
