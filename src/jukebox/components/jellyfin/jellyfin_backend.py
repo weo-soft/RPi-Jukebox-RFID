@@ -317,11 +317,17 @@ class JellyfinBackend:
                     or self._find_album_id(albumartist, album))
         return self._cache_coverart(album_id) if album_id else None
 
+    @staticmethod
+    def _cover_filename(item_id):
+        return f'jellyfin-{item_id}.jpg'
+
     def _cache_coverart(self, item_id):
         """Return the cached cover filename for ``item_id``, downloading lazily.
 
-        Memoized (at most one download per item) and non-blocking: the first
-        call enqueues the download on the background cover worker and returns
+        Memoized (at most one download per item) and non-blocking. Covers
+        already present in the cache directory are reused immediately, so a
+        restart does not require re-downloading. The first call for a missing
+        cover enqueues the download on the background worker and returns
         ``None``; later calls return the bare filename once the worker has
         finished.
         """
@@ -329,6 +335,10 @@ class JellyfinBackend:
             return None
         if item_id in self._cover_memo:
             return self._cover_memo[item_id] or None
+        filename = self._cover_filename(item_id)
+        if (self._cover_cache_dir / filename).is_file():
+            self._cover_memo[item_id] = filename
+            return filename
         self._cover_memo[item_id] = None
         self._cover_write_queue.put(item_id)
         return None
@@ -339,12 +349,13 @@ class JellyfinBackend:
             item_id = self._cover_write_queue.get()
             try:
                 image_bytes = self._api.get_coverart_bytes(item_id)
-                filename = f'jellyfin-{item_id}.jpg'
+                filename = self._cover_filename(item_id)
                 (self._cover_cache_dir / filename).write_bytes(image_bytes)
             except Exception as error:
                 logger.warning(
                     "Could not fetch Jellyfin cover art for %s: %s", item_id, error)
-                self._cover_memo[item_id] = None
+                # Forget the pending entry so a later request can retry.
+                self._cover_memo.pop(item_id, None)
             else:
                 self._cover_memo[item_id] = filename
             finally:

@@ -491,16 +491,42 @@ def test_cover_url_is_prefixed(tmp_path):
     assert backend._cover_url('track-1') == '/cover-cache/jellyfin-track-1.jpg'
 
 
-def test_cover_download_failure_is_not_fatal(tmp_path):
+def test_cover_download_failure_can_be_retried(tmp_path):
     api = make_api()
-    api.get_coverart_bytes.side_effect = RuntimeError('offline')
+    api.get_coverart_bytes.side_effect = [RuntimeError('offline'), b'image']
     backend = make_backend(api)
     backend._cover_cache_dir = tmp_path
 
-    backend._cover_write_queue.put('track-1')
+    assert backend._cache_coverart('track-1') is None
     backend._cover_write_queue.join()
 
+    # The failed download forgot the pending entry, so the next request
+    # triggers a retry instead of returning a permanent "no cover".
     assert backend._cache_coverart('track-1') is None
+    backend._cover_write_queue.join()
+
+    assert backend._cache_coverart('track-1') == 'jellyfin-track-1.jpg'
+    assert api.get_coverart_bytes.call_count == 2
+
+
+def test_cover_reuses_existing_file_after_restart(tmp_path):
+    api = make_api()
+    backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
+    (tmp_path / 'jellyfin-track-1.jpg').write_bytes(b'existing-cover')
+
+    assert backend._cache_coverart('track-1') == 'jellyfin-track-1.jpg'
+    api.get_coverart_bytes.assert_not_called()
+
+
+def test_cover_url_reuses_existing_file_after_restart(tmp_path):
+    api = make_api()
+    backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
+    (tmp_path / 'jellyfin-track-1.jpg').write_bytes(b'existing-cover')
+
+    assert backend._cover_url('track-1') == '/cover-cache/jellyfin-track-1.jpg'
+    api.get_coverart_bytes.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
