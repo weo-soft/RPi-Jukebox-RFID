@@ -14,7 +14,7 @@ import requests
 logger = logging.getLogger('jb.player.jellyfin')
 
 #: Default request timeout in seconds for all Jellyfin API calls.
-DEFAULT_TIMEOUT = 10.0
+DEFAULT_TIMEOUT = 30.0
 
 
 class JellyfinApiClient:

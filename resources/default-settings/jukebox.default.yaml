@@ -116,6 +116,9 @@ players:
     # reduce Jellyfin load on a Raspberry Pi; new/removed albums are only
     # picked up after the cache expires.
     catalog_cache_ttl: 300
+    # Seconds to wait for a response from the Jellyfin server before a
+    # request is considered failed.
+    request_timeout: 30
 rpc:
   tcp_port: 5555
 api:

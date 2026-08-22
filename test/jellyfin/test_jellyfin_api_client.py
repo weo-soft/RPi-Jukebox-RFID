@@ -232,3 +232,18 @@ def test_host_without_scheme_is_prefixed():
     assert client.host == 'http://192.168.178.26:8096'
     client.get_albums()
     assert session.calls[0][1] == 'http://192.168.178.26:8096/Items'
+
+
+def test_default_timeout_is_thirty_seconds():
+    client = JellyfinApiClient(HOST, API_KEY, session=FakeSession([]))
+
+    assert client.timeout == 30.0
+
+
+def test_timeout_is_applied_to_requests():
+    session = FakeSession([FakeResponse({})])
+    client = JellyfinApiClient(HOST, API_KEY, session=session, timeout=45.0)
+
+    client.authenticate()
+
+    assert session.calls[0][3] == 45.0

@@ -788,3 +788,27 @@ def test_configure_jellyfin_does_not_authenticate_at_startup(monkeypatch):
 
     assert backend._api is api
     api.authenticate.assert_not_called()
+
+
+def test_configure_jellyfin_reads_request_timeout(monkeypatch):
+    monkeypatch.setattr(
+        'jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
+    cfg = reset_cfg()
+    cfg.setn('players', 'jellyfin', 'enabled', value=True)
+    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
+    cfg.setn('players', 'jellyfin', 'api_key', value='secret')
+    cfg.setn('players', 'jellyfin', 'request_timeout', value=45)
+    player_ctrl = make_player_ctrl()
+
+    backend = configure_jellyfin(player_ctrl)
+
+    assert backend._api.timeout == 45
+
+
+def test_configure_jellyfin_default_request_timeout():
+    reset_cfg()
+
+    timeout = cfghandler.get_handler('jukebox').setndefault(
+        'players', 'jellyfin', 'request_timeout', value=30)
+
+    assert timeout == 30

@@ -31,6 +31,7 @@ players:
     host: "http://jellyfin.local:8096"
     api_key: "your-api-key"
     catalog_cache_ttl: 300   # optional: seconds the album catalog is cached (default 300)
+    request_timeout: 30      # optional: seconds to wait for server responses (default 30)
 ```
 
 Restart the daemon: `sudo systemctl restart jukebox-daemon`
