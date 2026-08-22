@@ -10,6 +10,7 @@ install() {
   setup_mpd
   setup_spotify
   setup_samba
+  setup_jellyfin
   setup_jukebox_webapp
   setup_kiosk_mode
   setup_rfid_reader

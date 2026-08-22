@@ -23,6 +23,7 @@ export ENABLE_WEBAPP_PROD_DOWNLOAD=true
 # n - setup Spotify
 # n - setup rfid reader
 # y - setup samba
+# n - setup jellyfin
 # y - setup webapp
 # - - exact Web App bundle download (forced)
 # n - setup kiosk mode
@@ -37,6 +38,7 @@ n
 n
 n
 y
+n
 y
 n
 n

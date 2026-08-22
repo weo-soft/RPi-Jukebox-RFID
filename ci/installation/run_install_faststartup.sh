@@ -23,6 +23,7 @@ LOCAL_INSTALL_SCRIPT_PATH="${LOCAL_INSTALL_SCRIPT_PATH%/}"
 # n - setup Spotify
 # n - setup rfid reader
 # n - setup samba
+# n - setup jellyfin
 # n - setup webapp
 # - - build webapp (only with webapp = y)
 # - - setup kiosk mode (only with webapp = y)
@@ -33,6 +34,7 @@ y
 n
 y
 y
+n
 n
 n
 n

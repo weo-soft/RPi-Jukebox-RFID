@@ -295,6 +295,31 @@ Do you want to install Samba? [y/N]"
   log "ENABLE_SAMBA=${ENABLE_SAMBA}"
 }
 
+_option_jellyfin() {
+  # ENABLE_JELLYFIN
+  clear_c
+  print_c "------------------------ JELLYFIN -----------------------
+
+The Phoniebox can use a Jellyfin media server as an additional
+music source. The Jellyfin player backend streams audio through
+MPD, so no extra playback daemon is installed.
+
+You will be asked for the Jellyfin server address and API key
+after installation.
+
+Would you like to setup Jellyfin? [y/N]"
+  read -r response
+  case "$response" in
+    [yY][eE][sS]|[yY])
+      ENABLE_JELLYFIN=true
+      ;;
+    *)
+      ENABLE_JELLYFIN=false
+      ;;
+  esac
+  log "ENABLE_JELLYFIN=${ENABLE_JELLYFIN}"
+}
+
 _option_webapp() {
   # ENABLE_WEBAPP
   clear_c
@@ -423,6 +448,7 @@ _run_customize_options() {
   _option_spotify
   _option_rfid_reader
   _option_samba
+  _option_jellyfin
   _option_webapp
   if [[ $ENABLE_WEBAPP == true ]] ; then
     _configure_webapp_bundle_download

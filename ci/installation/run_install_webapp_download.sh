@@ -23,12 +23,14 @@ export ENABLE_WEBAPP_PROD_DOWNLOAD=true
 # n - setup Spotify
 # n - setup rfid reader
 # n - setup samba
+# n - setup jellyfin
 # y - setup webapp
 # - - exact bundle download (forced)
 # y - setup kiosk mode
 # n - reboot
 
 "${LOCAL_INSTALL_SCRIPT_PATH}/install-jukebox.sh" <<< 'y
+n
 n
 n
 n
