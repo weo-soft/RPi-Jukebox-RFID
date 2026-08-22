@@ -137,7 +137,38 @@ class JellyfinBackend:
             raise
         self._catalog_cache = albums
         self._catalog_cache_ts = now
+        self._prune_stale_covers()
         return albums
+
+    def _prune_stale_covers(self):
+        """Delete cached cover files whose item left the library.
+
+        Runs after a successful catalog refresh. A cover file is kept when
+        its item is part of the current album catalog or was referenced in
+        this session; every other cached cover (e.g. from an album that was
+        removed on the server) is deleted. Track covers are re-downloaded
+        lazily when needed again.
+        """
+        if not self._cover_cache_dir.is_dir():
+            return
+        album_ids = {
+            album.get('Id')
+            for album in self._catalog_cache or []
+            if album.get('Id')
+        }
+        removed = 0
+        for path in self._cover_cache_dir.glob('jellyfin-*.jpg'):
+            item_id = path.stem[len('jellyfin-'):]
+            if item_id in album_ids or item_id in self._cover_memo:
+                continue
+            try:
+                path.unlink()
+                removed += 1
+            except OSError as error:
+                logger.warning(
+                    "Could not remove stale Jellyfin cover %s: %s", path, error)
+        if removed:
+            logger.info("Removed %d stale Jellyfin cover file(s)", removed)
 
     def _fetch_all_albums(self):
         """Fetch the full album catalog in bounded pages.

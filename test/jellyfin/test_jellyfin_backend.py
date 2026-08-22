@@ -212,6 +212,38 @@ def test_catalog_cache_serves_stale_catalog_on_refresh_error():
     assert items[0]['content_uri'] == f'{ALBUM_URI_PREFIX}album-1'
 
 
+def test_catalog_refresh_prunes_stale_covers(tmp_path):
+    api = make_api()
+    api.get_albums.return_value = [album_item()]
+    backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
+    (tmp_path / 'jellyfin-album-1.jpg').write_bytes(b'kept-album')
+    (tmp_path / 'jellyfin-album-gone.jpg').write_bytes(b'stale-album')
+    (tmp_path / 'jellyfin-track-1.jpg').write_bytes(b'kept-track')
+    backend._cover_memo = {'track-1': 'jellyfin-track-1.jpg'}
+
+    backend.list_library_items(['album'])
+    backend._catalog_cache_ts = time.monotonic() - 301.0
+    backend.list_library_items(['album'])
+
+    assert (tmp_path / 'jellyfin-album-1.jpg').exists()
+    assert (tmp_path / 'jellyfin-track-1.jpg').exists()
+    assert not (tmp_path / 'jellyfin-album-gone.jpg').exists()
+
+
+def test_catalog_fresh_cache_does_not_prune(tmp_path):
+    api = make_api()
+    api.get_albums.return_value = [album_item()]
+    backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
+
+    backend.list_library_items(['album'])
+    (tmp_path / 'jellyfin-album-gone.jpg').write_bytes(b'stale-album')
+    backend.list_library_items(['album'])
+
+    assert (tmp_path / 'jellyfin-album-gone.jpg').exists()
+
+
 def test_find_album_id_by_name_and_artist():
     api = make_api()
     api.get_albums.return_value = [album_item()]
