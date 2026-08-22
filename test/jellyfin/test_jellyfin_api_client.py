@@ -247,3 +247,50 @@ def test_timeout_is_applied_to_requests():
     client.authenticate()
 
     assert session.calls[0][3] == 45.0
+
+
+def test_authenticate_falls_back_to_system_info():
+    session = FakeSession([
+        FakeResponse({}, status=400),
+        FakeResponse({}, status=200),
+    ])
+    client = make_client(session)
+
+    assert client.authenticate() is True
+    assert session.calls[0][1] == f'{HOST}/Users/Me'
+    assert session.calls[1][1] == f'{HOST}/System/Info'
+
+
+def test_authenticate_fallback_rejected_key():
+    session = FakeSession([
+        FakeResponse({}, status=400),
+        FakeResponse({}, status=401),
+    ])
+    client = make_client(session)
+
+    assert client.authenticate() is False
+
+
+def test_get_item_falls_back_to_ids_query():
+    session = FakeSession([
+        FakeResponse({}, status=400),
+        FakeResponse({'Items': [{'Id': 'track-1', 'Type': 'Audio'}]}),
+    ])
+    client = make_client(session)
+
+    assert client.get_item('track-1') == {'Id': 'track-1', 'Type': 'Audio'}
+    assert session.calls[0][1] == f'{HOST}/Items/track-1'
+    fallback_url, fallback_params = session.calls[1][1], session.calls[1][2]
+    assert fallback_url == f'{HOST}/Items'
+    assert fallback_params['Ids'] == 'track-1'
+    assert fallback_params['Recursive'] == 'false'
+
+
+def test_get_item_fallback_returns_empty_when_missing():
+    session = FakeSession([
+        FakeResponse({}, status=400),
+        FakeResponse({'Items': []}),
+    ])
+    client = make_client(session)
+
+    assert client.get_item('missing-1') == {}

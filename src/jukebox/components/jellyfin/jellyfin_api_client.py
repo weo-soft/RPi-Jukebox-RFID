@@ -61,13 +61,24 @@ class JellyfinApiClient:
         server rejects it (HTTP 401/403). Network/transport failures are
         raised as ``requests.RequestException`` so callers can distinguish
         an invalid key from an unreachable server.
+
+        Some servers reject ``/Users/Me`` outright (HTTP 400); in that case
+        the key is validated against the authenticated ``/System/Info``
+        endpoint instead.
         """
         response = self._session.get(f'{self.host}/Users/Me', timeout=self.timeout)
         if response.status_code in (401, 403):
             logger.error('Jellyfin rejected the API key (HTTP %s)', response.status_code)
             return False
-        response.raise_for_status()
+        if response.ok:
+            return True
+        info = self._session.get(f'{self.host}/System/Info', timeout=self.timeout)
+        if info.status_code in (401, 403):
+            logger.error('Jellyfin rejected the API key (HTTP %s)', info.status_code)
+            return False
+        info.raise_for_status()
         return True
+
     # ------------------------------------------------------------------
     # Catalog
     # ------------------------------------------------------------------
@@ -124,8 +135,18 @@ class JellyfinApiClient:
         return data.get('Items') or []
 
     def get_item(self, item_id: str) -> dict:
-        """Return the metadata for a single item."""
-        return self._get_json(f'/Items/{item_id}')
+        """Return the metadata for a single item.
+
+        Falls back to the equivalent ``/Items?Ids=...`` list query when the
+        single-item route is rejected by the server.
+        """
+        try:
+            return self._get_json(f'/Items/{item_id}')
+        except requests.RequestException:
+            params = self._catalog_params(Ids=item_id, Recursive='false')
+            data = self._get_json('/Items', params=params)
+            items = data.get('Items') or []
+            return items[0] if items else {}
 
     def search(self, query: str, limit: Optional[int] = None, start_index: Optional[int] = None) -> list:
         """Search the library and return the hint results."""
