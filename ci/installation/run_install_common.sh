@@ -21,9 +21,9 @@ export ENABLE_WEBAPP_PROD_DOWNLOAD=true
 # n - disable on-chip audio
 # - - mpd overwrite config (only with existing installation)
 # n - setup Spotify
+# n - setup jellyfin
 # n - setup rfid reader
 # y - setup samba
-# n - setup jellyfin
 # y - setup webapp
 # - - exact Web App bundle download (forced)
 # n - setup kiosk mode
@@ -37,8 +37,8 @@ n
 n
 n
 n
-y
 n
+y
 y
 n
 n

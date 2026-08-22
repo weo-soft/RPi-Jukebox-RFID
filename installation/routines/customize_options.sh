@@ -446,9 +446,9 @@ _run_customize_options() {
   _option_disable_onboard_audio
   _option_mpd
   _option_spotify
+  _option_jellyfin
   _option_rfid_reader
   _option_samba
-  _option_jellyfin
   _option_webapp
   if [[ $ENABLE_WEBAPP == true ]] ; then
     _configure_webapp_bundle_download

@@ -21,9 +21,9 @@ LOCAL_INSTALL_SCRIPT_PATH="${LOCAL_INSTALL_SCRIPT_PATH%/}"
 # y - disable on-chip audio
 # - - mpd overwrite config (only with existing installation)
 # n - setup Spotify
+# n - setup jellyfin
 # n - setup rfid reader
 # n - setup samba
-# n - setup jellyfin
 # n - setup webapp
 # - - build webapp (only with webapp = y)
 # - - setup kiosk mode (only with webapp = y)
