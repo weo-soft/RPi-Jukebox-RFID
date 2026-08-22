@@ -103,6 +103,19 @@ players:
     device_name: Phoniebox
     token_file: ../../shared/settings/spotify_tokens.json
     library_file: ../../shared/settings/spotify_library.json
+  jellyfin:
+    # Activate by setting enabled to true. The Jellyfin player backend
+    # streams audio through MPD, so no extra playback daemon is installed.
+    enabled: false
+    # Full URL to your Jellyfin server.
+    host: ''
+    # API key created in Jellyfin Dashboard -> API Keys.
+    # Stored directly in jukebox.yaml.
+    api_key: ''
+    # Seconds the album catalog is cached before a refresh. Larger values
+    # reduce Jellyfin load on a Raspberry Pi; new/removed albums are only
+    # picked up after the cache expires.
+    catalog_cache_ttl: 300
 rpc:
   tcp_port: 5555
 api:
