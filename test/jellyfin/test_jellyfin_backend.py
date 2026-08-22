@@ -8,6 +8,7 @@ import jukebox.publishing as publishing
 
 from components.jellyfin import configure_jellyfin
 from components.jellyfin.jellyfin_backend import (
+    ALBUM_PAGE_SIZE,
     ALBUM_URI_PREFIX,
     TRACK_URI_PREFIX,
     JellyfinBackend,
@@ -165,7 +166,25 @@ def test_list_library_items_uses_cached_catalog():
     backend.list_library_items(['album'])
     backend.list_library_items(['album'])
 
-    api.get_albums.assert_called_once_with()
+    api.get_albums.assert_called_once_with(
+        limit=ALBUM_PAGE_SIZE, start_index=0)
+
+
+def test_catalog_fetch_paginates_through_pages():
+    api = make_api()
+    api.get_albums.side_effect = [
+        [album_item(Id=f'album-{i}') for i in range(ALBUM_PAGE_SIZE)],
+        [album_item(Id='album-extra', Name='Extra Album')],
+    ]
+    backend = make_backend(api)
+
+    items = backend.list_library_items(['album'])
+
+    assert len(items) == ALBUM_PAGE_SIZE + 1
+    api.get_albums.assert_has_calls([
+        call(limit=ALBUM_PAGE_SIZE, start_index=0),
+        call(limit=ALBUM_PAGE_SIZE, start_index=ALBUM_PAGE_SIZE),
+    ])
 
 
 def test_catalog_cache_expiry_refetches():

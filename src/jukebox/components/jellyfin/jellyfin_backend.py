@@ -19,6 +19,10 @@ import jukebox.publishing as publishing
 ALBUM_URI_PREFIX = 'service:jellyfin:album:'
 TRACK_URI_PREFIX = 'service:jellyfin:track:'
 
+#: Albums fetched per catalog page while building the cache. Keeps every
+#: request bounded so large libraries cannot exhaust the request timeout.
+ALBUM_PAGE_SIZE = 500
+
 logger = logging.getLogger('jb.player.jellyfin')
 
 
@@ -123,7 +127,7 @@ class JellyfinBackend:
                 and now - self._catalog_cache_ts < self._cache_ttl):
             return self._catalog_cache
         try:
-            albums = self._api.get_albums()
+            albums = self._fetch_all_albums()
         except Exception as error:
             if self._catalog_cache is not None:
                 logger.warning(
@@ -133,6 +137,24 @@ class JellyfinBackend:
             raise
         self._catalog_cache = albums
         self._catalog_cache_ts = now
+        return albums
+
+    def _fetch_all_albums(self):
+        """Fetch the full album catalog in bounded pages.
+
+        Requests a page of :data:`ALBUM_PAGE_SIZE` albums at a time so a
+        large library never needs a single oversized request. Stops as soon
+        as a page is shorter than the page size.
+        """
+        albums = []
+        start_index = 0
+        while True:
+            page = self._api.get_albums(
+                limit=ALBUM_PAGE_SIZE, start_index=start_index)
+            albums.extend(page)
+            if len(page) < ALBUM_PAGE_SIZE:
+                break
+            start_index += ALBUM_PAGE_SIZE
         return albums
 
     def _find_album_id(self, albumartist, album):
