@@ -29,10 +29,17 @@ players:
   jellyfin:
     enabled: true
     host: "http://jellyfin.local:8096"
-    api_key: "your-api-key"
+    api_key: "your-api-key"          # either this ...
+    # username: "your-jellyfin-user"  # ... or login with a user (both optional)
+    # password: "your-password"
     catalog_cache_ttl: 300   # optional: seconds the album catalog is cached (default 300)
     request_timeout: 30      # optional: seconds to wait for server responses (default 30)
 ```
+
+Either `api_key` or `username` + `password` must be set. When logging in
+with a user, the access token is bound to that user's library permissions,
+so a restricted user only ever sees the albums that user is allowed to
+access. Login credentials are stored directly in `jukebox.yaml`.
 
 Restart the daemon: `sudo systemctl restart jukebox-daemon`
 

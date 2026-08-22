@@ -774,6 +774,34 @@ def test_configure_jellyfin_registers(monkeypatch):
     player_ctrl.register_backend.assert_called_once_with('jellyfin', backend)
 
 
+def test_configure_jellyfin_uses_login_credentials(monkeypatch):
+    monkeypatch.setattr(
+        'jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
+    cfg = reset_cfg()
+    cfg.setn('players', 'jellyfin', 'enabled', value=True)
+    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
+    cfg.setn('players', 'jellyfin', 'username', value='user')
+    cfg.setn('players', 'jellyfin', 'password', value='pass')
+    player_ctrl = make_player_ctrl()
+
+    backend = configure_jellyfin(player_ctrl)
+
+    assert backend is not None
+    assert backend._api.username == 'user'
+    assert backend._api.password == 'pass'
+    assert backend._api.api_key == ''
+
+
+def test_configure_jellyfin_requires_credentials(monkeypatch):
+    cfg = reset_cfg()
+    cfg.setn('players', 'jellyfin', 'enabled', value=True)
+    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
+    player_ctrl = make_player_ctrl()
+
+    assert configure_jellyfin(player_ctrl) is None
+    player_ctrl.register_backend.assert_not_called()
+
+
 def test_configure_jellyfin_reads_cache_ttl():
     reset_cfg()
 

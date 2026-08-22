@@ -15,15 +15,17 @@ _jellyfin_backend = None
 def configure_jellyfin(player_ctrl):
     """Create the Jellyfin backend and register it when enabled.
 
-    Registration is a no-op unless ``players.jellyfin.enabled`` is set. The
-    API key is validated lazily on the first catalog or playback request, so
-    startup never performs network I/O.
+    Registration is a no-op unless ``players.jellyfin.enabled`` is set.
+    Authentication is lazy: neither the API key nor the login credentials
+    are validated at startup, only on the first catalog or playback request.
     """
     global _jellyfin_backend
     cfg = jukebox.cfghandler.get_handler('jukebox')
     enabled = cfg.setndefault('players', 'jellyfin', 'enabled', value=False)
     host = cfg.setndefault('players', 'jellyfin', 'host', value='')
     api_key = cfg.setndefault('players', 'jellyfin', 'api_key', value='')
+    username = cfg.setndefault('players', 'jellyfin', 'username', value='')
+    password = cfg.setndefault('players', 'jellyfin', 'password', value='')
     cache_ttl = float(cfg.setndefault(
         'players', 'jellyfin', 'catalog_cache_ttl', value=300) or 300)
     request_timeout = float(cfg.setndefault(
@@ -31,11 +33,21 @@ def configure_jellyfin(player_ctrl):
         value=DEFAULT_TIMEOUT) or DEFAULT_TIMEOUT)
     if not enabled:
         return None
-    if not host or not api_key:
+    if not host:
         logger.error(
-            "Jellyfin enabled but host or api_key missing; backend not registered")
+            "Jellyfin enabled but host missing; backend not registered")
         return None
-    api = JellyfinApiClient(host, api_key, timeout=request_timeout)
+    if not api_key and not (username and password):
+        logger.error(
+            "Jellyfin enabled but neither api_key nor username/password "
+            "set; backend not registered")
+        return None
+    if username or password:
+        api = JellyfinApiClient(
+            host, username=username, password=password,
+            timeout=request_timeout)
+    else:
+        api = JellyfinApiClient(host, api_key, timeout=request_timeout)
     backend = JellyfinBackend(api, player_ctrl._get_backend('mpd'), cache_ttl)
     player_ctrl.register_backend('jellyfin', backend)
     _jellyfin_backend = backend

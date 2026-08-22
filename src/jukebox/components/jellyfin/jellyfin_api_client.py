@@ -2,7 +2,11 @@
 
 The client is a pure HTTP wrapper: authenticated catalog queries, stream URL
 generation and cover-art downloads. It holds no player state and never logs
-the API key.
+the API key or the user credentials.
+
+Authentication supports either an API key or a username/password login. A
+login token is bound to the user's library permissions, so a restricted
+user only ever sees the content that user is allowed to access.
 """
 
 import logging
@@ -16,12 +20,20 @@ logger = logging.getLogger('jb.player.jellyfin')
 #: Default request timeout in seconds for all Jellyfin API calls.
 DEFAULT_TIMEOUT = 30.0
 
+#: Client identification used for the username/password login request.
+AUTH_HEADER = (
+    'MediaBrowser Client="Phoniebox", Device="Phoniebox", '
+    'DeviceId="phoniebox", Version="3.7.0"'
+)
+
 
 class JellyfinApiClient:
     """Small authenticated client for the Jellyfin REST API (10.8+).
 
     :param host: Base URL of the Jellyfin server (e.g. ``http://jellyfin.local:8096``).
     :param api_key: Jellyfin API key (``X-Emby-Token``).
+    :param username: Optional user name for login-based authentication.
+    :param password: Password belonging to ``username``.
     """
 
     _DEFAULT_HEADERS = {
@@ -34,7 +46,9 @@ class JellyfinApiClient:
     def __init__(
             self,
             host: str,
-            api_key: str,
+            api_key: str = '',
+            username: str = '',
+            password: str = '',
             *,
             session: Optional[requests.Session] = None,
             timeout: float = DEFAULT_TIMEOUT):
@@ -45,27 +59,71 @@ class JellyfinApiClient:
             host = f'http://{host}'
         self.host = host.rstrip('/')
         self.api_key = api_key or ''
+        self.username = username or ''
+        self.password = password or ''
         self.timeout = timeout
         self._session = session if session is not None else requests.Session()
         self._session.headers.update(self._DEFAULT_HEADERS)
-        self._session.headers['X-Emby-Token'] = self.api_key
+        if self.api_key:
+            self._session.headers['X-Emby-Token'] = self.api_key
 
     # ------------------------------------------------------------------
     # Authentication
     # ------------------------------------------------------------------
 
-    def authenticate(self) -> bool:
-        """Validate the API key against the Jellyfin server.
+    def authenticate_user(self, username=None, password=None) -> bool:
+        """Log in with a Jellyfin user and store the resulting access token.
 
-        Returns ``True`` when the key is accepted and ``False`` when the
-        server rejects it (HTTP 401/403). Network/transport failures are
-        raised as ``requests.RequestException`` so callers can distinguish
-        an invalid key from an unreachable server.
-
-        Some servers reject ``/Users/Me`` outright (HTTP 400); in that case
-        the key is validated against the authenticated ``/System/Info``
-        endpoint instead.
+        The token is scoped to the user's library permissions, so subsequent
+        catalog queries only return content that user may access. Returns
+        ``False`` when the server rejects the credentials (HTTP 401/403).
+        Network/transport failures are raised as ``requests.RequestException``.
+        Credentials are never logged.
         """
+        username = self.username if username is None else username
+        password = self.password if password is None else password
+        if not username or not password:
+            logger.error('Jellyfin login requires both username and password')
+            return False
+        response = self._session.post(
+            f'{self.host}/Users/AuthenticateByName',
+            json={'Username': username, 'Pw': password},
+            headers={'X-Emby-Authorization': AUTH_HEADER},
+            timeout=self.timeout,
+        )
+        if response.status_code in (401, 403):
+            logger.error(
+                'Jellyfin rejected the username/password (HTTP %s)',
+                response.status_code)
+            return False
+        response.raise_for_status()
+        token = (response.json().get('AccessToken') or '').strip()
+        if not token:
+            logger.error('Jellyfin login response contained no access token')
+            return False
+        self.api_key = token
+        self._session.headers['X-Emby-Token'] = token
+        logger.info('Jellyfin user logged in')
+        return True
+
+    def _ensure_token(self):
+        """Log in lazily when login credentials are configured."""
+        if not self.api_key and (self.username or self.password):
+            if not self.authenticate_user():
+                raise requests.HTTPError('Jellyfin login failed')
+
+    def authenticate(self) -> bool:
+        """Validate the credentials against the Jellyfin server.
+
+        With ``username``/``password`` configured, this performs the login;
+        otherwise the API key is validated. Returns ``True`` when the
+        credentials are accepted and ``False`` when the server rejects them
+        (HTTP 401/403). Network/transport failures are raised as
+        ``requests.RequestException`` so callers can distinguish invalid
+        credentials from an unreachable server.
+        """
+        if self.username or self.password:
+            return self.authenticate_user()
         response = self._session.get(f'{self.host}/Users/Me', timeout=self.timeout)
         if response.status_code in (401, 403):
             logger.error('Jellyfin rejected the API key (HTTP %s)', response.status_code)
@@ -100,8 +158,14 @@ class JellyfinApiClient:
         return params
 
     def _get_json(self, path: str, params=None) -> dict:
+        self._ensure_token()
         url = f'{self.host}{path}'
         response = self._session.get(url, params=params, timeout=self.timeout)
+        if response.status_code in (401, 403) and (self.username or self.password):
+            # The user token may have expired; log in again and retry once.
+            if self.authenticate_user():
+                response = self._session.get(
+                    url, params=params, timeout=self.timeout)
         response.raise_for_status()
         return response.json()
 
@@ -173,6 +237,7 @@ class JellyfinApiClient:
 
     def get_coverart_bytes(self, item_id: str, max_size: int = 300) -> bytes:
         """Download the primary cover image of an item through the session."""
+        self._ensure_token()
         url = (
             f'{self.host}/Items/{item_id}/Images/Primary'
             f'?maxHeight={max_size}&maxWidth={max_size}'

@@ -110,8 +110,14 @@ players:
     # Full URL to your Jellyfin server.
     host: ''
     # API key created in Jellyfin Dashboard -> API Keys.
-    # Stored directly in jukebox.yaml.
+    # Stored directly in jukebox.yaml. Either this or username/password is
+    # required. A login token is bound to the user's library permissions.
     api_key: ''
+    # Optional: log in with a Jellyfin user instead of an API key. The
+    # resulting token honors the library access configured for that user.
+    # Credentials are stored directly in jukebox.yaml.
+    username: ''
+    password: ''
     # Seconds the album catalog is cached before a refresh. Larger values
     # reduce Jellyfin load on a Raspberry Pi; new/removed albums are only
     # picked up after the cache expires.

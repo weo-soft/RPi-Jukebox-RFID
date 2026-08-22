@@ -40,6 +40,13 @@ class FakeSession:
             raise response
         return response
 
+    def post(self, url, json=None, headers=None, timeout=None):
+        self.calls.append(('POST', url, json, headers, timeout))
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
     def close(self):
         self.calls.append(('CLOSE', None, None, None))
 
@@ -294,3 +301,104 @@ def test_get_item_fallback_returns_empty_when_missing():
     client = make_client(session)
 
     assert client.get_item('missing-1') == {}
+
+
+USERNAME = 'test-user'
+PASSWORD = 'secret-password'
+USER_TOKEN = 'user-access-token'
+
+
+def make_login_client(session):
+    return JellyfinApiClient(
+        HOST, username=USERNAME, password=PASSWORD, session=session)
+
+
+def test_authenticate_user_success():
+    session = FakeSession([FakeResponse({'AccessToken': USER_TOKEN})])
+    client = make_login_client(session)
+
+    assert client.authenticate_user() is True
+    method, url, body, headers, timeout = session.calls[0]
+    assert method == 'POST'
+    assert url == f'{HOST}/Users/AuthenticateByName'
+    assert body == {'Username': USERNAME, 'Pw': PASSWORD}
+    assert 'X-Emby-Authorization' in headers
+    assert client.api_key == USER_TOKEN
+    assert session.headers['X-Emby-Token'] == USER_TOKEN
+
+
+@pytest.mark.parametrize('status', [401, 403])
+def test_authenticate_user_rejected(status):
+    session = FakeSession([FakeResponse({}, status=status)])
+    client = make_login_client(session)
+
+    assert client.authenticate_user() is False
+    assert client.api_key == ''
+
+
+def test_authenticate_user_raises_on_transport_error():
+    session = FakeSession([requests.ConnectionError('boom')])
+    client = make_login_client(session)
+
+    with pytest.raises(requests.RequestException):
+        client.authenticate_user()
+
+
+def test_authenticate_user_error_does_not_leak_password():
+    session = FakeSession([requests.ConnectionError('boom')])
+    client = make_login_client(session)
+
+    with pytest.raises(requests.RequestException) as error:
+        client.authenticate_user()
+
+    assert PASSWORD not in str(error.value)
+
+
+def test_authenticate_prefers_login_when_configured():
+    session = FakeSession([FakeResponse({'AccessToken': USER_TOKEN})])
+    client = make_login_client(session)
+
+    assert client.authenticate() is True
+    assert session.calls[0][1] == f'{HOST}/Users/AuthenticateByName'
+
+
+def test_catalog_authenticates_lazily_with_login():
+    session = FakeSession([
+        FakeResponse({'AccessToken': USER_TOKEN}),
+        FakeResponse({'Items': [{'Id': 'album-1'}]}),
+    ])
+    client = make_login_client(session)
+
+    assert client.get_albums() == [{'Id': 'album-1'}]
+    assert session.calls[0][1] == f'{HOST}/Users/AuthenticateByName'
+    assert session.calls[1][1] == f'{HOST}/Items'
+
+
+def test_stream_url_uses_user_token_after_login():
+    session = FakeSession([FakeResponse({'AccessToken': USER_TOKEN})])
+    client = make_login_client(session)
+    client.authenticate_user()
+
+    stream_url = client.get_stream_url('track-1')
+
+    assert USER_TOKEN in stream_url
+    assert API_KEY not in stream_url
+
+
+def test_catalog_relogs_in_when_token_expired():
+    session = FakeSession([
+        FakeResponse({'AccessToken': USER_TOKEN}),
+        FakeResponse({}, status=401),
+        FakeResponse({'AccessToken': 'renewed-token'}),
+        FakeResponse({'Items': [{'Id': 'album-1'}]}),
+    ])
+    client = make_login_client(session)
+
+    assert client.get_albums() == [{'Id': 'album-1'}]
+    assert client.api_key == 'renewed-token'
+
+
+def test_missing_login_credentials_returns_false():
+    client = JellyfinApiClient(HOST, session=FakeSession([]))
+
+    assert client.authenticate_user() is False
