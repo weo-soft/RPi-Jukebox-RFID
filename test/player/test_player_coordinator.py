@@ -218,6 +218,79 @@ def test_folder_content_switches_back_to_default_backend():
     assert coordinator.get_active_backend() == 'local'
 
 
+def test_provider_qualified_card_routes_to_named_backend():
+    events = []
+    local_backend = backend_with(
+        stop=Mock(side_effect=lambda: events.append('local.stop')),
+    )
+    streaming_backend = backend_with(
+        is_second_swipe=Mock(return_value=False),
+        play_folder=Mock(side_effect=lambda folder, recursive: events.append('streaming.play_folder')),
+    )
+    coordinator = PlayerCoordinator()
+    coordinator.register_backend('local', local_backend)
+    coordinator.register_backend('streaming', streaming_backend)
+
+    coordinator.play_card('service:track:123', provider='streaming')
+
+    assert events == ['local.stop', 'streaming.play_folder']
+    assert coordinator.get_active_backend() == 'streaming'
+    streaming_backend.play_folder.assert_called_once_with('service:track:123', False)
+
+
+def test_provider_qualified_folder_routes_to_named_backend():
+    play_folder = Mock(return_value=sentinel.playback)
+    coordinator = PlayerCoordinator()
+    coordinator.register_backend('mpd', backend_with())
+    coordinator.register_backend(
+        'streaming', backend_with(play_folder=play_folder)
+    )
+
+    result = coordinator.play_folder('service:folder:1', provider='streaming')
+
+    assert result is sentinel.playback
+    play_folder.assert_called_once_with('service:folder:1', False)
+    assert coordinator.get_active_backend() == 'streaming'
+
+
+def test_provider_qualified_folder_content_routes_to_named_backend():
+    get_folder_content = Mock(return_value=sentinel.content)
+    coordinator = PlayerCoordinator()
+    coordinator.register_backend('mpd', backend_with())
+    coordinator.register_backend(
+        'streaming', backend_with(get_folder_content=get_folder_content)
+    )
+
+    result = coordinator.get_folder_content('service:folder:1', provider='streaming')
+
+    assert result is sentinel.content
+    get_folder_content.assert_called_once_with('service:folder:1')
+
+
+def test_list_albums_queries_only_default_backend():
+    default_backend = backend_with(list_albums=Mock(return_value=['a']))
+    other_backend = backend_with(list_albums=Mock(return_value=['b']))
+    coordinator = PlayerCoordinator()
+    coordinator.register_backend('mpd', default_backend)
+    coordinator.register_backend('streaming', other_backend)
+
+    assert coordinator.list_albums() == ['a']
+    default_backend.list_albums.assert_called_once_with()
+    other_backend.list_albums.assert_not_called()
+
+
+def test_list_albums_with_provider_queries_named_backend():
+    default_backend = backend_with(list_albums=Mock(return_value=['a']))
+    other_backend = backend_with(list_albums=Mock(return_value=['b']))
+    coordinator = PlayerCoordinator()
+    coordinator.register_backend('mpd', default_backend)
+    coordinator.register_backend('streaming', other_backend)
+
+    assert coordinator.list_albums(provider='streaming') == ['b']
+    default_backend.list_albums.assert_not_called()
+    other_backend.list_albums.assert_called_once_with()
+
+
 @pytest.mark.parametrize(
     ('is_second_swipe', 'expected_state', 'expected_action'),
     [
