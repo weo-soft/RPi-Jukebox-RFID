@@ -243,6 +243,10 @@ class JellyfinApiClient:
             f'?maxHeight={max_size}&maxWidth={max_size}'
         )
         response = self._session.get(url, timeout=self.timeout)
+        if response.status_code in (401, 403) and (self.username or self.password):
+            # The user token may have expired; log in again and retry once.
+            if self.authenticate_user():
+                response = self._session.get(url, timeout=self.timeout)
         response.raise_for_status()
         return response.content
 

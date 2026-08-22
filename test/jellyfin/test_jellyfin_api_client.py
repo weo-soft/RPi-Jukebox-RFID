@@ -402,3 +402,16 @@ def test_missing_login_credentials_returns_false():
     client = JellyfinApiClient(HOST, session=FakeSession([]))
 
     assert client.authenticate_user() is False
+
+
+def test_coverart_relogs_in_when_token_expired():
+    session = FakeSession([
+        FakeResponse({'AccessToken': USER_TOKEN}),
+        FakeResponse({}, status=401),
+        FakeResponse({'AccessToken': 'renewed-token'}),
+        FakeResponse(content=b'image-bytes'),
+    ])
+    client = make_login_client(session)
+
+    assert client.get_coverart_bytes('track-1') == b'image-bytes'
+    assert client.api_key == 'renewed-token'
