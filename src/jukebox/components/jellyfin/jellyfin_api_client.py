@@ -121,6 +121,12 @@ class JellyfinApiClient:
         (HTTP 401/403). Network/transport failures are raised as
         ``requests.RequestException`` so callers can distinguish invalid
         credentials from an unreachable server.
+
+        Some servers reject the authenticated ``/Users/Me`` endpoint with a
+        non-401/403 status (e.g. HTTP 400/404 on an incompatible API
+        version). As a pragmatic fallback the public ``/System/Info``
+        endpoint is then consulted: it answers regardless of the key, so
+        ``False`` is only returned when it also answers 401/403.
         """
         if self.username or self.password:
             return self.authenticate_user()
