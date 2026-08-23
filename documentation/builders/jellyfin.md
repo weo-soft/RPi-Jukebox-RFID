@@ -79,6 +79,13 @@ rfid_card_02:
   are played by MPD).
 - **Jellyfin source shows an error while local library works** — the Jellyfin
   server is offline or unreachable; the local MPD library is unaffected.
+- **Large library (1000+ albums) times out on first open** — building the
+  initial album catalog takes several seconds per page (500 albums). The daemon
+  now warms the catalog in the background at start-up and the WebApp waits up
+  to 60 s for catalog requests, so a freshly installed/restarted daemon serves
+  the first library view from the warm cache. If you still see a timeout,
+  check `players.jellyfin.request_timeout` (each page request must finish
+  within it) and that the Jellyfin server is not busy scanning.
 
 ## Known limitations
 

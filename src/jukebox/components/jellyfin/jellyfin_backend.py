@@ -56,6 +56,12 @@ class JellyfinBackend:
         self._catalog_cache = None
         self._catalog_cache_ts = 0.0
         self._cache_ttl = float(cache_ttl or 300)
+        # Catalog cache access is guarded by a condition so a large library is
+        # fetched by at most one thread at a time (background warm-up vs. RPC
+        # requests) and callers never duplicate the network work.
+        self._catalog_cond = threading.Condition()
+        self._catalog_fetching = False
+        self._warmup_started = False
         self._cover_cache_dir = Path(
             jukebox.cfghandler.get_handler('jukebox').setndefault(
                 'webapp', 'coverart_cache_path',
@@ -121,24 +127,69 @@ class JellyfinBackend:
         return items
 
     def _get_cached_albums(self):
-        """Return the album catalog, refreshing it when the TTL expired."""
-        now = time.monotonic()
-        if (self._catalog_cache is not None
-                and now - self._catalog_cache_ts < self._cache_ttl):
-            return self._catalog_cache
+        """Return the album catalog, refreshing it when the TTL expired.
+
+        At most one thread fetches the catalog at a time. An expired catalog
+        is refreshed in the background and the stale data is served meanwhile,
+        so the WebApp/RPC path is never blocked for the full fetch duration.
+        Callers arriving during the very first fill (start-up warm-up) wait
+        for it to complete.
+        """
+        with self._catalog_cond:
+            while True:
+                now = time.monotonic()
+                if (self._catalog_cache is not None
+                        and now - self._catalog_cache_ts < self._cache_ttl):
+                    return self._catalog_cache
+                if self._catalog_fetching:
+                    if self._catalog_cache is not None:
+                        # In-flight refresh with a stale catalog: serve the
+                        # stale data instead of blocking on the network.
+                        return self._catalog_cache
+                    # First fill (start-up warm-up) still in progress; wait.
+                    self._catalog_cond.wait()
+                    continue
+                if self._catalog_cache is not None:
+                    # Expired: refresh in the background, serve stale data.
+                    self._catalog_fetching = True
+                    threading.Thread(
+                        target=self._refresh_albums_worker,
+                        name='jellyfin.catalog_refresh',
+                        daemon=True,
+                    ).start()
+                    return self._catalog_cache
+                self._catalog_fetching = True
+                break
+        return self._fetch_and_store_albums()
+
+    def _fetch_and_store_albums(self):
+        """Fetch the catalog and publish it to the cache (fetcher thread)."""
         try:
             albums = self._fetch_all_albums()
         except Exception as error:
-            if self._catalog_cache is not None:
-                logger.warning(
-                    "Jellyfin catalog refresh failed; serving cached catalog: %s",
-                    error)
-                return self._catalog_cache
+            with self._catalog_cond:
+                self._catalog_fetching = False
+                self._catalog_cond.notify_all()
+                if self._catalog_cache is not None:
+                    logger.warning(
+                        "Jellyfin catalog refresh failed; serving cached catalog: %s",
+                        error)
+                    return self._catalog_cache
             raise
-        self._catalog_cache = albums
-        self._catalog_cache_ts = now
+        with self._catalog_cond:
+            self._catalog_cache = albums
+            self._catalog_cache_ts = time.monotonic()
+            self._catalog_fetching = False
+            self._catalog_cond.notify_all()
         self._prune_stale_covers()
         return albums
+
+    def _refresh_albums_worker(self):
+        """Background catalog refresh started when the TTL expired."""
+        try:
+            self._fetch_and_store_albums()
+        except Exception as error:
+            logger.warning("Jellyfin catalog background refresh failed: %s", error)
 
     def _prune_stale_covers(self):
         """Delete cached cover files whose item left the library.
@@ -187,6 +238,33 @@ class JellyfinBackend:
                 break
             start_index += ALBUM_PAGE_SIZE
         return albums
+
+    def start_warmup(self):
+        """Prefetch the album catalog in the background at startup.
+
+        With 1000+ albums the initial catalog fetch takes ~18 s on a local
+        network, which exceeds the WebApp's request timeout. Warm-up runs only
+        once and never on the RPC/plugin-call thread, so the first WebApp
+        ``libraryItems`` request is served from a warm cache instead of
+        blocking the player and RPC paths.
+        """
+        with self._catalog_cond:
+            if self._warmup_started:
+                return
+            self._warmup_started = True
+        threading.Thread(
+            target=self._warmup_worker,
+            name='jellyfin.catalog_warmup',
+            daemon=True,
+        ).start()
+
+    def _warmup_worker(self):
+        try:
+            albums = self._get_cached_albums()
+            logger.info(
+                "Jellyfin catalog warmed up (%d album(s))", len(albums))
+        except Exception as error:
+            logger.warning("Jellyfin catalog warm-up failed: %s", error)
 
     def _find_album_id(self, albumartist, album):
         """Resolve an album item id from the cached catalog by name/artist."""

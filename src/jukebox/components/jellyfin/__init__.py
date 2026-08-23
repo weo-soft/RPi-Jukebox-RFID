@@ -51,5 +51,6 @@ def configure_jellyfin(player_ctrl):
     backend = JellyfinBackend(api, player_ctrl._get_backend('mpd'), cache_ttl)
     player_ctrl.register_backend('jellyfin', backend)
     _jellyfin_backend = backend
+    backend.start_warmup()
     logger.info("Jellyfin backend registered")
     return backend

@@ -1,3 +1,4 @@
+import threading
 import time
 from contextlib import nullcontext
 from types import SimpleNamespace
@@ -187,7 +188,7 @@ def test_catalog_fetch_paginates_through_pages():
     ])
 
 
-def test_catalog_cache_expiry_refetches():
+def test_catalog_cache_expiry_refetches_in_background():
     api = make_api()
     api.get_albums.return_value = [album_item()]
     backend = make_backend(api)
@@ -195,6 +196,12 @@ def test_catalog_cache_expiry_refetches():
     backend.list_library_items(['album'])
     backend._catalog_cache_ts = time.monotonic() - 301.0
     backend.list_library_items(['album'])
+
+    # The expired catalog is served immediately and refreshed in the
+    # background; wait for the refresh so the fetch count is deterministic.
+    deadline = time.monotonic() + 2.0
+    while backend._catalog_fetching and time.monotonic() < deadline:
+        time.sleep(0.01)
 
     assert api.get_albums.call_count == 2
 
@@ -211,6 +218,76 @@ def test_catalog_cache_serves_stale_catalog_on_refresh_error():
     assert len(items) == 1
     assert items[0]['content_uri'] == f'{ALBUM_URI_PREFIX}album-1'
 
+    # The failed refresh runs in the background and leaves the stale cache.
+    deadline = time.monotonic() + 2.0
+    while backend._catalog_fetching and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert backend._catalog_cache == [album_item()]
+
+
+def test_start_warmup_populates_catalog_in_background():
+    api = make_api()
+    api.get_albums.return_value = [album_item()]
+    backend = make_backend(api)
+
+    backend.start_warmup()
+
+    deadline = time.monotonic() + 2.0
+    while backend._catalog_cache is None and time.monotonic() < deadline:
+        time.sleep(0.01)
+
+    assert backend._catalog_cache == [album_item()]
+    api.get_albums.assert_called_once_with(
+        limit=ALBUM_PAGE_SIZE, start_index=0)
+
+
+def test_start_warmup_is_idempotent():
+    api = make_api()
+    api.get_albums.return_value = [album_item()]
+    backend = make_backend(api)
+
+    backend.start_warmup()
+    backend.start_warmup()
+
+    deadline = time.monotonic() + 2.0
+    while backend._catalog_cache is None and time.monotonic() < deadline:
+        time.sleep(0.01)
+
+    assert api.get_albums.call_count == 1
+
+
+def test_catalog_fetch_is_not_duplicated_by_concurrent_callers():
+    api = make_api()
+    started = threading.Event()
+    release = threading.Event()
+
+    def slow_get_albums(limit, start_index=None):
+        started.set()
+        assert release.wait(2.0)
+        return [album_item()]
+
+    api.get_albums.side_effect = slow_get_albums
+    backend = make_backend(api)
+    results = []
+
+    def fetch():
+        results.append(backend._get_cached_albums())
+
+    first = threading.Thread(target=fetch)
+    second = threading.Thread(target=fetch)
+    first.start()
+    assert started.wait(2.0)
+    second.start()
+    time.sleep(0.05)  # let the second caller reach the condition wait
+    release.set()
+    first.join(2.0)
+    second.join(2.0)
+
+    assert not first.is_alive()
+    assert not second.is_alive()
+    assert api.get_albums.call_count == 1
+    assert results == [[album_item()], [album_item()]]
+
 
 def test_catalog_refresh_prunes_stale_covers(tmp_path):
     api = make_api()
@@ -225,6 +302,11 @@ def test_catalog_refresh_prunes_stale_covers(tmp_path):
     backend.list_library_items(['album'])
     backend._catalog_cache_ts = time.monotonic() - 301.0
     backend.list_library_items(['album'])
+
+    # Pruning runs after the background refresh of the expired catalog.
+    deadline = time.monotonic() + 2.0
+    while backend._catalog_fetching and time.monotonic() < deadline:
+        time.sleep(0.01)
 
     assert (tmp_path / 'jellyfin-album-1.jpg').exists()
     assert (tmp_path / 'jellyfin-track-1.jpg').exists()
@@ -893,6 +975,28 @@ def test_configure_jellyfin_does_not_authenticate_at_startup(monkeypatch):
 
     assert backend._api is api
     api.authenticate.assert_not_called()
+
+
+def test_configure_jellyfin_starts_catalog_warmup(monkeypatch):
+    monkeypatch.setattr(
+        'jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
+    api = make_api()
+    api.get_albums.return_value = [album_item()]
+    monkeypatch.setattr('components.jellyfin.JellyfinApiClient', Mock(return_value=api))
+    cfg = reset_cfg()
+    cfg.setn('players', 'jellyfin', 'enabled', value=True)
+    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
+    cfg.setn('players', 'jellyfin', 'api_key', value='secret')
+    player_ctrl = make_player_ctrl()
+
+    backend = configure_jellyfin(player_ctrl)
+
+    assert backend._warmup_started is True
+    deadline = time.monotonic() + 2.0
+    while backend._catalog_cache is None and time.monotonic() < deadline:
+        time.sleep(0.01)
+
+    assert backend._catalog_cache == [album_item()]
 
 
 def test_configure_jellyfin_reads_request_timeout(monkeypatch):
