@@ -63,9 +63,14 @@ settings_file = os.environ['JELLYFIN_SETTINGS_FILE']
 with open(settings_file, 'r') as stream:
     data = yaml.load(stream) or {}
 data.setdefault('players', {})
+existing = data.get('players', {}).get('jellyfin', {}) or {}
 jellyfin = {
     'enabled': True,
     'host': os.environ['JELLYFIN_HOST'],
+    # Tunable defaults are written explicitly so they are always present in
+    # jukebox.yaml; values a user already customized are preserved.
+    'catalog_cache_ttl': existing.get('catalog_cache_ttl', 300),
+    'request_timeout': existing.get('request_timeout', 30),
 }
 if os.environ.get('JELLYFIN_API_KEY'):
     jellyfin['api_key'] = os.environ['JELLYFIN_API_KEY']

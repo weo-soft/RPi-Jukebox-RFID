@@ -37,9 +37,13 @@ players:
     api_key: "your-api-key"          # either this ...
     # username: "your-jellyfin-user"  # ... or login with a user (both optional)
     # password: "your-password"
-    catalog_cache_ttl: 300   # optional: seconds the album catalog is cached (default 300)
-    request_timeout: 30      # optional: seconds to wait for server responses (default 30)
+    catalog_cache_ttl: 300   # seconds the album catalog is cached (default 300)
+    request_timeout: 30      # seconds to wait for server responses (default 30)
 ```
+
+The installer writes `catalog_cache_ttl` and `request_timeout` with their
+default values into `jukebox.yaml` automatically, so both keys are always
+present and can be tuned without a code change.
 
 Either `api_key` or `username` + `password` must be set. When logging in
 with a user, the access token is bound to that user's library permissions,
