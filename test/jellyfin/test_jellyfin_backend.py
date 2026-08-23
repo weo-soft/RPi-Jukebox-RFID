@@ -99,6 +99,7 @@ def track_item(**overrides):
         'Type': 'Audio',
         'Artists': ['Artist One'],
         'Album': 'Album One',
+        'AlbumId': 'album-1',
         'IndexNumber': 1,
         'RunTimeTicks': 123_000_000,
     }
@@ -488,6 +489,7 @@ def test_play_single_sets_stream_to_track_map():
             'duration': 12,
             'track': 1,
             'item_id': 'track-1',
+            'album_id': 'album-1',
         }
     }
 
@@ -580,6 +582,45 @@ def test_get_single_coverart(tmp_path):
     assert backend.get_single_coverart(
         f'{TRACK_URI_PREFIX}track-1') == 'jellyfin-track-1.jpg'
     api.get_coverart_bytes.assert_called_once_with('track-1')
+
+
+def test_get_single_coverart_uses_album_cover_for_known_track(tmp_path):
+    api = make_api()
+    api.get_item.return_value = track_item()
+    backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
+    backend.play_single(f'{TRACK_URI_PREFIX}track-1')
+
+    assert backend.get_single_coverart(f'{TRACK_URI_PREFIX}track-1') is None
+    backend._cover_write_queue.join()
+
+    # A track seen this session resolves to the album cover: one cache file
+    # per album instead of one per track.
+    assert backend.get_single_coverart(
+        f'{TRACK_URI_PREFIX}track-1') == 'jellyfin-album-1.jpg'
+    api.get_coverart_bytes.assert_called_once_with('album-1')
+
+
+def test_status_cover_uses_album_id(tmp_path):
+    api = make_api()
+    api.get_item.return_value = track_item()
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+    backend._cover_cache_dir = tmp_path
+    backend.play_single(f'{TRACK_URI_PREFIX}track-1')
+
+    mpd.mpd_status = {
+        'file': STREAM_URL.format(item_id='track-1'),
+        'state': 'play',
+        'song': '0',
+    }
+    status = backend._normalize_status(mpd.mpd_status)
+    assert status['cover_url'] is None  # download enqueued on first poll
+    backend._cover_write_queue.join()
+
+    status = backend._normalize_status(mpd.mpd_status)
+    assert status['cover_url'] == '/cover-cache/jellyfin-album-1.jpg'
+    api.get_coverart_bytes.assert_called_once_with('album-1')
 
 
 def test_cover_cache_is_memoized_and_written_async(tmp_path):

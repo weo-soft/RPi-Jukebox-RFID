@@ -409,6 +409,10 @@ class JellyfinBackend:
             'duration': (item.get('RunTimeTicks') or 0) // 10_000_000,
             'track': item.get('IndexNumber'),
             'item_id': item['Id'],
+            # Parent album id: covers are cached per album (one file per album,
+            # identical artwork for every track), see _normalize_status and
+            # get_single_coverart.
+            'album_id': item.get('AlbumId', ''),
         }
 
     def _play_streams(self, stream_urls, stream_to_track=None):
@@ -448,7 +452,13 @@ class JellyfinBackend:
                 track_id = component_id_from_uri(track['uri'])
         if track_id is None:
             return None
-        return self._cache_coverart(track_id)
+        # Prefer the album cover so the cache keeps one file per album (the
+        # artwork is identical for every track). The track metadata is only
+        # known for items seen this session; otherwise fall back to the
+        # per-track cover (rare, re-downloaded lazily after a prune).
+        track = self._track_by_item_id.get(track_id) or {}
+        item_id = track.get('album_id') or track_id
+        return self._cache_coverart(item_id)
 
     def get_album_coverart(self, albumartist, album, content_uri=None, provider=None):
         album_id = (self._content_uri_to_album_id(content_uri)
@@ -561,7 +571,8 @@ class JellyfinBackend:
             'duration': str(track.get('duration', 0)),
             'file': track.get('uri') or file_url,
             'provider': 'jellyfin',
-            'cover_url': self._cover_url(track.get('item_id')),
+            'cover_url': self._cover_url(
+                track.get('album_id') or track.get('item_id')),
         }
 
     @classmethod
