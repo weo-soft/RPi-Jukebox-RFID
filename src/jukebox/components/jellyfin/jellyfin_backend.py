@@ -7,6 +7,7 @@ backend.
 
 import logging
 import queue
+import re
 import threading
 import time
 from pathlib import Path
@@ -22,6 +23,16 @@ TRACK_URI_PREFIX = 'service:jellyfin:track:'
 #: Albums fetched per catalog page while building the cache. Keeps every
 #: request bounded so large libraries cannot exhaust the request timeout.
 ALBUM_PAGE_SIZE = 500
+
+#: Seconds a failed cover download is not retried. Without this, the status
+#: poller (0.25 s) would re-enqueue the same cover on every tick against an
+#: offline server (~4 requests/second).
+COVER_RETRY_DELAY = 60.0
+
+#: Matches the item id inside a Jellyfin stream URL, e.g.
+#: ``http://host/Audio/<id>/stream?static=true&api_key=...``. Used to recover
+#: track metadata when MPD reports a normalized variant of the stream URL.
+_STREAM_URL_ITEM_ID_RE = re.compile(r'/Audio/(?P<item_id>[^/?#]+)/stream')
 
 logger = logging.getLogger('jb.player.jellyfin')
 
@@ -53,6 +64,12 @@ class JellyfinBackend:
         self._active = False
         # stream URL -> {uri, title, artist, album, duration, track, item_id}
         self._stream_to_track = {}
+        # item id -> track metadata (same entries, keyed by the stable item id
+        # so a normalized MPD stream URL can still be resolved to a track).
+        self._track_by_item_id = {}
+        # Stream URLs that could not be mapped to a track and were masked from
+        # the published status (throttles the warning to once per URL/playlist).
+        self._unmapped_stream_warnings = set()
         self._catalog_cache = None
         self._catalog_cache_ts = 0.0
         self._cache_ttl = float(cache_ttl or 300)
@@ -71,6 +88,9 @@ class JellyfinBackend:
         # background worker so neither playback nor the status poller ever
         # blocks on network or disk I/O.
         self._cover_memo = {}
+        # item id -> monotonic timestamp until which a failed download is not
+        # retried (prevents a retry storm from the 0.25 s status poller).
+        self._cover_retry_after = {}
         self._cover_write_queue = queue.Queue()
         self._cover_worker = threading.Thread(
             target=self._cover_worker_loop, daemon=True)
@@ -403,6 +423,15 @@ class JellyfinBackend:
         # Set on every playback path (album and single track) so the
         # normalized status never exposes the raw stream URL (API key).
         self._stream_to_track = stream_to_track or {}
+        # Secondary index by item id: if MPD reports a normalized variant of a
+        # stream URL (exact match fails), the track metadata can still be
+        # recovered from the item id embedded in the URL (see _normalize_status).
+        self._track_by_item_id = {
+            track['item_id']: track
+            for track in self._stream_to_track.values()
+            if track.get('item_id')
+        }
+        self._unmapped_stream_warnings = set()
         logger.info("Playing %d Jellyfin stream(s)", len(stream_urls))
 
     # ------------------------------------------------------------------
@@ -438,12 +467,16 @@ class JellyfinBackend:
         restart does not require re-downloading. The first call for a missing
         cover enqueues the download on the background worker and returns
         ``None``; later calls return the bare filename once the worker has
-        finished.
+        finished. A failed download is not retried for ``COVER_RETRY_DELAY``
+        seconds, so the 0.25 s status poller cannot hammer a failing server.
         """
         if item_id is None:
             return None
         if item_id in self._cover_memo:
             return self._cover_memo[item_id] or None
+        if time.monotonic() < self._cover_retry_after.get(item_id, 0.0):
+            # A previous download failed recently; do not re-enqueue yet.
+            return None
         filename = self._cover_filename(item_id)
         if (self._cover_cache_dir / filename).is_file():
             self._cover_memo[item_id] = filename
@@ -459,14 +492,18 @@ class JellyfinBackend:
             try:
                 image_bytes = self._api.get_coverart_bytes(item_id)
                 filename = self._cover_filename(item_id)
+                self._cover_cache_dir.mkdir(parents=True, exist_ok=True)
                 (self._cover_cache_dir / filename).write_bytes(image_bytes)
             except Exception as error:
                 logger.warning(
                     "Could not fetch Jellyfin cover art for %s: %s", item_id, error)
-                # Forget the pending entry so a later request can retry.
+                # Forget the pending entry and apply a cooldown, so the status
+                # poller does not retry the download on every tick.
                 self._cover_memo.pop(item_id, None)
+                self._cover_retry_after[item_id] = time.monotonic() + COVER_RETRY_DELAY
             else:
                 self._cover_memo[item_id] = filename
+                self._cover_retry_after.pop(item_id, None)
             finally:
                 self._cover_write_queue.task_done()
 
@@ -494,7 +531,22 @@ class JellyfinBackend:
     def _normalize_status(self, mpd_status):
         """Build the complete status from MPD state and Jellyfin metadata."""
         file_url = mpd_status.get('file')
-        track = self._stream_to_track.get(file_url) or {}
+        track = self._stream_to_track.get(file_url)
+        if track is None and isinstance(file_url, str):
+            # MPD may normalize the stream URL (query order, path), so the
+            # exact lookup above can miss. Recover the metadata from the item
+            # id that is embedded in the stream URL.
+            match = _STREAM_URL_ITEM_ID_RE.search(file_url)
+            if match:
+                track = self._track_by_item_id.get(match.group('item_id'))
+        if track is None:
+            track = {}
+            if self._is_stream_url(file_url):
+                # A Jellyfin stream URL that could not be mapped to a track
+                # must never surface on an RPC/publish channel (it carries the
+                # API key/token). Mask it and warn once per URL.
+                self._warn_unmapped_stream(file_url)
+                file_url = ''
         return {
             'state': mpd_status.get('state', 'stop'),
             'songid': track.get('uri') or mpd_status.get('songid'),
@@ -511,6 +563,29 @@ class JellyfinBackend:
             'provider': 'jellyfin',
             'cover_url': self._cover_url(track.get('item_id')),
         }
+
+    @classmethod
+    def _is_stream_url(cls, file_url):
+        """Return whether ``file_url`` looks like a Jellyfin stream URL."""
+        return (
+            isinstance(file_url, str)
+            and _STREAM_URL_ITEM_ID_RE.search(file_url) is not None
+        )
+
+    def _warn_unmapped_stream(self, file_url):
+        """Log a throttled warning for a stream URL that could not be mapped.
+
+        The warning never contains the URL itself (it carries the API key).
+        """
+        if file_url in self._unmapped_stream_warnings:
+            return
+        self._unmapped_stream_warnings.add(file_url)
+        match = _STREAM_URL_ITEM_ID_RE.search(file_url)
+        item_id = match.group('item_id') if match else 'unknown'
+        logger.warning(
+            "MPD is playing a Jellyfin stream for item '%s' that is not mapped "
+            "to a track; hiding the stream URL from the published status",
+            item_id)
 
     def get_player_type_and_version(self):
         return self._mpd.get_player_type_and_version()

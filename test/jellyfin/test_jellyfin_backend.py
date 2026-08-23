@@ -8,6 +8,7 @@ import jukebox.cfghandler as cfghandler
 import jukebox.publishing as publishing
 
 from components.jellyfin import configure_jellyfin
+from components.jellyfin.jellyfin_api_client import DEFAULT_TIMEOUT
 from components.jellyfin.jellyfin_backend import (
     ALBUM_PAGE_SIZE,
     ALBUM_URI_PREFIX,
@@ -605,7 +606,7 @@ def test_cover_url_is_prefixed(tmp_path):
     assert backend._cover_url('track-1') == '/cover-cache/jellyfin-track-1.jpg'
 
 
-def test_cover_download_failure_can_be_retried(tmp_path):
+def test_cover_download_failure_can_be_retried_after_cooldown(tmp_path):
     api = make_api()
     api.get_coverart_bytes.side_effect = [RuntimeError('offline'), b'image']
     backend = make_backend(api)
@@ -614,13 +615,37 @@ def test_cover_download_failure_can_be_retried(tmp_path):
     assert backend._cache_coverart('track-1') is None
     backend._cover_write_queue.join()
 
-    # The failed download forgot the pending entry, so the next request
-    # triggers a retry instead of returning a permanent "no cover".
+    # The failed download forgot the pending entry and applied a cooldown:
+    # an immediate request must not re-enqueue (no retry storm).
+    assert backend._cache_coverart('track-1') is None
+    assert backend._cover_write_queue.empty()
+
+    # Once the cooldown has expired the next request triggers the retry.
+    backend._cover_retry_after['track-1'] = time.monotonic() - 1.0
     assert backend._cache_coverart('track-1') is None
     backend._cover_write_queue.join()
 
     assert backend._cache_coverart('track-1') == 'jellyfin-track-1.jpg'
     assert api.get_coverart_bytes.call_count == 2
+
+
+def test_cover_download_failure_does_not_storm_retries(tmp_path):
+    api = make_api()
+    api.get_coverart_bytes.side_effect = [RuntimeError('offline')]
+    backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
+
+    assert backend._cache_coverart('track-1') is None
+    backend._cover_write_queue.join()
+    assert api.get_coverart_bytes.call_count == 1
+
+    # Simulate repeated status-poller ticks: none of them may re-enqueue
+    # while the cooldown is active.
+    for _ in range(20):
+        assert backend._cache_coverart('track-1') is None
+    assert backend._cover_write_queue.empty()
+    assert api.get_coverart_bytes.call_count == 1
+    assert 'track-1' in backend._cover_retry_after
 
 
 def test_cover_reuses_existing_file_after_restart(tmp_path):
@@ -728,6 +753,60 @@ def test_playerstatus_masks_stream_url():
 
     assert status['file'] == f'{TRACK_URI_PREFIX}track-1'
     assert 'api_key' not in str(status)
+
+
+def test_playerstatus_resolves_normalized_stream_url_via_item_id():
+    api = make_api()
+    api.get_item.return_value = track_item()
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+    backend.play_single(f'{TRACK_URI_PREFIX}track-1')
+
+    # MPD reports a normalized variant of the stream URL (e.g. an extra query
+    # parameter), so the exact map lookup misses and the item id is used.
+    mpd.playerstatus.return_value = {
+        'file': STREAM_URL.format(item_id='track-1') + '&param=1',
+        'state': 'play',
+        'song': '0',
+    }
+
+    status = backend.playerstatus()
+
+    assert status['file'] == f'{TRACK_URI_PREFIX}track-1'
+    assert status['title'] == 'Track One'
+    assert 'api_key' not in str(status)
+
+
+def test_playerstatus_masks_unmapped_stream_url():
+    api = make_api()
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+    mpd.playerstatus.return_value = {
+        'file': 'http://jellyfin.local:8096/Audio/unknown-item/stream?static=true&api_key=secret',
+        'state': 'play',
+    }
+
+    status = backend.playerstatus()
+
+    # The raw stream URL (with API key) must never surface on an RPC channel.
+    assert status['file'] == ''
+    assert 'api_key' not in str(status)
+    assert 'secret' not in str(status)
+
+
+def test_playerstatus_keeps_non_stream_mpd_file():
+    api = make_api()
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+    mpd.playerstatus.return_value = {
+        'file': '/home/pi/Music/SomeAlbum/track.mp3',
+        'state': 'play',
+    }
+
+    status = backend.playerstatus()
+
+    # A plain MPD file carries no credentials and stays visible.
+    assert status['file'] == '/home/pi/Music/SomeAlbum/track.mp3'
 
 
 def test_playlistinfo_returns_single_normalized_status():
@@ -1021,3 +1100,48 @@ def test_configure_jellyfin_default_request_timeout():
         'players', 'jellyfin', 'request_timeout', value=30)
 
     assert timeout == 30
+
+
+def test_configure_jellyfin_invalid_cache_ttl_falls_back(monkeypatch):
+    monkeypatch.setattr('jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
+    cfg = reset_cfg()
+    cfg.setn('players', 'jellyfin', 'enabled', value=True)
+    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
+    cfg.setn('players', 'jellyfin', 'api_key', value='secret')
+    cfg.setn('players', 'jellyfin', 'catalog_cache_ttl', value='not-a-number')
+    player_ctrl = make_player_ctrl()
+
+    backend = configure_jellyfin(player_ctrl)
+
+    assert backend is not None
+    assert backend._cache_ttl == 300.0
+
+
+def test_configure_jellyfin_nonpositive_cache_ttl_falls_back(monkeypatch):
+    monkeypatch.setattr('jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
+    cfg = reset_cfg()
+    cfg.setn('players', 'jellyfin', 'enabled', value=True)
+    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
+    cfg.setn('players', 'jellyfin', 'api_key', value='secret')
+    cfg.setn('players', 'jellyfin', 'catalog_cache_ttl', value=-5)
+    player_ctrl = make_player_ctrl()
+
+    backend = configure_jellyfin(player_ctrl)
+
+    assert backend is not None
+    assert backend._cache_ttl == 300.0
+
+
+def test_configure_jellyfin_invalid_request_timeout_falls_back(monkeypatch):
+    monkeypatch.setattr('jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
+    cfg = reset_cfg()
+    cfg.setn('players', 'jellyfin', 'enabled', value=True)
+    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
+    cfg.setn('players', 'jellyfin', 'api_key', value='secret')
+    cfg.setn('players', 'jellyfin', 'request_timeout', value='abc')
+    player_ctrl = make_player_ctrl()
+
+    backend = configure_jellyfin(player_ctrl)
+
+    assert backend is not None
+    assert backend._api.timeout == DEFAULT_TIMEOUT
