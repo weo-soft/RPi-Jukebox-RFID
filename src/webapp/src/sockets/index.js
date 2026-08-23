@@ -11,10 +11,11 @@ import {
   preparePayload
 } from './utils';
 
-// A cold Jellyfin catalog build (3 pages of 500 albums on the local network)
-// takes ~18 s, longer than the previous 15 s cap. Keep the cap comfortably
-// above the slowest legitimate RPC round-trip so large catalogs do not abort.
-const REQUEST_TIMEOUT_MS = 60000;
+// A cold Jellyfin catalog fetch can take ~18 s, but the backend pre-warms the
+// catalog at start-up and refreshes it in the background (the stale cache is
+// served meanwhile), so no RPC request has to wait for a full catalog fetch
+// anymore. Keep the cap at 15 s.
+const REQUEST_TIMEOUT_MS = 15000;
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 

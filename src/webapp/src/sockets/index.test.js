@@ -107,7 +107,7 @@ describe('socketRequest', () => {
       .rejects.toBe('Received RPC response ID does not match sender ID.');
   });
 
-  test('aborts requests after 60 seconds', async () => {
+  test('aborts requests after 15 seconds', async () => {
     vi.useFakeTimers();
     fetch.mockImplementation((url, { signal }) => (
       new Promise((resolve, reject) => {
@@ -121,7 +121,7 @@ describe('socketRequest', () => {
 
     const request = socketRequest('p', 'f', null, {});
     const rejection = expect(request).rejects.toBe('Request timed out');
-    await vi.advanceTimersByTimeAsync(60000);
+    await vi.advanceTimersByTimeAsync(15000);
 
     await rejection;
   });
