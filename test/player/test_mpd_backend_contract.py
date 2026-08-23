@@ -57,7 +57,6 @@ def test_clear_playlist_clears_mpd_queue():
     backend = mpd_backend()
     backend.mpd_lock = nullcontext()
     backend.mpd_client = SimpleNamespace(clear=Mock())
-    backend.mpd_retry_with_mutex = Mock()
 
     backend.clear_playlist()
 
