@@ -4,6 +4,8 @@ from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
+import pytest
+
 import jukebox.cfghandler as cfghandler
 import jukebox.publishing as publishing
 
@@ -190,6 +192,20 @@ def test_catalog_fetch_paginates_through_pages():
     ])
 
 
+def test_fetch_all_albums_stops_when_server_ignores_pagination():
+    api = make_api()
+    full_page = [album_item()] * ALBUM_PAGE_SIZE
+    api.get_albums.return_value = full_page
+    backend = make_backend(api)
+
+    albums = backend._fetch_all_albums()
+
+    # The identical-page guard stops the loop after two pages instead of
+    # looping forever against a server that ignores StartIndex/Limit.
+    assert api.get_albums.call_count == 2
+    assert len(albums) == ALBUM_PAGE_SIZE * 2
+
+
 def test_catalog_cache_expiry_refetches_in_background():
     api = make_api()
     api.get_albums.return_value = [album_item()]
@@ -289,6 +305,50 @@ def test_catalog_fetch_is_not_duplicated_by_concurrent_callers():
     assert not second.is_alive()
     assert api.get_albums.call_count == 1
     assert results == [[album_item()], [album_item()]]
+
+
+def test_catalog_first_fill_failure_is_not_retried_within_cooldown():
+    api = make_api()
+    api.get_albums.side_effect = RuntimeError('offline')
+    backend = make_backend(api)
+
+    with pytest.raises(RuntimeError):
+        backend._get_cached_albums()
+
+    # A subsequent call within the cooldown window returns an empty catalog
+    # instead of triggering a second full fetch.
+    assert backend._get_cached_albums() == []
+    assert api.get_albums.call_count == 1
+
+
+def test_catalog_failure_is_negative_cached_for_waiting_callers():
+    api = make_api()
+    api.get_albums.side_effect = RuntimeError('offline')
+    backend = make_backend(api)
+    results = []
+
+    def fetch():
+        try:
+            results.append(('result', backend._get_cached_albums()))
+        except Exception as error:
+            results.append(('error', type(error).__name__))
+
+    first = threading.Thread(target=fetch)
+    second = threading.Thread(target=fetch)
+    first.start()
+    # Let the first caller reach the synchronous first fill (and fail).
+    deadline = time.monotonic() + 2.0
+    while backend._catalog_fetching is False and time.monotonic() < deadline:
+        time.sleep(0.01)
+    second.start()
+    first.join(2.0)
+    second.join(2.0)
+
+    # Only one fetch happened: the waiting caller got the negative-cached
+    # empty catalog instead of starting its own full fetch.
+    assert api.get_albums.call_count == 1
+    assert ('error', 'RuntimeError') in results
+    assert ('result', []) in results
 
 
 def test_catalog_refresh_prunes_stale_covers(tmp_path):
@@ -554,6 +614,21 @@ def test_playback_failure_does_not_mutate_mpd():
     mpd.play.assert_not_called()
 
 
+def test_play_streams_mpd_failure_leaves_mapping_untouched():
+    api = make_api()
+    api.get_item.return_value = track_item()
+    mpd = make_mpd()
+    mpd.add_to_playlist.side_effect = RuntimeError('mpd offline')
+    backend = make_backend(api, mpd)
+    backend._stream_to_track = {'old': 'state'}
+
+    backend.play_single(f'{TRACK_URI_PREFIX}track-1')
+
+    # An MPD failure is logged and the stream->track mapping stays untouched,
+    # so a partially built playlist can never masquerade as Jellyfin content.
+    assert backend._stream_to_track == {'old': 'state'}
+
+
 # ---------------------------------------------------------------------------
 # Cover art
 # ---------------------------------------------------------------------------
@@ -745,6 +820,23 @@ def test_set_active_triggers_immediate_poll(monkeypatch):
     publisher.reset_mock()
     backend.set_active(False)
     backend._publish_status()
+    publisher.send.assert_not_called()
+
+
+def test_publish_status_catches_errors(monkeypatch):
+    publisher = Mock()
+    monkeypatch.setattr(publishing, 'get_publisher', Mock(return_value=publisher))
+    mpd = make_mpd()
+    mpd.mpd_status = {'state': 'play'}
+    backend = make_backend(mpd=mpd)
+    backend._active = True
+    # Force _normalize_status to raise inside _publish_status.
+    backend._cover_url = Mock(side_effect=RuntimeError('boom'))
+
+    backend._publish_status()
+
+    # The exception is caught (the timer worker must survive) and nothing
+    # is published.
     publisher.send.assert_not_called()
 
 

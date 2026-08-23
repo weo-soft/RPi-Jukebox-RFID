@@ -29,6 +29,12 @@ ALBUM_PAGE_SIZE = 500
 #: offline server (~4 requests/second).
 COVER_RETRY_DELAY = 60.0
 
+#: Seconds a failed catalog fill is not retried. Waiting and concurrent
+#: callers get the stale catalog (or an empty list on the very first fill)
+#: during this window instead of each starting a new full fetch against a
+#: server that just proved unreachable.
+CATALOG_RETRY_DELAY = 30.0
+
 #: Matches the item id inside a Jellyfin stream URL, e.g.
 #: ``http://host/Audio/<id>/stream?static=true&api_key=...``. Used to recover
 #: track metadata when MPD reports a normalized variant of the stream URL.
@@ -78,6 +84,9 @@ class JellyfinBackend:
         # requests) and callers never duplicate the network work.
         self._catalog_cond = threading.Condition()
         self._catalog_fetching = False
+        # monotonic() timestamp until which a failed catalog fill is not
+        # retried (negative caching, see _get_cached_albums).
+        self._catalog_fetch_error_until = 0.0
         self._warmup_started = False
         self._cover_cache_dir = Path(
             jukebox.cfghandler.get_handler('jukebox').setndefault(
@@ -154,6 +163,11 @@ class JellyfinBackend:
         so the WebApp/RPC path is never blocked for the full fetch duration.
         Callers arriving during the very first fill (start-up warm-up) wait
         for it to complete.
+
+        A failed fill is negative-cached for :data:`CATALOG_RETRY_DELAY`
+        seconds: during that window the stale catalog (or an empty list on the
+        very first fill) is served instead of every caller starting a new full
+        fetch against a server that just proved unreachable.
         """
         with self._catalog_cond:
             while True:
@@ -161,15 +175,15 @@ class JellyfinBackend:
                 if (self._catalog_cache is not None
                         and now - self._catalog_cache_ts < self._cache_ttl):
                     return self._catalog_cache
-                if self._catalog_fetching:
-                    if self._catalog_cache is not None:
+                if self._catalog_cache is not None:
+                    if now < self._catalog_fetch_error_until:
+                        # The last refresh failed recently; serve the stale
+                        # cache instead of spawning another refresh.
+                        return self._catalog_cache
+                    if self._catalog_fetching:
                         # In-flight refresh with a stale catalog: serve the
                         # stale data instead of blocking on the network.
                         return self._catalog_cache
-                    # First fill (start-up warm-up) still in progress; wait.
-                    self._catalog_cond.wait()
-                    continue
-                if self._catalog_cache is not None:
                     # Expired: refresh in the background, serve stale data.
                     self._catalog_fetching = True
                     threading.Thread(
@@ -178,6 +192,14 @@ class JellyfinBackend:
                         daemon=True,
                     ).start()
                     return self._catalog_cache
+                if now < self._catalog_fetch_error_until:
+                    # The last first-fill attempt failed; do not hammer the
+                    # server with another full catalog fetch.
+                    return []
+                if self._catalog_fetching:
+                    # First fill (start-up warm-up) still in progress; wait.
+                    self._catalog_cond.wait()
+                    continue
                 self._catalog_fetching = True
                 break
         return self._fetch_and_store_albums()
@@ -189,6 +211,8 @@ class JellyfinBackend:
         except Exception as error:
             with self._catalog_cond:
                 self._catalog_fetching = False
+                self._catalog_fetch_error_until = (
+                    time.monotonic() + CATALOG_RETRY_DELAY)
                 self._catalog_cond.notify_all()
                 if self._catalog_cache is not None:
                     logger.warning(
@@ -200,6 +224,7 @@ class JellyfinBackend:
             self._catalog_cache = albums
             self._catalog_cache_ts = time.monotonic()
             self._catalog_fetching = False
+            self._catalog_fetch_error_until = 0.0
             self._catalog_cond.notify_all()
         self._prune_stale_covers()
         return albums
@@ -246,16 +271,25 @@ class JellyfinBackend:
 
         Requests a page of :data:`ALBUM_PAGE_SIZE` albums at a time so a
         large library never needs a single oversized request. Stops as soon
-        as a page is shorter than the page size.
+        as a page is shorter than the page size or a server keeps returning
+        the identical page (i.e. it ignores the ``StartIndex``/``Limit``
+        parameters), which would otherwise loop forever.
         """
         albums = []
         start_index = 0
+        previous_page = []
         while True:
             page = self._api.get_albums(
                 limit=ALBUM_PAGE_SIZE, start_index=start_index)
             albums.extend(page)
             if len(page) < ALBUM_PAGE_SIZE:
                 break
+            if page == previous_page:
+                logger.warning(
+                    "Jellyfin returned the identical catalog page for "
+                    "StartIndex=%d; stopping pagination", start_index)
+                break
+            previous_page = page
             start_index += ALBUM_PAGE_SIZE
         return albums
 
@@ -419,10 +453,18 @@ class JellyfinBackend:
         if not stream_urls:
             logger.warning("No Jellyfin streams to play")
             return
-        self._mpd.clear_playlist()
-        for url in stream_urls:
-            self._mpd.add_to_playlist(url)
-        self._mpd.play()
+        try:
+            self._mpd.clear_playlist()
+            for url in stream_urls:
+                self._mpd.add_to_playlist(url)
+            self._mpd.play()
+        except Exception as error:
+            # Leave the stream->track mapping untouched so a partially built
+            # playlist can never masquerade as the Jellyfin playlist.
+            logger.error(
+                "Jellyfin playback failed while building the MPD playlist: %s",
+                error)
+            return
         # Remember the stream URL -> track-metadata mapping for playerstatus.
         # Set on every playback path (album and single track) so the
         # normalized status never exposes the raw stream URL (API key).
@@ -532,11 +574,16 @@ class JellyfinBackend:
             self._publish_status()
 
     def _publish_status(self):
-        if not self._active or self._mpd is None:
-            return
-        mpd_status = dict(self._mpd.mpd_status)
-        publishing.get_publisher().send(
-            'playerstatus', self._normalize_status(mpd_status))
+        try:
+            if not self._active or self._mpd is None:
+                return
+            mpd_status = dict(self._mpd.mpd_status)
+            publishing.get_publisher().send(
+                'playerstatus', self._normalize_status(mpd_status))
+        except Exception as error:
+            # Never let a failing status poll kill the endless timer worker
+            # (the timer framework has no error handling around callbacks).
+            logger.exception("Jellyfin status publish failed: %s", error)
 
     def _normalize_status(self, mpd_status):
         """Build the complete status from MPD state and Jellyfin metadata."""
