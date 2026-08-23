@@ -117,6 +117,20 @@ def test_switch_stops_old_backend_before_new_content_starts():
     assert coordinator.get_active_backend() == 'streaming'
 
 
+def test_jellyfin_content_uri_routes_without_provider():
+    play_single = Mock(return_value=sentinel.playback)
+    coordinator = PlayerCoordinator()
+    coordinator.register_backend('mpd', backend_with())
+    coordinator.register_backend(
+        'jellyfin', backend_with(play_single=play_single))
+
+    result = coordinator.play_single('service:jellyfin:track:1')
+
+    assert result is sentinel.playback
+    play_single.assert_called_once_with('service:jellyfin:track:1')
+    assert coordinator.get_active_backend() == 'jellyfin'
+
+
 def test_switch_updates_optional_backend_activation_state():
     local_backend = backend_with(set_active=Mock())
     streaming_backend = backend_with(set_active=Mock())

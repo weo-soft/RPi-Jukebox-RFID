@@ -74,6 +74,8 @@ class PlayerCoordinator:
     def _content_backend_name(self, provider=None, content_uri=None) -> str:
         if isinstance(content_uri, str) and content_uri.startswith('spotify:'):
             return provider or 'spotify'
+        if isinstance(content_uri, str) and content_uri.startswith('service:jellyfin:'):
+            return provider or 'jellyfin'
         return provider or self._get_default_backend_name()
 
     def _content_backend(self, provider=None, content_uri=None) -> Any:
