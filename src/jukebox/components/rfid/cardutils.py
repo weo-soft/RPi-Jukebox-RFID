@@ -24,6 +24,12 @@ def _resolve_provider(cfg_rpc_cmd: Mapping, logger: logging.Logger = log):
     pairs, or implicitly as the legacy ``play_card`` / ``play_folder`` aliases
     that always target the default (local) backend.
 
+    Both legacy aliases are dispatched through ``player.ctrl.play_card`` (the
+    coordinator runs second-swipe detection and the card callbacks there); the
+    ``play_folder`` alias deliberately no longer maps to
+    ``player.ctrl.play_folder``. Only ``provider``-qualified cards can target
+    a non-default backend.
+
     :return: ``(provider_name, value, recursive, is_legacy)``. ``provider_name``
         is ``None`` for cards that are not playback cards.
     """
@@ -55,8 +61,10 @@ def decode_card_command(cfg_rpc_cmd: Mapping, logger: logging.Logger = log):
     if provider_name is not None:
         # The emitted command routes through player.ctrl.play_card(value,
         # provider=...); an unknown provider is reported by the coordinator at
-        # dispatch time. Legacy mpd cards keep their current behavior by not
-        # passing a provider argument at all.
+        # dispatch time. Both legacy aliases (play_card and play_folder) are
+        # dispatched through play_card here, so second-swipe detection and the
+        # card callbacks apply to them. Legacy mpd cards keep their current
+        # behavior by not passing a provider argument at all.
         kwargs = {'recursive': True} if recursive else {}
         if provider_name != 'mpd':
             kwargs['provider'] = provider_name

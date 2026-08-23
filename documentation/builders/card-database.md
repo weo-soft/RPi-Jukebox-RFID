@@ -33,6 +33,13 @@ using the alias option:
 ```
 
 > [!NOTE]
+> Both playback aliases (`play_card` and `play_folder`) are dispatched
+> through `player.ctrl.play_card`, which runs the coordinator's second-swipe
+> detection and the card callbacks. A card using `alias: play_folder`
+> therefore behaves like a `play_card` card (including a configured
+> second-swipe action) and no longer maps to `player.ctrl.play_folder`.
+
+> [!NOTE]
 >
 > * Remember card ids must be strings! So, quote them!
 > * *args* must be
