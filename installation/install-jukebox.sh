@@ -79,8 +79,11 @@ log() {
 }
 
 # Function to run a command where the output will be logged to both console and logfile
+# Note: propagate the command's exit code via PIPESTATUS — a plain pipe to
+# 'tee' would return tee's exit status (0) and silently hide failures.
 run_and_print_lc() {
   "$@" | tee /dev/fd/3
+  return "${PIPESTATUS[0]}"
 }
 
 # Function to log to console only
