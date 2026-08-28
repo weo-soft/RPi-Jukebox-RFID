@@ -208,6 +208,16 @@ _run_setup_rfid_reader
 [[ "${RUN_ARGS[${#RUN_ARGS[@]}-1]}" == "${RFID_SCRIPT}" ]] \
     || fail "interactive mode received unexpected reader arguments"
 
+# A non-zero exit of the reader tool aborts the installation (the tool may
+# reject e.g. a reader that cannot be configured without a terminal)
+NON_INTERACTIVE=true
+RFID_READER_MODULE="generic_usb"
+run_and_print_lc() { RUN_ARGS+=("$*"); return 42; }
+if ( _run_setup_rfid_reader ) >/dev/null 2>&1; then
+    fail "a failing RFID reader configuration was accepted"
+fi
+run_and_print_lc() { RUN_ARGS+=("$*"); }
+
 unset -f sudo run_and_print_lc exit_on_error
 
 # --- install() enforces option consistency in non-interactive mode ---
