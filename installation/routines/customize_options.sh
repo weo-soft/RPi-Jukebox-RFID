@@ -2,6 +2,10 @@
 
 _option_static_ip() {
   # ENABLE_STATIC_IP
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "ENABLE_STATIC_IP=${ENABLE_STATIC_IP} (non-interactive)"
+    return 0
+  fi
   # Using the dynamically assigned IP address as it is the best guess to be free
   # Reference: https://unix.stackexchange.com/a/505385
   CURRENT_ROUTE=$(ip route get 8.8.8.8)
@@ -30,6 +34,10 @@ Set a static IP? [Y/n]"
 
 _option_autohotspot() {
     # ENABLE_AUTOHOTSPOT
+    if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+        log "ENABLE_AUTOHOTSPOT=${ENABLE_AUTOHOTSPOT} (non-interactive)"
+        return 0
+    fi
     clear_c
     print_c "---------------------- AUTOHOTSPOT ----------------------
 
@@ -125,6 +133,10 @@ Do you want to change this values? [y/N]"
 
 _option_bluetooth() {
   # DISABLE_BLUETOOTH
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "DISABLE_BLUETOOTH=${DISABLE_BLUETOOTH} (non-interactive)"
+    return 0
+  fi
   clear_c
   print_c "----------------------- BLUETOOTH -----------------------
 
@@ -144,6 +156,10 @@ Do you want to disable Bluetooth? [Y/n]"
 }
 
 _option_mpd() {
+    if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+        log "SETUP_MPD=${SETUP_MPD} (non-interactive)"
+        return 0
+    fi
     clear_c
     if [[ "$SETUP_MPD" == true ]]; then
         if [[ -f "${MPD_CONF_PATH}" || -f "${SYSTEMD_USR_PATH}/mpd.service" ]]; then
@@ -170,6 +186,12 @@ Would you like to overwrite your configuration? [Y/n]"
 }
 
 _option_spotify() {
+  # SETUP_SPOTIFY
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "SETUP_SPOTIFY=${SETUP_SPOTIFY} (non-interactive)"
+    return 0
+  fi
+
   clear_c
 
   if [[ "$(get_architecture)" == "armv6" ]]; then
@@ -252,6 +274,10 @@ then select Settings > Spotify > Connect."
 
 _option_rfid_reader() {
   # ENABLE_RFID_READER
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "ENABLE_RFID_READER=${ENABLE_RFID_READER} (non-interactive)"
+    return 0
+  fi
   clear_c
   print_c "---------------------- RFID READER ----------------------
 
@@ -274,6 +300,10 @@ Do you want to setup a rfid reader? [Y/n]"
 
 _option_samba() {
   # ENABLE_SAMBA
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "ENABLE_SAMBA=${ENABLE_SAMBA} (non-interactive)"
+    return 0
+  fi
   clear_c
   print_c "------------------------- SAMBA -------------------------
 
@@ -297,6 +327,11 @@ Do you want to install Samba? [y/N]"
 
 _option_jellyfin() {
   # ENABLE_JELLYFIN
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "ENABLE_JELLYFIN=${ENABLE_JELLYFIN} (non-interactive)"
+    return 0
+  fi
+
   clear_c
   print_c "------------------------ JELLYFIN -----------------------
 
@@ -322,6 +357,10 @@ Would you like to setup Jellyfin? [y/N]"
 
 _option_webapp() {
   # ENABLE_WEBAPP
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "ENABLE_WEBAPP=${ENABLE_WEBAPP} (non-interactive)"
+    return 0
+  fi
   clear_c
   print_c "------------------------ WEB APP ------------------------
 
@@ -343,6 +382,10 @@ Would you like to install the Web App? [Y/n]"
 
 _option_kiosk_mode() {
     # ENABLE_KIOSK_MODE
+    if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+        log "ENABLE_KIOSK_MODE=${ENABLE_KIOSK_MODE} (non-interactive)"
+        return 0
+    fi
     clear_c
     print_c "----------------------- KIOSK MODE ----------------------"
     if [[ $(get_architecture) == "armv6" ]]; then
@@ -379,6 +422,10 @@ Would you like to enable the Kiosk Mode? [y/N]"
 
 _options_update_raspi_os() {
   # UPDATE_RASPI_OS
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "UPDATE_RASPI_OS=${UPDATE_RASPI_OS} (non-interactive)"
+    return 0
+  fi
   clear_c
   print_c "----------------------- UPDATE OS -----------------------
 
@@ -399,6 +446,10 @@ Would you like to update the operating system? [Y/n]"
 
 _option_disable_onboard_audio() {
   # Disable BCM on-chip audio (typically Headphones)
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "DISABLE_ONBOARD_AUDIO=${DISABLE_ONBOARD_AUDIO} (non-interactive)"
+    return 0
+  fi
   # not needed when external sound card is sued
   clear_c
   print_c "--------------------- ON-CHIP AUDIO ---------------------

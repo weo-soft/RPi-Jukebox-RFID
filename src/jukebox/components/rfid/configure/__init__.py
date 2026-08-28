@@ -194,42 +194,11 @@ def query_user_for_reader(dependency_install='query') -> dict:
         if reader_select_name[-1] not in reader_select_name[:-1]:
             reader_install_dependencies(package_dir + '/' + reader_select_name[-1], dependency_install)
 
-        # Try to load the actual reader module for the first time (and only the selected one!)
-        # In case of multiple loads of the same module, import_module only returns the reference to the loaded module.
-        # --> No special loop handling necessary
-        reader_module = reader_load_module(reader_select_name[-1])
-        logger.debug(f"Loaded reader module: (Module: {reader_module.__name__} in {reader_module.__file__})")
-
-        # Check loaded module for validity
-        # Minimum requirement is a class with name 'ReaderClass'
-        # (that is enough testing here, as we cannot check the functionality anyway)
-        if 'ReaderClass' not in dir(reader_module):
-            logger.error(f"Reader module '{reader_module.__name__}' is missing mandatory class named 'Reader'.")
-            raise AttributeError(f"Reader module '{reader_module.__name__}' is missing mandatory class named 'Reader'.")
-
-        # Check if reader module has customization and if yes, query user for that
-        reader_params = None
-        if 'query_customization' in dir(reader_module):
-            print("\nEntering reader customization\n")
-            reader_params = reader_module.query_customization()
-        else:
-            logger.debug(f"Module {reader_module.__name__} has no user customization.")
-        logger.debug(f"reader_params = {reader_params}")
-
-        # Add the reader to the config collector
-        # config_dict['ReaderType'][f'reader_module{len(reader_select_name)-1:02d}'] = reader_select_name[-1]
-        # if reader_params:
-        #     config_dict[f'reader_module{len(reader_select_name)-1:02d}'] = reader_params
-
-        # TODO: what if no reader params?
-        config_dict['rfid']['readers'][f'read_{len(reader_select_name) - 1:02d}'] = {'module': reader_select_name[-1],
-                                                                                     'config': reader_params,
-                                                                                     'same_id_delay': 1.0,
-                                                                                     'log_ignored_cards': False,
-                                                                                     'place_not_swipe':
-                                                                                         {'enabled': False,
-                                                                                          'card_removal_action':
-                                                                                              {'alias': 'pause'}}}
+        # Build the config entry for the selected reader: loads the module,
+        # validates it, and — in interactive mode — queries reader-specific
+        # customization. See _build_reader_config() below.
+        config_dict['rfid']['readers'][f'read_{len(reader_select_name) - 1:02d}'] = _build_reader_config(
+            reader_select_name[-1], interactive=True)
 
         if not pyil.input_yesno("\nDo you want to add another RFID reader? ", blank=False,
                                 prompt_color=Colors.lightgreen, prompt_hint=True):
@@ -239,6 +208,67 @@ def query_user_for_reader(dependency_install='query') -> dict:
           "please go to the documentation and read the section 'GPIO Recipes'\n")
 
     return config_dict
+
+
+def _build_reader_config(reader_name: str, interactive: bool = True) -> dict:
+    """Load a reader module and build its config dict entry.
+
+    :param reader_name: directory/module name of the reader (e.g. 'pn532_i2c_py532')
+    :param interactive: if True, invoke reader_module.query_customization() to
+                        prompt for reader-specific options; if False, use the
+                        module defaults (config=None) to stay non-interactive.
+    :return: dict entry for config_dict['rfid']['readers'][...]
+    """
+    # Try to load the actual reader module for the first time (and only the
+    # selected one!). In case of multiple loads of the same module,
+    # import_module only returns the reference to the loaded module.
+    # --> No special loop handling necessary.
+    reader_module = reader_load_module(reader_name)
+    logger.debug(f"Loaded reader module: (Module: {reader_module.__name__} in {reader_module.__file__})")
+
+    # Check loaded module for validity
+    # Minimum requirement is a class with name 'ReaderClass'
+    # (that is enough testing here, as we cannot check the functionality anyway)
+    if 'ReaderClass' not in dir(reader_module):
+        logger.error(f"Reader module '{reader_module.__name__}' is missing mandatory class named 'Reader'.")
+        raise AttributeError(f"Reader module '{reader_module.__name__}' is missing mandatory class named 'Reader'.")
+
+    # Check if reader module has customization and if yes, query user for that
+    reader_params = None
+    if interactive and 'query_customization' in dir(reader_module):
+        print("\nEntering reader customization\n")
+        reader_params = reader_module.query_customization()
+    elif not interactive:
+        logger.debug(f"Module {reader_module.__name__}: using module defaults (non-interactive).")
+    else:
+        logger.debug(f"Module {reader_module.__name__} has no user customization.")
+    logger.debug(f"reader_params = {reader_params}")
+
+    return {'module': reader_name,
+            'config': reader_params,
+            'same_id_delay': 1.0,
+            'log_ignored_cards': False,
+            'place_not_swipe': {'enabled': False,
+                                'card_removal_action': {'alias': 'pause'}}}
+
+
+def configure_reader(reader_name: str, dependency_install: str = 'auto') -> dict:
+    """Configure a single RFID reader non-interactively.
+
+    Unlike query_user_for_reader(), this does not prompt the user for the
+    reader selection or reader-specific customization; the reader's module
+    defaults are used (config=None). Used by non-interactive installs, which
+    call run_register_rfid_reader.py --reader <type> --deps auto --force.
+
+    :param reader_name: directory/module name of the reader (e.g. 'pn532_i2c_py532')
+    :param dependency_install: how to handle installing of dependencies:
+                               'query', 'auto' (default) or 'no'
+    :return: nested dict for write_config(), e.g.
+             {'rfid': {'readers': {'read_00': {...}}}}
+    """
+    package_dir = os.path.abspath(os.path.dirname(os.path.realpath(__file__)) + '/../hardware')
+    reader_install_dependencies(package_dir + '/' + reader_name, dependency_install)
+    return {'rfid': {'readers': {'read_00': _build_reader_config(reader_name, interactive=False)}}}
 
 
 def write_config(config_file: str, config_dict: dict, force_overwrite=False) -> None:

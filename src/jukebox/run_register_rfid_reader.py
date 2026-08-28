@@ -49,6 +49,10 @@ def main():
     parser.add_argument("-v", "--verbosity",
                         help="Increase verbosity to 'DEBUG'",
                         action="store_true", default=False)
+    parser.add_argument("-r", "--reader",
+                        help="Reader module name (e.g. 'pn532_i2c_py532') for "
+                             "non-interactive setup; bypasses the reader prompt",
+                        metavar="MODULE", default=None)
     args = parser.parse_args()
 
     if args.verbosity is True:
@@ -63,8 +67,17 @@ def main():
         return
 
     dinstall_lookup = {'a': 'auto', 'q': 'query', 'n': 'no', 'auto': 'auto', 'query': 'query', 'no': 'no'}
-    rfid_configure.write_config(args.conffile,
-                                rfid_configure.query_user_for_reader(dependency_install=dinstall_lookup[args.deps]),
+    dependency_install = dinstall_lookup[args.deps]
+
+    if args.reader:
+        # Non-interactive: configure a single reader without prompting.
+        config_dict = rfid_configure.configure_reader(
+            args.reader, dependency_install=dependency_install)
+    else:
+        config_dict = rfid_configure.query_user_for_reader(
+            dependency_install=dependency_install)
+
+    rfid_configure.write_config(args.conffile, config_dict,
                                 force_overwrite=args.force)
 
 
