@@ -5,7 +5,7 @@ Welcome! This guide walks you through installing Phoniebox future3 on a Raspberr
 There are two ways to run the installation:
 
 * **Interactive** — the classic one-line installer that asks a few questions during setup (see [Install Phoniebox software](#install-phoniebox-software)).
-* **Non-interactive (headless)** — the same installer, driven by a flat `KEY=VALUE` config file or environment variables, without any prompts. Ideal for automated, scripted, CI or GUI-driven installations (see [Non-Interactive Installation](#non-interactive-installation)).
+* **Non-interactive (headless)** — the same installer, driven by a flat `KEY=VALUE` config file or environment variables, without any prompts. Ideal for automated and scripted installations (see [Non-Interactive Installation](#non-interactive-installation)).
 
 Both modes install the same software; they only differ in how the installation options are supplied.
 
@@ -105,7 +105,7 @@ git fetch origin --tags
 
 ### Non-Interactive Installation
 
-For automated, scripted, CI or GUI-driven installations you can run the installer **without any interactive prompts**. All options are supplied either as environment variables or through a flat `KEY=VALUE` config file passed with `--config <file>`.
+For automated or scripted installations you can run the installer **without any interactive prompts**. All options are supplied either as environment variables or through a flat `KEY=VALUE` config file passed with `--config <file>`.
 
 > [!NOTE]
 > Behavior in non-interactive mode:
@@ -113,6 +113,7 @@ For automated, scripted, CI or GUI-driven installations you can run the installe
 > * An existing installation does **not** abort the installer. It is backed up (`EXISTING_INSTALL_ACTION=backup`, the default) or removed (`EXISTING_INSTALL_ACTION=remove`) first.
 > * The welcome and the final reboot prompts are skipped. The calling process is responsible for rebooting the Pi afterwards (e.g. `sudo reboot`).
 > * If `ENABLE_RFID_READER=true` (the default), you **must** set `RFID_READER_MODULE` to one of the supported reader modules, otherwise the installer aborts.
+> * Some reader modules (e.g. `generic_usb`, `generic_nfcpy`, `rc522_spi`) have **no automatic defaults**: they can only be configured interactively (device/pin selection). If you select one of them, the installer runs the reader customization right away — which only works if the installation runs in a **terminal with an interactive prompt** (even with `--config`). Without a terminal the installer **aborts** with a clear message instead of writing an unusable reader configuration. In that case either run the installation from a terminal, or configure the reader afterwards with `run_register_rfid_reader.py` in `src/jukebox`.
 >
 
 #### Config file
