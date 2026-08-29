@@ -11,13 +11,16 @@ KIOSK_MODE_BASHRC="${HOME_PATH}/.bashrc"
 KIOSK_MODE_XINITRC_FILE="${HOME_PATH}/.xinitrc"
 KIOSK_MODE_CHROMIUM_FLAG_UPDATE_INTERVAL='--check-for-update-interval=31536000'
 
-if [[ "$(get_architecture)" == "x86_64" ]]; then
+if [[ "$(get_architecture)" == "x86_64" ]] || [[ "$(is_debian_version_at_least 13)" == "true" ]]; then
+    # Modern Debian (Trixie, 13+) and non-Debian x86_64 ship the browser as
+    # plain 'chromium' and read its flags from /etc/chromium.d/. The
+    # transitional 'chromium-browser' wrapper only exists on older images.
     KIOSK_MODE_CHROMIUM_PACKAGE='chromium'
-    KIOSK_MODE_CHROMIUM_COMMAND='chromium'
     KIOSK_MODE_CHROMIUM_CUSTOM_DISABLE_UPDATE_CHECK='/etc/chromium.d/01-disable-update-check'
 else
+    # Legacy images (e.g. Raspberry Pi OS Bookworm) still use the
+    # 'chromium-browser' transitional package and customizations path.
     KIOSK_MODE_CHROMIUM_PACKAGE='chromium-browser'
-    KIOSK_MODE_CHROMIUM_COMMAND='chromium-browser'
     KIOSK_MODE_CHROMIUM_CUSTOM_DISABLE_UPDATE_CHECK='/etc/chromium-browser/customizations/01-disable-update-check'
 fi
 
@@ -36,6 +39,20 @@ _get_kiosk_user() {
         fi
     fi
     echo "${kiosk_user}"
+}
+
+# Resolve the actual chromium executable after the packages have been
+# installed (the apt install runs in prepare_dependencies, before the kiosk
+# setup). Modern releases provide plain 'chromium'; older images additionally
+# ship the transitional 'chromium-browser' wrapper.
+_get_chromium_command() {
+    if command -v chromium >/dev/null 2>&1; then
+        echo "chromium"
+    elif command -v chromium-browser >/dev/null 2>&1; then
+        echo "chromium-browser"
+    else
+        exit_on_error "Could not find a chromium executable after installation"
+    fi
 }
 
 # Run a command either directly (install user == kiosk user), as the kiosk
@@ -78,6 +95,8 @@ _kiosk_mode_set_autostart() {
   fi
   KIOSK_MODE_BASHRC="${kiosk_home}/.bashrc"
   KIOSK_MODE_XINITRC_FILE="${kiosk_home}/.xinitrc"
+
+  KIOSK_MODE_CHROMIUM_COMMAND=$(_get_chromium_command)
 
   _kiosk_mode_strip_blocks "${KIOSK_MODE_BASHRC}"
   _kiosk_mode_strip_blocks "${KIOSK_MODE_OPENBOX_AUTOSTART}"
@@ -142,6 +161,8 @@ _kiosk_mode_check() {
         xinit \
         openbox \
         "${KIOSK_MODE_CHROMIUM_PACKAGE}"
+
+    verify_commands_exists "${KIOSK_MODE_CHROMIUM_COMMAND}"
 
     verify_files_exists "${KIOSK_MODE_BASHRC}"
     verify_file_contains_string_once "${KIOSK_MODE_CONF_HEADER}" "${KIOSK_MODE_BASHRC}"
