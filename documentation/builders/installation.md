@@ -38,12 +38,13 @@ This instruction uses the official [Raspberry Pi Imager](https://www.raspberrypi
 
 ## Install Phoniebox software
 
-Choose how to install: the classic **interactive** one-liner, or the **non-interactive** headless mode. In both cases you can pick which version of Phoniebox to install, then run the corresponding install command in your SSH terminal.
+Choose the Phoniebox version you want to install, then choose how to run the installation. Every version can be installed either **interactively** (the installer asks a few questions during setup) or **non-interactively** (headless: all options are supplied via a config file or environment variables). Both modes install the same software — they only differ in how the installation options are provided.
 
 * [Stable Release](#stable-release)
 * [Pre-Release](#pre-release)
 * [Development](#development)
-* [Non-Interactive Installation](#non-interactive-installation)
+
+Each version below shows the interactive one-liner and the non-interactive variant. All non-interactive details (config file, environment variables, all available options) are described in [Non-Interactive Installation](#non-interactive-installation).
 
 After a successful installation, [configure your Phoniebox](configuration.md).
 
@@ -70,16 +71,32 @@ UPDATE_RASPI_OS=true
 
 This will install the latest **stable release** from the *future3/main* branch.
 
+Run it **interactively** — the installer asks a few questions during setup:
+
 ```bash
 cd; bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/main/installation/install-jukebox.sh)
+```
+
+Or **non-interactively** — all options come from a config file:
+
+```bash
+cd; bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/main/installation/install-jukebox.sh) --config "$HOME/install_config.env"
 ```
 
 ### Pre-Release
 
 This will install the latest **pre-release** from the *future3/develop* branch.
 
+Run it **interactively**:
+
 ```bash
 cd; GIT_BRANCH='future3/develop' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh)
+```
+
+Or **non-interactively** — the branch is supplied as an environment variable alongside the config file:
+
+```bash
+cd; GIT_BRANCH='future3/develop' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh) --config "$HOME/install_config.env"
 ```
 
 ### Development
@@ -90,8 +107,16 @@ You can also install a specific branch and/or a fork repository. Update the vari
 > A fork repository must be named '*RPi-Jukebox-RFID*' like the official
 > repository.
 
+Run it **interactively**:
+
 ```bash
 cd; GIT_USER='your-github-user' GIT_BRANCH='feature/my-change' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh)
+```
+
+Or **non-interactively** — the branch and fork variables work in both modes:
+
+```bash
+cd; GIT_USER='your-github-user' GIT_BRANCH='feature/my-change' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh) --config "$HOME/install_config.env"
 ```
 
 The installer uses HTTPS and fetches only the selected branch with shallow history. Set `GIT_USE_SSH=true` to opt in to SSH access. The installed checkout remains a normal tracking branch, so `git pull` works as usual.
@@ -109,7 +134,7 @@ git fetch origin --tags
 
 ### Non-Interactive Installation
 
-For automated or scripted installations you can run the installer **without any interactive prompts**. All options are supplied either as environment variables or through a flat `KEY=VALUE` config file passed with `--config <file>`.
+The commands in the [Stable Release](#stable-release), [Pre-Release](#pre-release) and [Development](#development) sections show the non-interactive variant for every version. This section describes that mode in detail: all options are supplied either as environment variables or through a flat `KEY=VALUE` config file passed with `--config <file>`, so the installer runs **without any interactive prompts**. This is ideal for automated and scripted installations.
 
 > [!NOTE]
 > Behavior in non-interactive mode:
@@ -117,7 +142,7 @@ For automated or scripted installations you can run the installer **without any 
 > * An existing installation does **not** abort the installer. It is backed up (`EXISTING_INSTALL_ACTION=backup`, the default) or removed (`EXISTING_INSTALL_ACTION=remove`) first.
 > * The welcome and the final reboot prompts are skipped. The calling process is responsible for rebooting the Pi afterwards (e.g. `sudo reboot`).
 > * If `ENABLE_RFID_READER=true` (the default), you **must** set `RFID_READER_MODULE` to one of the supported reader modules, otherwise the installer aborts.
-> * Some reader modules (e.g. `generic_usb`, `generic_nfcpy`, `rc522_spi`) have **no automatic defaults**: they can only be configured interactively (device/pin selection). If you select one of them, the installer runs the reader customization right away — which only works if the installation runs in a **terminal with an interactive prompt** (even with `--config`). Without a terminal the installer **aborts** with a clear message instead of writing an unusable reader configuration. In that case either run the installation from a terminal, or configure the reader afterwards with `run_register_rfid_reader.py` in `src/jukebox`.
+> * Readers that normally ask for device/pin selection (e.g. `generic_usb`, `generic_nfcpy`, `rc522_spi`) are configured **without any prompts** in non-interactive mode: `rc522_spi` uses the default wiring, `generic_usb`/`generic_nfcpy` auto-detect a uniquely connected device. If no unique device can be determined, the installer aborts with a clear message — provide the missing values with `RFID_READER_PARAMS` (e.g. `device_name=...` or `spi_ce=0;pin_irq=24`) to configure such a reader without any prompts.
 >
 
 #### Config file
@@ -155,11 +180,52 @@ Alternatively, pass the options as environment variables and enable non-interact
 cd; NON_INTERACTIVE=true ENABLE_RFID_READER=false bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/main/installation/install-jukebox.sh)
 ```
 
-Both ways can be combined with the branch/fork variables from the [Development](#development) section:
+#### RFID reader with configuration values
+
+Readers that need device or pin values (e.g. `generic_nfcpy`, `generic_usb`, `rc522_spi`) receive them through `RFID_READER_PARAMS` — a `;`-separated list of `key=value` pairs. These values are written directly into the reader's `config` section of the generated `shared/settings/rfid.yaml`.
+
+Besides the values, the non-interactive installer also takes care of each reader's **dependencies**: many reader modules ship their own Python packages (`requirements.txt`) and/or driver & system setup (`setup.inc.sh`). By default (`RFID_READER_DEPS=auto`) the installer installs them automatically, exactly like the interactive flow would after confirmation — e.g. for `generic_nfcpy` it installs the `nfcpy` Python package and applies the kernel/udev driver handling (so the reader is accessible without root), and for `rc522_spi` it installs the `pi-rc522` library and enables SPI. Set `RFID_READER_DEPS=no` to skip the dependency installation (e.g. because you manage them yourself). `RFID_READER_DEPS=query` is not allowed in non-interactive mode, because it would prompt for confirmation.
+
+For example, a USB NFC reader (`generic_nfcpy`) identified by the vendor/product ID `usb:072f:2200`:
 
 ```bash
-cd; GIT_USER='your-github-user' GIT_BRANCH='feature/my-change' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh) --config "$HOME/install_config.env"
+cd
+cat > install_config.env <<'EOF'
+GIT_USER=MiczFlor
+GIT_BRANCH=future3/main
+ENABLE_RFID_READER=true
+RFID_READER_MODULE=generic_nfcpy
+RFID_READER_PARAMS="device_path=usb:072f:2200"
+ENABLE_SAMBA=false
+ENABLE_WEBAPP=true
+ENABLE_KIOSK_MODE=false
+EXISTING_INSTALL_ACTION=backup
+EOF
+
+cd; bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/main/installation/install-jukebox.sh) --config "$HOME/install_config.env"
 ```
+
+This writes the following reader configuration to `shared/settings/rfid.yaml`:
+
+```yaml
+rfid:
+  readers:
+    read_00:
+      module: generic_nfcpy
+      config:
+        device_path: usb:072f:2200
+      same_id_delay: 1.0
+      log_ignored_cards: false
+      place_not_swipe:
+        enabled: false
+        card_removal_action:
+          alias: pause
+```
+
+Other readers use the same mechanism, e.g. `generic_usb` with `RFID_READER_PARAMS="device_name=KKMoon USB Keyboard"` or `rc522_spi` with `RFID_READER_PARAMS="spi_ce=0;pin_irq=24"`.
+
+> [!NOTE]
+> Quote the value whenever it contains `;` or spaces (e.g. `RFID_READER_PARAMS="spi_ce=0;pin_irq=24"`), because the config file is a plain shell `KEY=VALUE` file that gets sourced.
 
 #### Run from a local checkout
 
@@ -185,7 +251,7 @@ GIT_USER='your-github-user' GIT_BRANCH='feature/my-change' ENABLE_RFID_READER=fa
 ```
 
 > [!NOTE]
-> The installer always downloads the installation source from GitHub for the configured `GIT_USER`/`GIT_BRANCH` and installs it to `~/RPi-Jukebox-RFID` — running the script from a local checkout does not change that. To test your own fork or feature branch, set `GIT_USER`/`GIT_BRANCH` accordingly (the changes must be pushed). This is the same flow the CI uses in `ci/installation/run_install_noninteractive.sh`.
+> The installer always downloads the installation source from GitHub for the configured `GIT_USER`/`GIT_BRANCH` and installs it to `~/RPi-Jukebox-RFID` — running the script from a local checkout does not change that. To test your own fork or feature branch, set `GIT_USER`/`GIT_BRANCH` accordingly (the changes must be pushed). This is the same flow the CI uses in `ci/installation/run_install_common.sh`.
 
 #### Available options
 
@@ -211,6 +277,8 @@ Every option below is a plain shell variable. Values set via the config file or 
 | `UPDATE_RASPI_OS` | `false` | Run `apt-get full-upgrade` and `autoremove` |
 | `ENABLE_RFID_READER` | `true` | Set up an RFID reader |
 | `RFID_READER_MODULE` | – | Reader module, e.g. `pn532_i2c_py532`, `mfrc522_i2c`, `rc522_spi`, `rdm6300_serial`, `generic_usb`, `generic_nfcpy` (required when `ENABLE_RFID_READER=true`) |
+| `RFID_READER_PARAMS` | – | Reader parameters for non-interactive configuration, `key=value` pairs separated by `;` (e.g. `device_path=usb:072f:2200` for `generic_nfcpy`). Only needed for readers that cannot determine a unique default automatically — see [RFID reader with configuration values](#rfid-reader-with-configuration-values). |
+| `RFID_READER_DEPS` | `auto` | Install the reader's Python packages (`requirements.txt`) and driver/system setup (`setup.inc.sh`): `auto` (default) installs them, `no` skips them. `query` is not allowed in non-interactive mode (it would prompt). |
 | `ENABLE_SAMBA` | `false` | Enable Samba network shares |
 | `ENABLE_WEBAPP` | `true` | Install the Web App |
 | `ENABLE_WEBAPP_PROD_DOWNLOAD` | `release-only` | Web App bundle download mode (`true` or `release-only`) |
