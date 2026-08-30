@@ -170,6 +170,17 @@ ENABLE_RFID_READER=true
 RFID_READER_MODULE="pn532_i2c_py532"
 _validate_noninteractive_config
 
+# RFID_READER_DEPS accepts only 'auto'/'no' in non-interactive mode;
+# 'query' would prompt and must be rejected
+RFID_READER_DEPS="no"
+_validate_noninteractive_config
+RFID_READER_DEPS="query"
+if ( _validate_noninteractive_config ) >/dev/null 2>&1; then
+    fail "RFID_READER_DEPS=query was accepted in non-interactive mode"
+fi
+unset RFID_READER_DEPS
+_validate_noninteractive_config
+
 # Interactive mode is not affected by the non-interactive validation
 unset ENABLE_RFID_READER RFID_READER_MODULE
 NON_INTERACTIVE=false
@@ -235,6 +246,15 @@ _run_setup_rfid_reader
 [[ "${RUN_ARGS[${#RUN_ARGS[@]}-1]}" == "${RFID_SCRIPT} --reader rc522_spi --deps auto --force --params spi_ce=0;pin_irq=24" ]] \
     || fail "RFID_READER_PARAMS were not forwarded in non-interactive mode"
 unset RFID_READER_PARAMS
+
+# RFID_READER_DEPS controls the dependency handling ('no' skips deps)
+RFID_READER_MODULE="pn532_i2c_py532"
+RFID_READER_DEPS="no"
+RUN_ARGS=()
+_run_setup_rfid_reader
+[[ "${RUN_ARGS[${#RUN_ARGS[@]}-1]}" == "${RFID_SCRIPT} --reader pn532_i2c_py532 --deps no --force" ]] \
+    || fail "RFID_READER_DEPS=no was not forwarded in non-interactive mode"
+unset RFID_READER_DEPS
 
 # An empty module aborts
 RFID_READER_MODULE=""
