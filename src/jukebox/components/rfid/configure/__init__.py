@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 import importlib
 import subprocess
 
@@ -14,12 +13,13 @@ logger = logging.getLogger()
 NO_RFID_READER = 'No RFID Reader'
 
 #: Reader modules that have no usable module defaults and therefore CANNOT be
-#: configured without running their query_customization() (device selection,
-#: GPIO pin selection, ...). When such a reader is selected during a
-#: non-interactive installation, the configuration tool must still run the
-#: customization (as long as an interactive terminal is available) or abort
-#: with a clear error. Silently writing 'config: null' would leave the reader
-#: unconfigured and the jukebox daemon would fail at startup.
+#: configured with an empty 'config: null' entry (device selection, GPIO pin
+#: selection, ...). During a non-interactive installation they are configured
+#: from explicit reader parameters (RFID_READER_PARAMS) or, when no parameters
+#: are supplied, from their automatic defaults (e.g. auto-detecting a uniquely
+#: connected device). If neither is possible, a RuntimeError with a clear
+#: message is raised instead of writing an unusable entry that would make the
+#: jukebox daemon fail at startup.
 INTERACTIVE_ONLY_READERS = frozenset({'generic_usb', 'generic_nfcpy', 'rc522_spi'})
 
 
@@ -220,18 +220,19 @@ def query_user_for_reader(dependency_install='query') -> dict:
     return config_dict
 
 
-def _build_reader_config(reader_name: str, interactive: bool = True) -> dict:
+def _build_reader_config(reader_name: str, interactive: bool = True, params: dict | None = None) -> dict:
     """Load a reader module and build its config dict entry.
 
     :param reader_name: directory/module name of the reader (e.g. 'pn532_i2c_py532')
     :param interactive: if True, invoke reader_module.query_customization() to
-                        prompt for reader-specific options. If False, module
-                        defaults are used — except for readers in
-                        INTERACTIVE_ONLY_READERS (e.g. 'generic_usb'), which
-                        have no usable module defaults and are therefore always
-                        customized. If no interactive terminal is available for
-                        those, a RuntimeError is raised instead of writing an
-                        unusable config entry.
+                        prompt for reader-specific options.
+    :param params: reader-specific key/value parameters for the non-interactive
+                   path (e.g. from the installer's RFID_READER_PARAMS). Readers
+                   in INTERACTIVE_ONLY_READERS use them to configure themselves
+                   without any prompts; when params is None they fall back to
+                   their automatic defaults (e.g. auto-detecting a uniquely
+                   connected device) and raise a RuntimeError with a clear
+                   message when no safe default exists.
     :return: dict entry for config_dict['rfid']['readers'][...]
     """
     # Try to load the actual reader module for the first time (and only the
@@ -252,28 +253,22 @@ def _build_reader_config(reader_name: str, interactive: bool = True) -> dict:
     # Readers without a query_customization() function rely on module defaults
     # and work fine without a config block.
     # Readers in INTERACTIVE_ONLY_READERS cannot run with module defaults: they
-    # must be customized interactively. Even when the tool was invoked
-    # non-interactively (e.g. with the '--reader <module>' argument), run
-    # the customization as long as an interactive terminal is available —
-    # otherwise the daemon would fail at startup with an empty config.
+    # are configured non-interactively from the supplied params or from their
+    # automatic defaults (auto-detection). The module raises a clear error when
+    # neither is possible, instead of silently writing 'config: null' which
+    # would make the jukebox daemon fail at startup.
     reader_params = None
     if 'query_customization' in dir(reader_module):
         if interactive:
             print("\nEntering reader customization\n")
             reader_params = reader_module.query_customization()
         elif reader_name in INTERACTIVE_ONLY_READERS:
-            if not sys.stdin.isatty():
-                raise RuntimeError(
-                    f"Reader module '{reader_name}' cannot be configured automatically: "
-                    "it requires interactive customization (device/pin selection), but no "
-                    "interactive terminal is available.\n"
-                    "Run this tool from an interactive terminal, or configure the reader "
-                    "afterwards by executing 'run_register_rfid_reader.py' from 'src/jukebox'."
-                )
-            print(f"\nReader module '{reader_name}' has no usable module defaults. "
-                  "Entering reader customization\n")
-            reader_params = reader_module.query_customization()
+            reader_params = reader_module.query_customization(
+                defaults=params if params is not None else {})
         else:
+            if params:
+                logger.warning(f"Module {reader_module.__name__} has no non-interactive "
+                               "customization; ignoring the supplied reader params.")
             logger.debug(f"Module {reader_module.__name__}: using module defaults (non-interactive).")
     else:
         logger.debug(f"Module {reader_module.__name__} has no user customization.")
@@ -287,27 +282,31 @@ def _build_reader_config(reader_name: str, interactive: bool = True) -> dict:
                                 'card_removal_action': {'alias': 'pause'}}}
 
 
-def configure_reader(reader_name: str, dependency_install: str = 'auto') -> dict:
+def configure_reader(reader_name: str, dependency_install: str = 'auto', params: dict | None = None) -> dict:
     """Configure a single RFID reader without prompting for the reader selection.
 
     Unlike query_user_for_reader(), this does not present the reader menu;
     the reader is given by its module name. Used by non-interactive installs,
     which call run_register_rfid_reader.py --reader <type> --deps auto --force.
 
-    Note: readers that require interactive customization (see
-    INTERACTIVE_ONLY_READERS, e.g. 'generic_usb') still prompt the user when
-    an interactive terminal is available; otherwise a RuntimeError is raised
-    instead of writing an unusable reader entry.
+    Readers that require reader-specific values (see INTERACTIVE_ONLY_READERS,
+    e.g. 'generic_usb') are configured from the supplied params, or from their
+    automatic defaults when params is None. If no safe default exists (e.g.
+    several USB readers are connected), a RuntimeError is raised with a clear
+    message instead of writing an unusable reader entry.
 
     :param reader_name: directory/module name of the reader (e.g. 'pn532_i2c_py532')
     :param dependency_install: how to handle installing of dependencies:
                                'query', 'auto' (default) or 'no'
+    :param params: dict of reader-specific key/value parameters, or None to use
+                   automatic defaults (auto-detection).
     :return: nested dict for write_config(), e.g.
              {'rfid': {'readers': {'read_00': {...}}}}
     """
     package_dir = os.path.abspath(os.path.dirname(os.path.realpath(__file__)) + '/../hardware')
     reader_install_dependencies(package_dir + '/' + reader_name, dependency_install)
-    return {'rfid': {'readers': {'read_00': _build_reader_config(reader_name, interactive=False)}}}
+    return {'rfid': {'readers': {'read_00': _build_reader_config(
+        reader_name, interactive=False, params=params)}}}
 
 
 def write_config(config_file: str, config_dict: dict, force_overwrite=False) -> None:

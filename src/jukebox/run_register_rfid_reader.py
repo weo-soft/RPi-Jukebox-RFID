@@ -53,6 +53,13 @@ def main():
                         help="Reader module name (e.g. 'pn532_i2c_py532') for "
                              "non-interactive setup; bypasses the reader prompt",
                         metavar="MODULE", default=None)
+    parser.add_argument("-p", "--params",
+                        help="Reader parameters for non-interactive setup, "
+                             "'key=value' pairs separated by ';' (e.g. "
+                             "'device_name=MyReader' or 'spi_ce=0;pin_irq=24'). "
+                             "Only needed for readers that cannot determine a "
+                             "unique default automatically.",
+                        metavar="KEY=VALUE;KEY=VALUE", default=None)
     args = parser.parse_args()
 
     if args.verbosity is True:
@@ -71,8 +78,18 @@ def main():
 
     if args.reader:
         # Non-interactive: configure a single reader without prompting.
+        params = None
+        if args.params:
+            params = {}
+            for pair in args.params.split(';'):
+                key, sep, value = pair.partition('=')
+                if not sep or not key.strip():
+                    print(f"WARNING: Ignoring malformed reader parameter '{pair}' "
+                          "(expected 'key=value').")
+                    continue
+                params[key.strip()] = value.strip()
         config_dict = rfid_configure.configure_reader(
-            args.reader, dependency_install=dependency_install)
+            args.reader, dependency_install=dependency_install, params=params)
     else:
         config_dict = rfid_configure.query_user_for_reader(
             dependency_install=dependency_install)

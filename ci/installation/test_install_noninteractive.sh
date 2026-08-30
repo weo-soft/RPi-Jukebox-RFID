@@ -5,8 +5,9 @@
 # - _option_*() functions must skip their interactive prompts when
 #   NON_INTERACTIVE=true.
 # - The non-interactive code paths in the install scripts: config file
-#   loading, existing-installation handling, welcome/finish prompt skipping,
-#   install() option consistency and RFID reader module forwarding.
+#   loading, fail-fast validation, existing-installation handling,
+#   welcome/finish prompt skipping, install() option consistency and RFID
+#   reader module/params forwarding.
 
 set -euo pipefail
 
@@ -70,16 +71,19 @@ ENABLE_RFID_READER="false"
 _option_rfid_reader <<< ''
 [[ "${ENABLE_RFID_READER}" == "false" ]]
 
-# --- _load_install_config() and _check_existing_installation() ---
-# Both functions are defined in install-jukebox.sh, which runs the actual
+# --- _load_install_config(), _validate_noninteractive_config() and
+#     _check_existing_installation() ---
+# These functions are defined in install-jukebox.sh, which runs the actual
 # installation when sourced directly. Extract only the function bodies.
 source <(
     sed -n \
         -e '/^_load_install_config()/,/^}/p' \
+        -e '/^_validate_noninteractive_config()/,/^}/p' \
         -e '/^_check_existing_installation()/,/^}/p' \
         "${REPOSITORY_ROOT}/installation/install-jukebox.sh"
 )
 declare -F _load_install_config >/dev/null || fail "could not extract _load_install_config"
+declare -F _validate_noninteractive_config >/dev/null || fail "could not extract _validate_noninteractive_config"
 declare -F _check_existing_installation >/dev/null || fail "could not extract _check_existing_installation"
 
 TEST_ROOT=$(mktemp -d)
@@ -143,6 +147,45 @@ if ( NON_INTERACTIVE=false; _check_existing_installation ) >/dev/null 2>&1; then
     fail "an interactive rerun over an existing installation was accepted"
 fi
 
+# --- _validate_noninteractive_config() fails fast on a broken config ---
+# ENABLE_RFID_READER is not set: the default (true) applies, so a missing
+# RFID_READER_MODULE must abort before anything is installed.
+NON_INTERACTIVE=true
+unset ENABLE_RFID_READER RFID_READER_MODULE
+if ( _validate_noninteractive_config ) >/dev/null 2>&1; then
+    fail "a non-interactive config without RFID_READER_MODULE was accepted"
+fi
+
+# Explicitly enabled reader without a module aborts as well
+ENABLE_RFID_READER=true
+if ( _validate_noninteractive_config ) >/dev/null 2>&1; then
+    fail "ENABLE_RFID_READER=true without RFID_READER_MODULE was accepted"
+fi
+
+# A disabled reader or a configured module pass the validation
+ENABLE_RFID_READER=false
+_validate_noninteractive_config
+
+ENABLE_RFID_READER=true
+RFID_READER_MODULE="pn532_i2c_py532"
+_validate_noninteractive_config
+
+# RFID_READER_DEPS accepts only 'auto'/'no' in non-interactive mode;
+# 'query' would prompt and must be rejected
+RFID_READER_DEPS="no"
+_validate_noninteractive_config
+RFID_READER_DEPS="query"
+if ( _validate_noninteractive_config ) >/dev/null 2>&1; then
+    fail "RFID_READER_DEPS=query was accepted in non-interactive mode"
+fi
+unset RFID_READER_DEPS
+_validate_noninteractive_config
+
+# Interactive mode is not affected by the non-interactive validation
+unset ENABLE_RFID_READER RFID_READER_MODULE
+NON_INTERACTIVE=false
+_validate_noninteractive_config
+
 # --- welcome() and finish() must not prompt in non-interactive mode ---
 source "${REPOSITORY_ROOT}/installation/includes/03_welcome.sh"
 source "${REPOSITORY_ROOT}/installation/includes/05_finish.sh"
@@ -194,6 +237,24 @@ RFID_READER_MODULE="pn532_i2c_py532"
 _run_setup_rfid_reader
 [[ "${RUN_ARGS[${#RUN_ARGS[@]}-1]}" == "${RFID_SCRIPT} --reader pn532_i2c_py532 --deps auto --force" ]] \
     || fail "RFID reader module was not forwarded in non-interactive mode"
+
+# RFID_READER_PARAMS are forwarded to the reader configuration tool
+RFID_READER_MODULE="rc522_spi"
+RFID_READER_PARAMS="spi_ce=0;pin_irq=24"
+RUN_ARGS=()
+_run_setup_rfid_reader
+[[ "${RUN_ARGS[${#RUN_ARGS[@]}-1]}" == "${RFID_SCRIPT} --reader rc522_spi --deps auto --force --params spi_ce=0;pin_irq=24" ]] \
+    || fail "RFID_READER_PARAMS were not forwarded in non-interactive mode"
+unset RFID_READER_PARAMS
+
+# RFID_READER_DEPS controls the dependency handling ('no' skips deps)
+RFID_READER_MODULE="pn532_i2c_py532"
+RFID_READER_DEPS="no"
+RUN_ARGS=()
+_run_setup_rfid_reader
+[[ "${RUN_ARGS[${#RUN_ARGS[@]}-1]}" == "${RFID_SCRIPT} --reader pn532_i2c_py532 --deps no --force" ]] \
+    || fail "RFID_READER_DEPS=no was not forwarded in non-interactive mode"
+unset RFID_READER_DEPS
 
 # An empty module aborts
 RFID_READER_MODULE=""

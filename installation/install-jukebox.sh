@@ -19,8 +19,11 @@ GIT_BRANCH=${GIT_BRANCH:-"future3/main"}
 # config file (install_config.env) which is passed as:
 #   bash install-jukebox.sh --config /tmp/install_config.env
 # This skips all interactive 'read' prompts and installs with the supplied options.
-INSTALL_CONFIG_FILE=""
-NON_INTERACTIVE=false
+# Values already provided through the environment (the documented env-var-only
+# variant: NON_INTERACTIVE=true ...) are honoured; command-line options below
+# take precedence.
+INSTALL_CONFIG_FILE="${INSTALL_CONFIG_FILE:-}"
+NON_INTERACTIVE="${NON_INTERACTIVE:-false}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -179,6 +182,31 @@ An existing installation was found at ${INSTALLATION_PATH}."
     fi
 }
 
+# Fail fast on an invalid non-interactive configuration instead of
+# discovering the problem halfway through the installation (after the
+# dependencies have already been installed).
+_validate_noninteractive_config() {
+    if [[ "${NON_INTERACTIVE:-}" != "true" ]]; then
+        return 0
+    fi
+    # ENABLE_RFID_READER defaults to true (see 01_default_config.sh); at this
+    # point the defaults are not sourced yet, so treat an unset variable as true.
+    local enable_rfid_reader="${ENABLE_RFID_READER:-true}"
+    if [[ "$enable_rfid_reader" == true && -z "${RFID_READER_MODULE:-}" ]]; then
+        print_lc "ERROR: RFID reader is enabled (ENABLE_RFID_READER defaults to true) but no reader module was configured."
+        print_lc "In non-interactive mode set RFID_READER_MODULE in your config file,"
+        print_lc "or disable the reader setup with ENABLE_RFID_READER=false."
+        exit 1
+    fi
+    # The dependency-handling mode must not prompt in non-interactive mode,
+    # so 'query' is not allowed (it would block on a read prompt).
+    if [[ -n "${RFID_READER_DEPS:-}" && "${RFID_READER_DEPS}" != "auto" && "${RFID_READER_DEPS}" != "no" ]]; then
+        print_lc "ERROR: RFID_READER_DEPS must be 'auto' or 'no' in non-interactive mode (got '${RFID_READER_DEPS}')."
+        print_lc "'query' would prompt for confirmation and is therefore not allowed."
+        exit 1
+    fi
+}
+
 _download_jukebox_source() {
   log "#########################################################"
   print_c "Downloading Phoniebox software from Github ..."
@@ -223,6 +251,9 @@ _load_install_config
 # Echo the effective repo (after any --config override) for log clarity.
 echo GIT_BRANCH $GIT_BRANCH
 echo GIT_URL $GIT_URL
+
+### VALIDATE NON-INTERACTIVE CONFIG
+_validate_noninteractive_config
 
 ### CHECK PREREQUISITE
 _check_existing_installation
