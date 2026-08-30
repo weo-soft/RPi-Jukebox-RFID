@@ -38,12 +38,13 @@ This instruction uses the official [Raspberry Pi Imager](https://www.raspberrypi
 
 ## Install Phoniebox software
 
-Choose how to install: the classic **interactive** one-liner, or the **non-interactive** headless mode. In both cases you can pick which version of Phoniebox to install, then run the corresponding install command in your SSH terminal.
+Choose the Phoniebox version you want to install, then choose how to run the installation. Every version can be installed either **interactively** (the installer asks a few questions during setup) or **non-interactively** (headless: all options are supplied via a config file or environment variables). Both modes install the same software — they only differ in how the installation options are provided.
 
 * [Stable Release](#stable-release)
 * [Pre-Release](#pre-release)
 * [Development](#development)
-* [Non-Interactive Installation](#non-interactive-installation)
+
+Each version below shows the interactive one-liner and the non-interactive variant. All non-interactive details (config file, environment variables, all available options) are described in [Non-Interactive Installation](#non-interactive-installation).
 
 After a successful installation, [configure your Phoniebox](configuration.md).
 
@@ -66,16 +67,32 @@ UPDATE_RASPI_OS=true
 
 This will install the latest **stable release** from the *future3/main* branch.
 
+Run it **interactively** — the installer asks a few questions during setup:
+
 ```bash
 cd; bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/main/installation/install-jukebox.sh)
+```
+
+Or **non-interactively** — all options come from a config file:
+
+```bash
+cd; bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/main/installation/install-jukebox.sh) --config "$HOME/install_config.env"
 ```
 
 ### Pre-Release
 
 This will install the latest **pre-release** from the *future3/develop* branch.
 
+Run it **interactively**:
+
 ```bash
 cd; GIT_BRANCH='future3/develop' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh)
+```
+
+Or **non-interactively** — the branch is supplied as an environment variable alongside the config file:
+
+```bash
+cd; GIT_BRANCH='future3/develop' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh) --config "$HOME/install_config.env"
 ```
 
 ### Development
@@ -86,8 +103,16 @@ You can also install a specific branch and/or a fork repository. Update the vari
 > A fork repository must be named '*RPi-Jukebox-RFID*' like the official
 > repository.
 
+Run it **interactively**:
+
 ```bash
 cd; GIT_USER='your-github-user' GIT_BRANCH='feature/my-change' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh)
+```
+
+Or **non-interactively** — the branch and fork variables work in both modes:
+
+```bash
+cd; GIT_USER='your-github-user' GIT_BRANCH='feature/my-change' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh) --config "$HOME/install_config.env"
 ```
 
 The installer uses HTTPS and fetches only the selected branch with shallow history. Set `GIT_USE_SSH=true` to opt in to SSH access. The installed checkout remains a normal tracking branch, so `git pull` works as usual.
@@ -105,7 +130,7 @@ git fetch origin --tags
 
 ### Non-Interactive Installation
 
-For automated or scripted installations you can run the installer **without any interactive prompts**. All options are supplied either as environment variables or through a flat `KEY=VALUE` config file passed with `--config <file>`.
+The commands in the [Stable Release](#stable-release), [Pre-Release](#pre-release) and [Development](#development) sections show the non-interactive variant for every version. This section describes that mode in detail: all options are supplied either as environment variables or through a flat `KEY=VALUE` config file passed with `--config <file>`, so the installer runs **without any interactive prompts**. This is ideal for automated and scripted installations.
 
 > [!NOTE]
 > Behavior in non-interactive mode:
@@ -152,12 +177,6 @@ Alternatively, pass the options as environment variables and enable non-interact
 cd; NON_INTERACTIVE=true ENABLE_RFID_READER=false bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/main/installation/install-jukebox.sh)
 ```
 
-Both ways can be combined with the branch/fork variables from the [Development](#development) section:
-
-```bash
-cd; GIT_USER='your-github-user' GIT_BRANCH='feature/my-change' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh) --config "$HOME/install_config.env"
-```
-
 #### Run from a local checkout
 
 Developers who have the repository checked out can start the installer directly from the local copy instead of piping it from GitHub:
@@ -182,7 +201,7 @@ GIT_USER='your-github-user' GIT_BRANCH='feature/my-change' ENABLE_RFID_READER=fa
 ```
 
 > [!NOTE]
-> The installer always downloads the installation source from GitHub for the configured `GIT_USER`/`GIT_BRANCH` and installs it to `~/RPi-Jukebox-RFID` — running the script from a local checkout does not change that. To test your own fork or feature branch, set `GIT_USER`/`GIT_BRANCH` accordingly (the changes must be pushed). This is the same flow the CI uses in `ci/installation/run_install_noninteractive.sh`.
+> The installer always downloads the installation source from GitHub for the configured `GIT_USER`/`GIT_BRANCH` and installs it to `~/RPi-Jukebox-RFID` — running the script from a local checkout does not change that. To test your own fork or feature branch, set `GIT_USER`/`GIT_BRANCH` accordingly (the changes must be pushed). This is the same flow the CI uses in `ci/installation/run_install_common.sh`.
 
 #### Available options
 
