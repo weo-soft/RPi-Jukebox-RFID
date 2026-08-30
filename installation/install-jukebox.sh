@@ -182,6 +182,24 @@ An existing installation was found at ${INSTALLATION_PATH}."
     fi
 }
 
+# Fail fast on an invalid non-interactive configuration instead of
+# discovering the problem halfway through the installation (after the
+# dependencies have already been installed).
+_validate_noninteractive_config() {
+    if [[ "${NON_INTERACTIVE:-}" != "true" ]]; then
+        return 0
+    fi
+    # ENABLE_RFID_READER defaults to true (see 01_default_config.sh); at this
+    # point the defaults are not sourced yet, so treat an unset variable as true.
+    local enable_rfid_reader="${ENABLE_RFID_READER:-true}"
+    if [[ "$enable_rfid_reader" == true && -z "${RFID_READER_MODULE:-}" ]]; then
+        print_lc "ERROR: RFID reader is enabled (ENABLE_RFID_READER defaults to true) but no reader module was configured."
+        print_lc "In non-interactive mode set RFID_READER_MODULE in your config file,"
+        print_lc "or disable the reader setup with ENABLE_RFID_READER=false."
+        exit 1
+    fi
+}
+
 _download_jukebox_source() {
   log "#########################################################"
   print_c "Downloading Phoniebox software from Github ..."
@@ -226,6 +244,9 @@ _load_install_config
 # Echo the effective repo (after any --config override) for log clarity.
 echo GIT_BRANCH $GIT_BRANCH
 echo GIT_URL $GIT_URL
+
+### VALIDATE NON-INTERACTIVE CONFIG
+_validate_noninteractive_config
 
 ### CHECK PREREQUISITE
 _check_existing_installation

@@ -6,13 +6,17 @@ _run_setup_rfid_reader() {
 
     # Non-interactive: forward the selected reader module so that
     # run_register_rfid_reader.py does not present the reader menu. Readers
-    # without automatic defaults (e.g. generic_usb) still prompt for their
-    # customization in a terminal, or abort with a clear error when no
-    # terminal is available. In interactive mode the module is chosen later
-    # inside the tool itself (no args -> interactive).
+    # that need device/pin selection (e.g. generic_usb, rc522_spi) configure
+    # themselves from the supplied RFID_READER_PARAMS or from their automatic
+    # defaults (auto-detection); they abort with a clear error when no safe
+    # default exists. In interactive mode the module is chosen later inside
+    # the tool itself (no args -> interactive).
     if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
         if [[ -n "${RFID_READER_MODULE}" ]]; then
             args+=(--reader "${RFID_READER_MODULE}" --deps auto --force)
+            if [[ -n "${RFID_READER_PARAMS:-}" ]]; then
+                args+=(--params "${RFID_READER_PARAMS}")
+            fi
         else
             log "ERROR: ENABLE_RFID_READER=true but RFID_READER_MODULE is empty"
             exit_on_error "RFID reader is enabled but no reader module was selected."
