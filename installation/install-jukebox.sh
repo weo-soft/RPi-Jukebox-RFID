@@ -19,8 +19,11 @@ GIT_BRANCH=${GIT_BRANCH:-"future3/main"}
 # config file (install_config.env) which is passed as:
 #   bash install-jukebox.sh --config /tmp/install_config.env
 # This skips all interactive 'read' prompts and installs with the supplied options.
-INSTALL_CONFIG_FILE=""
-NON_INTERACTIVE=false
+# Values already provided through the environment (the documented env-var-only
+# variant: NON_INTERACTIVE=true ...) are honoured; command-line options below
+# take precedence.
+INSTALL_CONFIG_FILE="${INSTALL_CONFIG_FILE:-}"
+NON_INTERACTIVE="${NON_INTERACTIVE:-false}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
