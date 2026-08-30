@@ -177,6 +177,51 @@ Alternatively, pass the options as environment variables and enable non-interact
 cd; NON_INTERACTIVE=true ENABLE_RFID_READER=false bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/main/installation/install-jukebox.sh)
 ```
 
+#### RFID reader with configuration values
+
+Readers that need device or pin values (e.g. `generic_nfcpy`, `generic_usb`, `rc522_spi`) receive them through `RFID_READER_PARAMS` — a `;`-separated list of `key=value` pairs. These values are written directly into the reader's `config` section of the generated `shared/settings/rfid.yaml`.
+
+For example, a USB NFC reader (`generic_nfcpy`) identified by the vendor/product ID `usb:072f:2200`:
+
+```bash
+cd
+cat > install_config.env <<'EOF'
+GIT_USER=MiczFlor
+GIT_BRANCH=future3/main
+ENABLE_RFID_READER=true
+RFID_READER_MODULE=generic_nfcpy
+RFID_READER_PARAMS="device_path=usb:072f:2200"
+ENABLE_SAMBA=false
+ENABLE_WEBAPP=true
+ENABLE_KIOSK_MODE=false
+EXISTING_INSTALL_ACTION=backup
+EOF
+
+cd; bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/main/installation/install-jukebox.sh) --config "$HOME/install_config.env"
+```
+
+This writes the following reader configuration to `shared/settings/rfid.yaml`:
+
+```yaml
+rfid:
+  readers:
+    read_00:
+      module: generic_nfcpy
+      config:
+        device_path: usb:072f:2200
+      same_id_delay: 1.0
+      log_ignored_cards: false
+      place_not_swipe:
+        enabled: false
+        card_removal_action:
+          alias: pause
+```
+
+Other readers use the same mechanism, e.g. `generic_usb` with `RFID_READER_PARAMS="device_name=KKMoon USB Keyboard"` or `rc522_spi` with `RFID_READER_PARAMS="spi_ce=0;pin_irq=24"`.
+
+> [!NOTE]
+> Quote the value whenever it contains `;` or spaces (e.g. `RFID_READER_PARAMS="spi_ce=0;pin_irq=24"`), because the config file is a plain shell `KEY=VALUE` file that gets sourced.
+
 #### Run from a local checkout
 
 Developers who have the repository checked out can start the installer directly from the local copy instead of piping it from GitHub:
@@ -228,7 +273,7 @@ Every option below is a plain shell variable. Values set via the config file or 
 | `UPDATE_RASPI_OS` | `false` | Run `apt-get full-upgrade` and `autoremove` |
 | `ENABLE_RFID_READER` | `true` | Set up an RFID reader |
 | `RFID_READER_MODULE` | – | Reader module, e.g. `pn532_i2c_py532`, `mfrc522_i2c`, `rc522_spi`, `rdm6300_serial`, `generic_usb`, `generic_nfcpy` (required when `ENABLE_RFID_READER=true`) |
-| `RFID_READER_PARAMS` | – | Reader parameters for non-interactive configuration, `key=value` pairs separated by `;` (e.g. `device_name=KKMoon USB Keyboard` or `spi_ce=0;pin_irq=24`). Only needed for readers that cannot determine a unique default automatically. |
+| `RFID_READER_PARAMS` | – | Reader parameters for non-interactive configuration, `key=value` pairs separated by `;` (e.g. `device_path=usb:072f:2200` for `generic_nfcpy`). Only needed for readers that cannot determine a unique default automatically — see [RFID reader with configuration values](#rfid-reader-with-configuration-values). |
 | `ENABLE_SAMBA` | `false` | Enable Samba network shares |
 | `ENABLE_WEBAPP` | `true` | Install the Web App |
 | `ENABLE_WEBAPP_PROD_DOWNLOAD` | `release-only` | Web App bundle download mode (`true` or `release-only`) |
