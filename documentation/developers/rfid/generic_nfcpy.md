@@ -53,3 +53,9 @@ The installer then writes the `device_path` into the reader's `config` section
 of `shared/settings/rfid.yaml` — no interactive device selection is needed.
 When `RFID_READER_PARAMS` is omitted and exactly one NFC reader is connected,
 the installer auto-detects and uses that device automatically.
+
+The reader's dependencies are installed automatically as well
+(`RFID_READER_DEPS=auto`, the default): the `nfcpy` Python package and the
+driver/system setup from `setup.inc.sh` (kernel module blacklisting, udev
+rules, user groups) so the reader is accessible without root. Set
+`RFID_READER_DEPS=no` in `install_config.env` to skip this step.

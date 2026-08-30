@@ -181,6 +181,8 @@ cd; NON_INTERACTIVE=true ENABLE_RFID_READER=false bash <(wget -qO- https://raw.g
 
 Readers that need device or pin values (e.g. `generic_nfcpy`, `generic_usb`, `rc522_spi`) receive them through `RFID_READER_PARAMS` — a `;`-separated list of `key=value` pairs. These values are written directly into the reader's `config` section of the generated `shared/settings/rfid.yaml`.
 
+Besides the values, the non-interactive installer also takes care of each reader's **dependencies**: many reader modules ship their own Python packages (`requirements.txt`) and/or driver & system setup (`setup.inc.sh`). By default (`RFID_READER_DEPS=auto`) the installer installs them automatically, exactly like the interactive flow would after confirmation — e.g. for `generic_nfcpy` it installs the `nfcpy` Python package and applies the kernel/udev driver handling (so the reader is accessible without root), and for `rc522_spi` it installs the `pi-rc522` library and enables SPI. Set `RFID_READER_DEPS=no` to skip the dependency installation (e.g. because you manage them yourself). `RFID_READER_DEPS=query` is not allowed in non-interactive mode, because it would prompt for confirmation.
+
 For example, a USB NFC reader (`generic_nfcpy`) identified by the vendor/product ID `usb:072f:2200`:
 
 ```bash
@@ -274,6 +276,7 @@ Every option below is a plain shell variable. Values set via the config file or 
 | `ENABLE_RFID_READER` | `true` | Set up an RFID reader |
 | `RFID_READER_MODULE` | – | Reader module, e.g. `pn532_i2c_py532`, `mfrc522_i2c`, `rc522_spi`, `rdm6300_serial`, `generic_usb`, `generic_nfcpy` (required when `ENABLE_RFID_READER=true`) |
 | `RFID_READER_PARAMS` | – | Reader parameters for non-interactive configuration, `key=value` pairs separated by `;` (e.g. `device_path=usb:072f:2200` for `generic_nfcpy`). Only needed for readers that cannot determine a unique default automatically — see [RFID reader with configuration values](#rfid-reader-with-configuration-values). |
+| `RFID_READER_DEPS` | `auto` | Install the reader's Python packages (`requirements.txt`) and driver/system setup (`setup.inc.sh`): `auto` (default) installs them, `no` skips them. `query` is not allowed in non-interactive mode (it would prompt). |
 | `ENABLE_SAMBA` | `false` | Enable Samba network shares |
 | `ENABLE_WEBAPP` | `true` | Install the Web App |
 | `ENABLE_WEBAPP_PROD_DOWNLOAD` | `release-only` | Web App bundle download mode (`true` or `release-only`) |
