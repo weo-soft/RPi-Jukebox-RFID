@@ -138,7 +138,7 @@ The commands in the [Stable Release](#stable-release), [Pre-Release](#pre-releas
 > * An existing installation does **not** abort the installer. It is backed up (`EXISTING_INSTALL_ACTION=backup`, the default) or removed (`EXISTING_INSTALL_ACTION=remove`) first.
 > * The welcome and the final reboot prompts are skipped. The calling process is responsible for rebooting the Pi afterwards (e.g. `sudo reboot`).
 > * If `ENABLE_RFID_READER=true` (the default), you **must** set `RFID_READER_MODULE` to one of the supported reader modules, otherwise the installer aborts.
-> * Some reader modules (e.g. `generic_usb`, `generic_nfcpy`, `rc522_spi`) have **no automatic defaults**: they can only be configured interactively (device/pin selection). If you select one of them, the installer runs the reader customization right away — which only works if the installation runs in a **terminal with an interactive prompt** (even with `--config`). Without a terminal the installer **aborts** with a clear message instead of writing an unusable reader configuration. In that case either run the installation from a terminal, or configure the reader afterwards with `run_register_rfid_reader.py` in `src/jukebox`.
+> * Readers that normally ask for device/pin selection (e.g. `generic_usb`, `generic_nfcpy`, `rc522_spi`) are configured **without any prompts** in non-interactive mode: `rc522_spi` uses the default wiring, `generic_usb`/`generic_nfcpy` auto-detect a uniquely connected device. If no unique device can be determined, the installer aborts with a clear message — provide the missing values with `RFID_READER_PARAMS` (e.g. `device_name=...` or `spi_ce=0;pin_irq=24`) to configure such a reader without any prompts.
 >
 
 #### Config file
@@ -228,6 +228,7 @@ Every option below is a plain shell variable. Values set via the config file or 
 | `UPDATE_RASPI_OS` | `false` | Run `apt-get full-upgrade` and `autoremove` |
 | `ENABLE_RFID_READER` | `true` | Set up an RFID reader |
 | `RFID_READER_MODULE` | – | Reader module, e.g. `pn532_i2c_py532`, `mfrc522_i2c`, `rc522_spi`, `rdm6300_serial`, `generic_usb`, `generic_nfcpy` (required when `ENABLE_RFID_READER=true`) |
+| `RFID_READER_PARAMS` | – | Reader parameters for non-interactive configuration, `key=value` pairs separated by `;` (e.g. `device_name=KKMoon USB Keyboard` or `spi_ce=0;pin_irq=24`). Only needed for readers that cannot determine a unique default automatically. |
 | `ENABLE_SAMBA` | `false` | Enable Samba network shares |
 | `ENABLE_WEBAPP` | `true` | Install the Web App |
 | `ENABLE_WEBAPP_PROD_DOWNLOAD` | `release-only` | Web App bundle download mode (`true` or `release-only`) |
