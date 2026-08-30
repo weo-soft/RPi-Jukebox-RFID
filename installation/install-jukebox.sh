@@ -198,6 +198,13 @@ _validate_noninteractive_config() {
         print_lc "or disable the reader setup with ENABLE_RFID_READER=false."
         exit 1
     fi
+    # The dependency-handling mode must not prompt in non-interactive mode,
+    # so 'query' is not allowed (it would block on a read prompt).
+    if [[ -n "${RFID_READER_DEPS:-}" && "${RFID_READER_DEPS}" != "auto" && "${RFID_READER_DEPS}" != "no" ]]; then
+        print_lc "ERROR: RFID_READER_DEPS must be 'auto' or 'no' in non-interactive mode (got '${RFID_READER_DEPS}')."
+        print_lc "'query' would prompt for confirmation and is therefore not allowed."
+        exit 1
+    fi
 }
 
 _download_jukebox_source() {

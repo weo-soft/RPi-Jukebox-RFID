@@ -11,9 +11,14 @@ _run_setup_rfid_reader() {
     # defaults (auto-detection); they abort with a clear error when no safe
     # default exists. In interactive mode the module is chosen later inside
     # the tool itself (no args -> interactive).
+    #
+    # Dependency handling is controlled by RFID_READER_DEPS ('auto' installs
+    # the reader's requirements.txt and setup.inc.sh, 'no' skips them; the
+    # config validation rejects 'query' in non-interactive mode because it
+    # would prompt).
     if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
         if [[ -n "${RFID_READER_MODULE}" ]]; then
-            args+=(--reader "${RFID_READER_MODULE}" --deps auto --force)
+            args+=(--reader "${RFID_READER_MODULE}" --deps "${RFID_READER_DEPS:-auto}" --force)
             if [[ -n "${RFID_READER_PARAMS:-}" ]]; then
                 args+=(--params "${RFID_READER_PARAMS}")
             fi
