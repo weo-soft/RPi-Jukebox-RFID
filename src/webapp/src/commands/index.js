@@ -296,6 +296,17 @@ const commands = {
     argKeys: ['settings'],
   },
 
+  getJellyfinSettings: {
+    _package: 'misc',
+    plugin: 'get_jellyfin_settings',
+  },
+
+  setJellyfinSettings: {
+    _package: 'misc',
+    plugin: 'set_jellyfin_settings',
+    argKeys: ['settings'],
+  },
+
   // Synchronisation
   'sync_rfidcards_all': {
     _package: 'sync_rfidcards',

@@ -343,6 +343,22 @@
         "curated": "Curated library"
       }
     },
+    "jellyfin": {
+      "title": "Jellyfin",
+      "enabled": "Enable Jellyfin",
+      "host": "Server host",
+      "api-key": "API key",
+      "username": "Username",
+      "password": "Password",
+      "catalog-cache-ttl": "Catalog cache TTL (seconds)",
+      "request-timeout": "Request timeout (seconds)",
+      "secret-configured": "Configured",
+      "secret-keep": "Leave empty to keep the stored value",
+      "secret-warning": "Password and API key are never displayed for security reasons. Enter a new value to change them.",
+      "restart-hint": "Changes take effect after a restart of the jukebox.",
+      "save": "Save",
+      "saved": "Settings saved."
+    },
     "timers": {
       "option-label-timeslot": "{{value}} min",
       "option-label-off": "Off",
