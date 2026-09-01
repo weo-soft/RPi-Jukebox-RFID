@@ -551,7 +551,7 @@ class ApiHandlerTest(tornado.testing.AsyncHTTPTestCase):
 
         def blocking_processor(request):
             started.set()
-            release.wait(1)
+            release.wait(5)
             return {'result': 'done', 'id': request.get('id')}
 
         self._app.settings['rpc_processor'] = blocking_processor

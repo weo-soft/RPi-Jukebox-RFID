@@ -3,7 +3,11 @@ import json
 import pytest
 import requests
 
-from components.jellyfin.jellyfin_api_client import JellyfinApiClient
+from components.jellyfin.jellyfin_api_client import (
+    JellyfinApiClient,
+    expand_jellyfin_host,
+    probe_jellyfin_host,
+)
 
 HOST = 'http://jellyfin.local:8096'
 API_KEY = 'test-api-key'
@@ -415,3 +419,118 @@ def test_coverart_relogs_in_when_token_expired():
 
     assert client.get_coverart_bytes('track-1') == b'image-bytes'
     assert client.api_key == 'renewed-token'
+
+
+# ---------------------------------------------------------------------------
+# Host expansion and probing
+# ---------------------------------------------------------------------------
+
+
+def test_expand_host_bare_address_tries_scheme_and_port_combinations():
+    assert expand_jellyfin_host('192.168.1.10') == [
+        'http://192.168.1.10:8096',
+        'https://192.168.1.10:8920',
+        'http://192.168.1.10:8920',
+        'https://192.168.1.10:8096',
+    ]
+
+
+def test_expand_host_with_port_only_tries_both_schemes():
+    assert expand_jellyfin_host('192.168.1.10:8096') == [
+        'http://192.168.1.10:8096',
+        'https://192.168.1.10:8096',
+    ]
+
+
+def test_expand_host_custom_port_is_kept():
+    assert expand_jellyfin_host('192.168.1.10:1234') == [
+        'http://192.168.1.10:1234',
+        'https://192.168.1.10:1234',
+    ]
+
+
+def test_expand_host_with_scheme_only_uses_scheme_ports():
+    assert expand_jellyfin_host('http://192.168.1.10') == [
+        'http://192.168.1.10:8096',
+        'http://192.168.1.10:8920',
+    ]
+    assert expand_jellyfin_host('https://192.168.1.10') == [
+        'https://192.168.1.10:8920',
+        'https://192.168.1.10:8096',
+    ]
+
+
+def test_expand_host_full_address_is_returned_verbatim():
+    assert expand_jellyfin_host('http://192.168.1.10:8096') == [
+        'http://192.168.1.10:8096',
+    ]
+
+
+def test_expand_host_strips_trailing_slash_and_keeps_path():
+    assert expand_jellyfin_host('192.168.1.10/') == [
+        'http://192.168.1.10:8096',
+        'https://192.168.1.10:8920',
+        'http://192.168.1.10:8920',
+        'https://192.168.1.10:8096',
+    ]
+    assert expand_jellyfin_host('http://host:8096/jellyfin') == [
+        'http://host:8096/jellyfin',
+    ]
+
+
+def test_expand_host_ipv6_is_bracketed():
+    assert expand_jellyfin_host('::1') == [
+        'http://[::1]:8096',
+        'https://[::1]:8920',
+        'http://[::1]:8920',
+        'https://[::1]:8096',
+    ]
+    assert expand_jellyfin_host('[::1]:8096') == [
+        'http://[::1]:8096',
+        'https://[::1]:8096',
+    ]
+
+
+@pytest.mark.parametrize('host', ['', '   ', 'http://'])
+def test_expand_host_empty_input_returns_no_candidates(host):
+    assert expand_jellyfin_host(host) == []
+
+
+def test_probe_returns_first_candidate_answering_system_info():
+    session = FakeSession([
+        requests.ConnectionError('refused'),
+        FakeResponse({'Version': '10.9.0'}),
+    ])
+
+    found = probe_jellyfin_host(
+        ['http://host:8096', 'https://host:8920'],
+        session=session,
+    )
+
+    assert found == 'https://host:8920'
+    assert session.calls[0][1] == 'http://host:8096/System/Info/Public'
+    assert session.calls[1][1] == 'https://host:8920/System/Info/Public'
+
+
+def test_probe_ignores_non_jellyfin_responses():
+    session = FakeSession([
+        FakeResponse({'Server': 'nginx'}),
+    ])
+
+    found = probe_jellyfin_host(['http://host:8096'], session=session)
+
+    # The candidate answered but its payload carries no Jellyfin Version,
+    # so the probe reports nothing found.
+    assert found is None
+
+
+def test_probe_returns_none_when_all_candidates_fail():
+    session = FakeSession([
+        requests.ConnectionError('refused'),
+        FakeResponse({}, status=404),
+    ])
+
+    assert probe_jellyfin_host(
+        ['http://host:8096', 'https://host:8920'],
+        session=session,
+    ) is None

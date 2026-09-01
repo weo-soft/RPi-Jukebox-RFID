@@ -126,13 +126,14 @@ def test_library_source_describes_albums_view():
     }
 
 
-def test_list_library_items_maps_albums():
+def test_list_library_items_maps_albums(tmp_path):
     api = make_api()
     api.get_albums.return_value = [
         album_item(),
         album_item(Id='album-2', Name='Album Two', AlbumArtist='Artist Two'),
     ]
     backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
 
     assert backend.list_library_items(['album']) == [
         {
@@ -152,6 +153,41 @@ def test_list_library_items_maps_albums():
             'cover_url': None,
         },
     ]
+
+
+def test_list_library_items_includes_cached_cover_url(tmp_path):
+    api = make_api()
+    api.get_albums.return_value = [
+        album_item(),
+        album_item(Id='album-2', Name='Album Two', AlbumArtist='Artist Two'),
+    ]
+    backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
+    (tmp_path / 'jellyfin-album-1.jpg').write_bytes(b'cached-cover')
+
+    items = backend.list_library_items(['album'])
+
+    # The album whose cover is already on disk ships the URL with the
+    # catalog entry; the uncached album stays None (resolved lazily).
+    assert items[0]['cover_url'] == '/cover-cache/jellyfin-album-1.jpg'
+    assert items[1]['cover_url'] is None
+    api.get_coverart_bytes.assert_not_called()
+    assert backend._cover_write_queue.empty()
+
+
+def test_list_library_items_does_not_enqueue_missing_covers(tmp_path):
+    api = make_api()
+    api.get_albums.return_value = [album_item()]
+    backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
+
+    items = backend.list_library_items(['album'])
+
+    # Listing the catalog must not trigger a bulk cover download; the
+    # WebApp requests each missing cover on demand via get_album_coverart.
+    assert items[0]['cover_url'] is None
+    api.get_coverart_bytes.assert_not_called()
+    assert backend._cover_write_queue.empty()
 
 
 def test_list_library_items_honors_content_types_filter():
@@ -696,6 +732,107 @@ def test_status_cover_uses_album_id(tmp_path):
     status = backend._normalize_status(mpd.mpd_status)
     assert status['cover_url'] == '/cover-cache/jellyfin-album-1.jpg'
     api.get_coverart_bytes.assert_called_once_with('album-1')
+
+
+def test_get_single_coverart_resolves_raw_stream_url(tmp_path):
+    api = make_api()
+    api.get_item.return_value = track_item()
+    backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
+    (tmp_path / 'jellyfin-album-1.jpg').write_bytes(b'cached-album-cover')
+
+    # A raw stream URL for a track not seen this session resolves through
+    # the embedded item id to the already-cached album cover.
+    assert backend.get_single_coverart(
+        STREAM_URL.format(item_id='track-1')) == 'jellyfin-album-1.jpg'
+    api.get_coverart_bytes.assert_not_called()
+
+
+def test_get_single_coverart_uses_cached_album_cover_for_unmapped_track(tmp_path):
+    api = make_api()
+    api.get_item.return_value = track_item()
+    backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
+    (tmp_path / 'jellyfin-album-1.jpg').write_bytes(b'cached-album-cover')
+
+    # No session playback (e.g. after a restart): the album id is resolved
+    # from the server once and the already-cached album artwork is reused.
+    result = backend.get_single_coverart(f'{TRACK_URI_PREFIX}track-1')
+
+    assert result == 'jellyfin-album-1.jpg'
+    api.get_coverart_bytes.assert_not_called()
+
+
+def test_get_single_coverart_resolves_album_cover_for_unmapped_track(tmp_path):
+    api = make_api()
+    api.get_item.return_value = track_item()
+    backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
+
+    assert backend.get_single_coverart(f'{TRACK_URI_PREFIX}track-1') is None
+    backend._cover_write_queue.join()
+
+    # The pending download is the album cover, not a per-track cover.
+    assert backend.get_single_coverart(
+        f'{TRACK_URI_PREFIX}track-1') == 'jellyfin-album-1.jpg'
+    api.get_coverart_bytes.assert_called_once_with('album-1')
+
+
+def test_get_single_coverart_falls_back_to_track_cover_when_album_unresolvable(tmp_path):
+    api = make_api()
+    api.get_item.return_value = {}
+    backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
+
+    assert backend.get_single_coverart(f'{TRACK_URI_PREFIX}track-1') is None
+    backend._cover_write_queue.join()
+
+    # Without an AlbumId the previous per-track fallback stays intact.
+    assert backend.get_single_coverart(
+        f'{TRACK_URI_PREFIX}track-1') == 'jellyfin-track-1.jpg'
+    api.get_coverart_bytes.assert_called_once_with('track-1')
+
+
+def test_status_cover_resolves_album_for_unmapped_stream(tmp_path):
+    api = make_api()
+    api.get_item.return_value = track_item()
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+    backend._cover_cache_dir = tmp_path
+    mpd.mpd_status = {
+        'file': STREAM_URL.format(item_id='track-1'),
+        'state': 'play',
+        'song': '0',
+    }
+
+    status = backend._normalize_status(mpd.mpd_status)
+    # The stream URL stays masked; the album cover download is enqueued.
+    assert status['file'] == ''
+    assert status['cover_url'] is None
+    backend._cover_write_queue.join()
+
+    status = backend._normalize_status(mpd.mpd_status)
+    assert status['cover_url'] == '/cover-cache/jellyfin-album-1.jpg'
+    api.get_coverart_bytes.assert_called_once_with('album-1')
+
+
+def test_status_cover_uses_cached_album_cover_for_unmapped_stream(tmp_path):
+    api = make_api()
+    api.get_item.return_value = track_item()
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+    backend._cover_cache_dir = tmp_path
+    (tmp_path / 'jellyfin-album-1.jpg').write_bytes(b'cached-album-cover')
+    mpd.mpd_status = {
+        'file': STREAM_URL.format(item_id='track-1'),
+        'state': 'play',
+        'song': '0',
+    }
+
+    status = backend._normalize_status(mpd.mpd_status)
+
+    assert status['cover_url'] == '/cover-cache/jellyfin-album-1.jpg'
+    api.get_coverart_bytes.assert_not_called()
 
 
 def test_cover_cache_is_memoized_and_written_async(tmp_path):
