@@ -73,6 +73,11 @@ class JellyfinBackend:
         # item id -> track metadata (same entries, keyed by the stable item id
         # so a normalized MPD stream URL can still be resolved to a track).
         self._track_by_item_id = {}
+        # track id -> album id, resolved from the server once for tracks that
+        # were not seen this session (e.g. the playlist was restored after a
+        # restart). Keeps covers on the per-album artwork instead of falling
+        # back to a per-track cover.
+        self._track_album_id = {}
         # Stream URLs that could not be mapped to a track and were masked from
         # the published status (throttles the warning to once per URL/playlist).
         self._unmapped_stream_warnings = set()
@@ -145,13 +150,14 @@ class JellyfinBackend:
             album_id = album.get('Id')
             if not album_id:
                 continue
+            filename = self._peek_coverart(album_id)
             items.append({
                 'provider': 'jellyfin',
                 'content_type': 'album',
                 'content_uri': f'{ALBUM_URI_PREFIX}{album_id}',
                 'albumartist': album.get('AlbumArtist', ''),
                 'album': album.get('Name', ''),
-                'cover_url': None,
+                'cover_url': f'/cover-cache/{filename}' if filename else None,
             })
         return items
 
@@ -492,24 +498,75 @@ class JellyfinBackend:
             track = self._stream_to_track.get(song_url)
             if track is not None:
                 track_id = component_id_from_uri(track['uri'])
+        if track_id is None and isinstance(song_url, str):
+            # A raw stream URL for a track not seen this session (e.g. after
+            # a restart): the item id is embedded in the URL.
+            match = _STREAM_URL_ITEM_ID_RE.search(song_url)
+            if match:
+                track_id = match.group('item_id')
         if track_id is None:
             return None
         # Prefer the album cover so the cache keeps one file per album (the
         # artwork is identical for every track). The track metadata is only
-        # known for items seen this session; otherwise fall back to the
-        # per-track cover (rare, re-downloaded lazily after a prune).
+        # known for items seen this session; for any other track the album id
+        # is resolved from the server once so the already-cached album artwork
+        # is reused instead of downloading a per-track cover.
         track = self._track_by_item_id.get(track_id) or {}
-        item_id = track.get('album_id') or track_id
-        return self._cache_coverart(item_id)
+        item_id = track.get('album_id') or self._resolve_album_id(track_id)
+        return self._cache_coverart(item_id or track_id)
 
     def get_album_coverart(self, albumartist, album, content_uri=None, provider=None):
         album_id = (self._content_uri_to_album_id(content_uri)
                     or self._find_album_id(albumartist, album))
         return self._cache_coverart(album_id) if album_id else None
 
+    def _resolve_album_id(self, track_id):
+        """Return the album id a track belongs to, resolving it once.
+
+        Tracks are only mapped to their album while a playlist built by this
+        backend is playing. After a restart (MPD restores the playlist, the
+        in-memory map is empty) the album id is fetched from the server once
+        and memoized, so covers keep resolving to the per-album artwork.
+        """
+        if track_id in self._track_album_id:
+            return self._track_album_id[track_id]
+        album_id = None
+        try:
+            item = self._api.get_item(track_id)
+        except Exception as error:
+            logger.warning(
+                "Could not resolve the album for track %s: %s",
+                track_id, error)
+        else:
+            album_id = (item or {}).get('AlbumId') or None
+        self._track_album_id[track_id] = album_id
+        return album_id
+
     @staticmethod
     def _cover_filename(item_id):
         return f'jellyfin-{item_id}.jpg'
+
+    def _peek_coverart(self, item_id):
+        """Return the cached cover filename for ``item_id`` without downloading.
+
+        Like :meth:`_cache_coverart` for covers already on disk, but never
+        enqueues a download: used to attach ``cover_url`` to catalog items so
+        the WebApp renders cached covers immediately. Items without a cached
+        cover keep ``cover_url`` ``None`` and are resolved lazily through
+        ``get_album_coverart``/``get_single_coverart`` as before.
+        """
+        if item_id is None:
+            return None
+        if item_id in self._cover_memo:
+            return self._cover_memo[item_id] or None
+        if time.monotonic() < self._cover_retry_after.get(item_id, 0.0):
+            # A previous download failed recently; do not re-enqueue yet.
+            return None
+        filename = self._cover_filename(item_id)
+        if (self._cover_cache_dir / filename).is_file():
+            self._cover_memo[item_id] = filename
+            return filename
+        return None
 
     def _cache_coverart(self, item_id):
         """Return the cached cover filename for ``item_id``, downloading lazily.
@@ -589,13 +646,14 @@ class JellyfinBackend:
         """Build the complete status from MPD state and Jellyfin metadata."""
         file_url = mpd_status.get('file')
         track = self._stream_to_track.get(file_url)
+        stream_match = None
         if track is None and isinstance(file_url, str):
             # MPD may normalize the stream URL (query order, path), so the
             # exact lookup above can miss. Recover the metadata from the item
             # id that is embedded in the stream URL.
-            match = _STREAM_URL_ITEM_ID_RE.search(file_url)
-            if match:
-                track = self._track_by_item_id.get(match.group('item_id'))
+            stream_match = _STREAM_URL_ITEM_ID_RE.search(file_url)
+            if stream_match:
+                track = self._track_by_item_id.get(stream_match.group('item_id'))
         if track is None:
             track = {}
             if self._is_stream_url(file_url):
@@ -604,6 +662,14 @@ class JellyfinBackend:
                 # API key/token). Mask it and warn once per URL.
                 self._warn_unmapped_stream(file_url)
                 file_url = ''
+        cover_item_id = track.get('album_id') or track.get('item_id')
+        if cover_item_id is None and stream_match is not None:
+            # The track was not seen this session (e.g. MPD restored the
+            # playlist after a restart): resolve the album from the item id
+            # embedded in the stream URL so the published cover always matches
+            # the per-album artwork.
+            cover_item_id = self._resolve_album_id(
+                stream_match.group('item_id'))
         return {
             'state': mpd_status.get('state', 'stop'),
             'songid': track.get('uri') or mpd_status.get('songid'),
@@ -618,8 +684,7 @@ class JellyfinBackend:
             'duration': str(track.get('duration', 0)),
             'file': track.get('uri') or file_url,
             'provider': 'jellyfin',
-            'cover_url': self._cover_url(
-                track.get('album_id') or track.get('item_id')),
+            'cover_url': self._cover_url(cover_item_id),
         }
 
     @classmethod
