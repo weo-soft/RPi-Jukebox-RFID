@@ -357,7 +357,12 @@
       "secret-warning": "Passwort und API-Key werden aus Sicherheitsgründen niemals angezeigt. Gib einen neuen Wert ein, um ihn zu ändern.",
       "restart-hint": "Die Änderungen werden erst nach einem Neustart der Jukebox übernommen.",
       "save": "Speichern",
-      "saved": "Einstellungen gespeichert."
+      "saved": "Einstellungen gespeichert.",
+      "test": "Testen",
+      "test-found": "Jellyfin-Server gefunden unter {{url}}",
+      "test-adopt": "Adresse übernehmen",
+      "test-not-found": "Kein Jellyfin-Server unter den getesteten Adressen gefunden.",
+      "test-candidates": "Getestete Adressen:"
     },
     "timers": {
       "option-label-timeslot": "{{value}} min",

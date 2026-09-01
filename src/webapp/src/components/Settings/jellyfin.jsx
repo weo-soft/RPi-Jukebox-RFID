@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import {
   Alert,
+  Box,
   Button,
   Card,
   CardActions,
@@ -20,6 +21,7 @@ import {
 
 import LockIcon from '@mui/icons-material/Lock';
 import SaveIcon from '@mui/icons-material/Save';
+import WifiTetheringIcon from '@mui/icons-material/WifiTethering';
 
 import request from '../../utils/request';
 
@@ -29,6 +31,9 @@ const SettingsJellyfin = () => {
   const [form, setForm] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testError, setTestError] = useState(null);
+  const [testResult, setTestResult] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
@@ -71,6 +76,33 @@ const SettingsJellyfin = () => {
         : event.target.value,
     }));
     setSuccess(false);
+    if (key === 'host') setTestResult(null);
+  };
+
+  const handleTestConnection = async () => {
+    setIsTesting(true);
+    setTestError(null);
+    setTestResult(null);
+    const { result, error: requestError } = await request(
+      'testJellyfinConnection',
+      { host: String(form.host || '').trim() },
+    );
+    if (requestError) {
+      setTestError(typeof requestError === 'string'
+        ? requestError
+        : requestError.message);
+      setIsTesting(false);
+      return;
+    }
+    setTestResult(result || { found: false, url: null, candidates: [] });
+    setIsTesting(false);
+  };
+
+  const handleAdoptFoundAddress = () => {
+    if (testResult?.url) {
+      setForm((previous) => ({ ...previous, host: testResult.url }));
+      setSuccess(false);
+    }
   };
 
   const handleSave = async () => {
@@ -161,14 +193,65 @@ const SettingsJellyfin = () => {
             />
           </Grid>
           <Grid>
-            <TextField
-              fullWidth
-              label={t('settings.jellyfin.host')}
-              onChange={handleChange('host')}
-              placeholder="http://192.168.1.10:8096"
-              size="small"
-              value={form.host || ''}
-            />
+            <Grid container spacing={1} sx={{ flexWrap: 'nowrap' }}>
+              <Grid sx={{ flexGrow: 1 }}>
+                <TextField
+                  fullWidth
+                  label={t('settings.jellyfin.host')}
+                  onChange={handleChange('host')}
+                  placeholder="192.168.1.10"
+                  size="small"
+                  value={form.host || ''}
+                />
+              </Grid>
+              <Grid sx={{ alignSelf: 'center' }}>
+                <Button
+                  disabled={isTesting || !String(form.host || '').trim()}
+                  onClick={handleTestConnection}
+                  startIcon={isTesting
+                    ? <CircularProgress size={16} />
+                    : <WifiTetheringIcon />}
+                  variant="outlined"
+                >
+                  {t('settings.jellyfin.test')}
+                </Button>
+              </Grid>
+            </Grid>
+            {testError &&
+              <Alert severity="error" sx={{ marginTop: 1 }}>
+                {testError}
+              </Alert>
+            }
+            {testResult?.found &&
+              <Alert severity="success" sx={{ marginTop: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ flexGrow: 1 }}>
+                    {t('settings.jellyfin.test-found', { url: testResult.url })}
+                  </Box>
+                  <Button
+                    onClick={handleAdoptFoundAddress}
+                    size="small"
+                  >
+                    {t('settings.jellyfin.test-adopt')}
+                  </Button>
+                </Box>
+              </Alert>
+            }
+            {testResult && !testResult.found &&
+              <Alert severity="warning" sx={{ marginTop: 1 }}>
+                {t('settings.jellyfin.test-not-found')}
+                {testResult.candidates?.length > 0 && (
+                  <Box sx={{ marginTop: 0.5 }}>
+                    {t('settings.jellyfin.test-candidates')}
+                    <Box component="ul" sx={{ margin: 0.5, paddingLeft: 2 }}>
+                      {testResult.candidates.map((candidate) => (
+                        <li key={candidate}>{candidate}</li>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+              </Alert>
+            }
           </Grid>
           <Grid>
             {renderSecretField(

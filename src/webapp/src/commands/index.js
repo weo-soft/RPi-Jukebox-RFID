@@ -307,6 +307,12 @@ const commands = {
     argKeys: ['settings'],
   },
 
+  testJellyfinConnection: {
+    _package: 'misc',
+    plugin: 'test_jellyfin_connection',
+    argKeys: ['host'],
+  },
+
   // Synchronisation
   'sync_rfidcards_all': {
     _package: 'sync_rfidcards',

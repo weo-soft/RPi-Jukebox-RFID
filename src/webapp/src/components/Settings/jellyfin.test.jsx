@@ -140,4 +140,109 @@ describe('SettingsJellyfin', () => {
       ),
     ).toBeInTheDocument();
   });
+
+  test('tests the connection and adopts the found address', async () => {
+    const user = userEvent.setup();
+    request.mockImplementation(async (command) => {
+      if (command === 'getJellyfinSettings') {
+        return { result: baseSettings, error: null };
+      }
+      if (command === 'testJellyfinConnection') {
+        return {
+          result: {
+            found: true,
+            url: 'https://192.168.1.10:8920',
+            candidates: [
+              'http://192.168.1.10:8096',
+              'https://192.168.1.10:8920',
+            ],
+          },
+          error: null,
+        };
+      }
+      return { result: null, error: null };
+    });
+    renderJellyfin();
+
+    await user.type(
+      await screen.findByLabelText('settings.jellyfin.host'),
+      '192.168.1.10',
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'settings.jellyfin.test' }),
+    );
+
+    expect(request).toHaveBeenCalledWith('testJellyfinConnection', {
+      host: '192.168.1.10',
+    });
+    expect(
+      await screen.findByText('settings.jellyfin.test-found'),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'settings.jellyfin.test-adopt' }),
+    );
+    expect(screen.getByLabelText('settings.jellyfin.host'))
+      .toHaveValue('https://192.168.1.10:8920');
+  });
+
+  test('shows the tested candidates when no server is found', async () => {
+    const user = userEvent.setup();
+    request.mockImplementation(async (command) => {
+      if (command === 'getJellyfinSettings') {
+        return { result: baseSettings, error: null };
+      }
+      if (command === 'testJellyfinConnection') {
+        return {
+          result: {
+            found: false,
+            url: null,
+            candidates: [
+              'http://192.168.1.10:8096',
+              'https://192.168.1.10:8920',
+            ],
+          },
+          error: null,
+        };
+      }
+      return { result: null, error: null };
+    });
+    renderJellyfin();
+
+    await user.type(
+      await screen.findByLabelText('settings.jellyfin.host'),
+      '192.168.1.10',
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'settings.jellyfin.test' }),
+    );
+
+    expect(
+      await screen.findByText('settings.jellyfin.test-not-found'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('http://192.168.1.10:8096')).toBeInTheDocument();
+    expect(screen.getByText('https://192.168.1.10:8920')).toBeInTheDocument();
+  });
+
+  test('shows errors from the connection test', async () => {
+    request.mockResolvedValueOnce({ result: baseSettings, error: null });
+    request.mockResolvedValueOnce({
+      result: null,
+      error: 'Connection test failed',
+    });
+    const user = userEvent.setup();
+    renderJellyfin();
+
+    await user.type(
+      await screen.findByLabelText('settings.jellyfin.host'),
+      '192.168.1.10',
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'settings.jellyfin.test' }),
+    );
+
+    expect(
+      await screen.findByText('Connection test failed'),
+    ).toBeInTheDocument();
+  });
 });
