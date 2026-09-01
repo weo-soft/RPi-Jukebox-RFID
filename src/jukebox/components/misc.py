@@ -232,3 +232,25 @@ def set_jellyfin_settings(settings={}) -> dict:
     if cfg.loaded_from is not None:
         cfg.save(only_if_changed=True)
     return get_jellyfin_settings()
+
+
+@plugin.register
+def test_jellyfin_connection(host='', timeout=3.0) -> dict:
+    """Probe a Jellyfin server address, trying the standard combinations.
+
+    An incomplete address (no scheme and/or no port) is expanded to the
+    standard Jellyfin combinations (http/https x ports 8096/8920) and
+    every candidate is probed at its public system-info endpoint. Returns
+    whether a server was found, the matching URL (or ``None``) and the
+    list of candidates that were tried.
+    """
+    from components.jellyfin.jellyfin_api_client import (
+        expand_jellyfin_host, probe_jellyfin_host)
+    candidates = expand_jellyfin_host(host)
+    found = probe_jellyfin_host(
+        candidates, timeout=timeout) if candidates else None
+    return {
+        'found': found is not None,
+        'url': found,
+        'candidates': candidates,
+    }

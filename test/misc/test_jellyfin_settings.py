@@ -124,3 +124,47 @@ def test_set_jellyfin_settings_accepts_existing_credentials_when_enabling():
     misc.set_jellyfin_settings(
         {'enabled': True, 'host': 'http://jellyfin.local:8096'})
     assert misc.get_jellyfin_settings()['enabled'] is True
+
+
+def test_jellyfin_connection_expands_and_probes(monkeypatch):
+    import components.jellyfin.jellyfin_api_client as api_client
+    monkeypatch.setattr(
+        api_client, 'probe_jellyfin_host',
+        lambda candidates, timeout=3.0: candidates[2])
+
+    result = misc.test_jellyfin_connection('192.168.1.10')
+
+    assert result['found'] is True
+    assert result['url'] == 'http://192.168.1.10:8920'
+    assert result['candidates'] == [
+        'http://192.168.1.10:8096',
+        'https://192.168.1.10:8920',
+        'http://192.168.1.10:8920',
+        'https://192.168.1.10:8096',
+    ]
+
+
+def test_jellyfin_connection_reports_not_found(monkeypatch):
+    import components.jellyfin.jellyfin_api_client as api_client
+    monkeypatch.setattr(
+        api_client, 'probe_jellyfin_host',
+        lambda candidates, timeout=3.0: None)
+
+    result = misc.test_jellyfin_connection('192.168.1.10')
+
+    assert result['found'] is False
+    assert result['url'] is None
+    assert len(result['candidates']) == 4
+
+
+def test_jellyfin_connection_empty_host_returns_no_candidates(
+        monkeypatch):
+    import components.jellyfin.jellyfin_api_client as api_client
+    monkeypatch.setattr(
+        api_client, 'probe_jellyfin_host',
+        lambda candidates, timeout=3.0: pytest.fail(
+            'probe must not run without candidates'))
+
+    result = misc.test_jellyfin_connection('')
+
+    assert result == {'found': False, 'url': None, 'candidates': []}

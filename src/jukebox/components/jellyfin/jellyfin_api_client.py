@@ -11,6 +11,7 @@ user only ever sees the content that user is allowed to access.
 
 import logging
 from typing import Optional
+from urllib.parse import urlunsplit
 
 import requests
 
@@ -25,6 +26,130 @@ AUTH_HEADER = (
     'MediaBrowser Client="Phoniebox", Device="Phoniebox", '
     'DeviceId="phoniebox", Version="3.7.0"'
 )
+
+#: Standard Jellyfin ports probed when an address carries no explicit port,
+#: mirroring the Jellyfin Android app (8096 = HTTP, 8920 = HTTPS).
+JELLYFIN_DEFAULT_PORTS = (8096, 8920)
+
+#: (scheme, port) pairs tried for an incomplete address, most likely first:
+#: a server is usually plain HTTP on 8096, HTTPS on 8920 or a cross combo.
+JELLYFIN_ADDRESS_COMBINATIONS = (
+    ('http', 8096),
+    ('https', 8920),
+    ('http', 8920),
+    ('https', 8096),
+)
+
+
+def _parse_port(value):
+    """Return ``value`` as a valid port number, or ``None`` when invalid."""
+    try:
+        port = int(value)
+    except (TypeError, ValueError):
+        return None
+    return port if 0 < port < 65536 else None
+
+
+def _split_netloc(netloc):
+    """Return ``(netloc, port)``, splitting off an explicit port.
+
+    Handles plain ``host:port`` and bracketed IPv6 ``[addr]:port``. A bare
+    IPv6 literal (e.g. ``::1``) is wrapped in brackets so the result can be
+    used in a URL.
+    """
+    if netloc.startswith('['):
+        addr = netloc[1:]
+        if ']:' in addr:
+            addr, _, port_str = addr.partition(']:')
+            return f'[{addr}]', _parse_port(port_str)
+        return f'[{addr}]', None
+    if netloc.count(':') == 1:
+        addr, _, port_str = netloc.partition(':')
+        parsed = _parse_port(port_str)
+        if parsed is not None:
+            return addr, parsed
+    if ':' in netloc:
+        return f'[{netloc}]', None
+    return netloc, None
+
+
+def expand_jellyfin_host(host):
+    """Expand a possibly incomplete server address into probe candidates.
+
+    Mirrors the Jellyfin Android app: an address without a scheme is tried
+    over both ``http`` and ``https``, an address without a port with the
+    standard Jellyfin ports 8096 and 8920. An explicitly given scheme or
+    port narrows the candidate list. Returns the candidate URLs (most
+    likely first) without duplicates, or an empty list for empty input.
+    """
+    host = (host or '').strip()
+    if not host:
+        return []
+
+    scheme = None
+    netloc = host
+    path = ''
+    if '://' in host:
+        scheme, _, netloc = host.partition('://')
+        scheme = scheme.lower()
+    netloc = netloc.rstrip('/')
+    if '/' in netloc:
+        netloc, _, path = netloc.partition('/')
+        path = f'/{path}'
+
+    # Split off an explicit port and bracket bare IPv6 literals.
+    netloc, port = _split_netloc(netloc)
+    if not netloc:
+        return []
+
+    if port is not None:
+        schemes = (scheme,) if scheme else ('http', 'https')
+        pairs = [(candidate_scheme, port)
+                 for candidate_scheme in schemes]
+    else:
+        pairs = JELLYFIN_ADDRESS_COMBINATIONS
+        if scheme:
+            pairs = [pair for pair in pairs if pair[0] == scheme]
+
+    candidates = []
+    for candidate_scheme, candidate_port in pairs:
+        candidate = urlunsplit((
+            candidate_scheme, f'{netloc}:{candidate_port}', path, '', ''))
+        if candidate not in candidates:
+            candidates.append(candidate)
+    return candidates
+
+
+def probe_jellyfin_host(candidates, timeout=3.0, session=None):
+    """Return the first candidate URL that answers as a Jellyfin server.
+
+    Each candidate is queried at its public ``/System/Info/Public`` endpoint
+    (no authentication required); a JSON payload carrying a ``Version``
+    field marks a reachable Jellyfin server. Returns ``None`` when no
+    candidate responds. When ``session`` is omitted a short-lived session
+    is created and closed again.
+    """
+    owns_session = session is None
+    session = session if session is not None else requests.Session()
+    try:
+        for candidate in candidates:
+            try:
+                response = session.get(
+                    f'{candidate}/System/Info/Public', timeout=timeout)
+            except requests.RequestException:
+                continue
+            if not response.ok:
+                continue
+            try:
+                info = response.json()
+            except ValueError:
+                continue
+            if isinstance(info, dict) and 'Version' in info:
+                return candidate
+    finally:
+        if owns_session:
+            session.close()
+    return None
 
 
 class JellyfinApiClient:
