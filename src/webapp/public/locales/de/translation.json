@@ -142,7 +142,8 @@
     },
     "sources": {
       "mpd": "Lokal",
-      "spotify": "Spotify"
+      "spotify": "Spotify",
+      "jellyfin": "Jellyfin"
     },
     "overview": {
       "group": "{{source}}: {{view}}",
@@ -341,6 +342,27 @@
         "account": "Kontobibliothek",
         "curated": "Kuratierte Bibliothek"
       }
+    },
+    "jellyfin": {
+      "title": "Jellyfin",
+      "enabled": "Jellyfin aktivieren",
+      "host": "Server-Adresse",
+      "api-key": "API-Key",
+      "username": "Benutzername",
+      "password": "Passwort",
+      "catalog-cache-ttl": "Katalog-Cache (Sekunden)",
+      "request-timeout": "Anfrage-Timeout (Sekunden)",
+      "secret-configured": "Konfiguriert",
+      "secret-keep": "Leer lassen, um den gespeicherten Wert beizubehalten",
+      "secret-warning": "Passwort und API-Key werden aus Sicherheitsgründen niemals angezeigt. Gib einen neuen Wert ein, um ihn zu ändern.",
+      "restart-hint": "Die Änderungen werden erst nach einem Neustart der Jukebox übernommen.",
+      "save": "Speichern",
+      "saved": "Einstellungen gespeichert.",
+      "test": "Testen",
+      "test-found": "Jellyfin-Server gefunden unter {{url}}",
+      "test-adopt": "Adresse übernehmen",
+      "test-not-found": "Kein Jellyfin-Server unter den getesteten Adressen gefunden.",
+      "test-candidates": "Getestete Adressen:"
     },
     "timers": {
       "option-label-timeslot": "{{value}} min",

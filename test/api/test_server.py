@@ -551,7 +551,7 @@ class ApiHandlerTest(tornado.testing.AsyncHTTPTestCase):
 
         def blocking_processor(request):
             started.set()
-            release.wait(1)
+            release.wait(5)
             return {'result': 'done', 'id': request.get('id')}
 
         self._app.settings['rpc_processor'] = blocking_processor
@@ -562,7 +562,13 @@ class ApiHandlerTest(tornado.testing.AsyncHTTPTestCase):
             body=json.dumps({'id': 'request'}),
         )
         rpc_future = self.http_client.fetch(request)
-        await tornado.gen.sleep(0.01)
+        # Wait until the blocking processor picked up the request. Polling
+        # instead of a fixed sleep keeps the test robust on slow/loaded
+        # runners (e.g. CI with coverage instrumentation), where the
+        # executor thread may need longer than a few milliseconds to start.
+        deadline = time.monotonic() + 5.0
+        while not started.is_set() and time.monotonic() < deadline:
+            await tornado.gen.sleep(0.01)
         assert started.is_set()
 
         health = await self.http_client.fetch(self.get_url('/api/v1/health'))
