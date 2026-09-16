@@ -25,7 +25,6 @@ vi.mock('react-i18next', () => ({
 const baseSettings = {
   enabled: false,
   host: '',
-  has_api_key: true,
   username: '',
   has_password: false,
   catalog_cache_ttl: 300,
@@ -44,29 +43,31 @@ describe('SettingsJellyfin', () => {
     vi.clearAllMocks();
   });
 
-  test('loads the settings and renders secret fields empty and masked', async () => {
+  test('loads the settings and renders the secret field empty and masked', async () => {
     renderJellyfin();
 
     expect(await screen.findByLabelText('settings.jellyfin.host'))
       .toBeInTheDocument();
     expect(request).toHaveBeenCalledWith('getJellyfinSettings');
 
-    const apiKey = screen.getByLabelText('settings.jellyfin.api-key');
     const password = screen.getByLabelText('settings.jellyfin.password');
-    // Secrets must never be pre-filled and must be masked inputs.
-    expect(apiKey).toHaveAttribute('type', 'password');
-    expect(apiKey).toHaveValue('');
+    // The secret is never pre-filled and must be a masked input.
     expect(password).toHaveAttribute('type', 'password');
     expect(password).toHaveValue('');
   });
 
-  test('shows a configured indicator only for secrets that are set', async () => {
+  test('marks a stored password without revealing it', async () => {
+    request.mockResolvedValue({
+      result: { ...baseSettings, has_password: true },
+      error: null,
+    });
     renderJellyfin();
 
     await screen.findByLabelText('settings.jellyfin.host');
-    // api_key is configured (has_api_key), password is not.
     expect(screen.getByTestId('jellyfin-secret-lock'))
       .toBeInTheDocument();
+    expect(screen.getByLabelText('settings.jellyfin.password'))
+      .toHaveValue('');
   });
 
   test('saves without transmitting empty secret fields', async () => {
@@ -91,15 +92,11 @@ describe('SettingsJellyfin', () => {
       .toBeInTheDocument();
   });
 
-  test('transmits newly typed secrets and clears the fields afterwards', async () => {
+  test('transmits a newly typed password and clears the field afterwards', async () => {
     const user = userEvent.setup();
     renderJellyfin();
     await screen.findByLabelText('settings.jellyfin.host');
 
-    await user.type(
-      screen.getByLabelText('settings.jellyfin.api-key'),
-      'new-key',
-    );
     await user.type(
       screen.getByLabelText('settings.jellyfin.password'),
       'new-pw',
@@ -110,13 +107,11 @@ describe('SettingsJellyfin', () => {
 
     expect(request).toHaveBeenCalledWith('setJellyfinSettings', {
       settings: expect.objectContaining({
-        api_key: 'new-key',
         password: 'new-pw',
       }),
     });
     expect(await screen.findByText('settings.jellyfin.saved'))
       .toBeInTheDocument();
-    expect(screen.getByLabelText('settings.jellyfin.api-key')).toHaveValue('');
     expect(screen.getByLabelText('settings.jellyfin.password')).toHaveValue('');
   });
 
