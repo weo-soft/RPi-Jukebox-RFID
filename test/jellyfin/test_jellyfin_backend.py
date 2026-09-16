@@ -1278,7 +1278,7 @@ def test_configure_jellyfin_uses_login_credentials(monkeypatch):
     assert backend is not None
     assert backend._api.username == 'user'
     assert backend._api.password == 'pass'
-    assert backend._api.api_key == ''
+    assert backend._api._access_token is None
 
 
 def test_configure_jellyfin_requires_credentials(monkeypatch):
