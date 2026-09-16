@@ -6,10 +6,20 @@ daemon is installed.
 
 ## Requirements
 
-- A Jellyfin server (10.8.x or newer) with a music library
-- An API key created in **Jellyfin Dashboard → API Keys**
-  (recommended: create a dedicated Phoniebox user with access only to the
-  music library and generate the API key from that user's dashboard)
+- A Jellyfin server **12.0 or newer** with a music library.
+- `EnableLegacyAuthorization` disabled on the server. That is the factory
+  default of 12.0, and the server migration
+  `20260531160000_DisableLegacyAuthorization` sets it on upgrade.
+- A Jellyfin user with access to the music library. A dedicated Phoniebox user
+  is recommended: the login token inherits that user's library permissions, so
+  a restricted user only ever sees the albums that user may access.
+- The user must be allowed to sign in from this device. Without the
+  "Allow access from all devices" permission the server rejects the login, and
+  the device id shown in the Jellyfin device list has to be added to the
+  allowed devices.
+
+API keys are not supported. Jellyfin 12 passes them through unrestricted, so an
+API key would bypass every library permission.
 
 ## Installation
 
@@ -17,14 +27,10 @@ Run the installer and answer **yes** to the "Setup Jellyfin?" prompt.
 You will be asked for:
 
 1. **Server URL** — e.g. `http://jellyfin.local:8096`
-2. **Authentication method** — choose between:
-   - **API key** (created in Dashboard → API Keys → Create), or
-   - **Jellyfin username and password** (the resulting login token honors
-     the user's library permissions, so a restricted user only sees the
-     albums that user may access)
+2. **Username** and **password** of the Jellyfin user
 
-The installer stores the chosen credentials in `jukebox.yaml` and enables
-the plugin.
+The installer stores the credentials in `jukebox.yaml` and enables the plugin.
+An existing token file and device id are kept when the installer runs again.
 
 ## Manual configuration
 
@@ -34,21 +40,25 @@ players:
   jellyfin:
     enabled: true
     host: "http://jellyfin.local:8096"
-    api_key: "your-api-key"          # either this ...
-    # username: "your-jellyfin-user"  # ... or login with a user (both optional)
-    # password: "your-password"
-    catalog_cache_ttl: 300   # seconds the album catalog is cached (default 300)
-    request_timeout: 30      # seconds to wait for server responses (default 30)
+    username: "phoniebox"
+    password: "your-password"
+    token_file: ../../shared/settings/jellyfin_token.json
+    device_id: ""            # optional: set explicitly on a cloned SD card
+    catalog_cache_ttl: 300   # optional: seconds the album catalog is cached (default 300)
+    request_timeout: 30      # optional: seconds to wait for server responses (default 30)
 ```
 
 The installer writes `catalog_cache_ttl` and `request_timeout` with their
 default values into `jukebox.yaml` automatically, so both keys are always
 present and can be tuned without a code change.
 
-Either `api_key` or `username` + `password` must be set. When logging in
-with a user, the access token is bound to that user's library permissions,
-so a restricted user only ever sees the albums that user is allowed to
-access. Login credentials are stored directly in `jukebox.yaml`.
+`token_file` holds the access token together with the user name and the device
+id it was issued for, and is created with owner-only permissions. Set
+`device_id` explicitly on a cloned SD card image or when several boxes share
+the same Jellyfin user — the copy then signs in as a device of its own. A
+changed user name or device id makes the box sign in again; a changed password
+alone is not detected, and the existing session stays valid until it is revoked
+in the Jellyfin dashboard.
 
 Restart the daemon: `sudo systemctl restart jukebox-daemon`
 
@@ -58,6 +68,10 @@ Restart the daemon: `sudo systemctl restart jukebox-daemon`
 
 Open the **Library** page. A **Jellyfin** source tab appears with
 **Albums**. Browse, play, and create RFID cards as with the local library.
+
+The plugin is configured under **Settings → Jellyfin**: server address,
+username, password, catalog cache TTL and request timeout. The password is
+never displayed; enter a new value to change it.
 
 ### RFID cards
 
@@ -77,15 +91,18 @@ rfid_card_02:
 
 - **"No Jellyfin source tab"** — `players.jellyfin.enabled` is not `true`,
   wrong server URL, or the daemon needs a restart.
-- **"Could not authenticate"** — check the API key and that the server is
-  reachable from the Phoniebox.
+- **"Jellyfin rejected the credentials"** — check username and password and
+  that the server is reachable from the Phoniebox.
+- **"User is not allowed access from this device"** — the Jellyfin user may not
+  sign in from this device. Allow all devices for that user, or add the device
+  id from the Jellyfin device list to its allowed devices.
 - **Playback starts but no sound** — check MPD audio output (Jellyfin streams
   are played by MPD).
 - **Jellyfin source shows an error while local library works** — the Jellyfin
   server is offline or unreachable; the local MPD library is unaffected.
 - **Large library (1000+ albums) times out on first open** — building the
   initial album catalog takes several seconds per page (500 albums). The daemon
-  now warms the catalog in the background at start-up and the WebApp waits up
+  warms the catalog in the background at start-up and the WebApp waits up
   to 60 s for catalog requests, so a freshly installed/restarted daemon serves
   the first library view from the warm cache. If you still see a timeout,
   check `players.jellyfin.request_timeout` (each page request must finish
@@ -94,8 +111,9 @@ rfid_card_02:
 ## Known limitations
 
 - Playlists are not yet supported (Albums only).
-- The API key is sent as part of the MPD stream URL (required for playback),
-  but is never exposed through any RPC method. Use a dedicated Phoniebox
-  Jellyfin user with a scoped API key.
+- The access token is part of the MPD stream URL — MPD cannot send an
+  `Authorization` header — and therefore also appears in MPD's playlist and
+  state file. It is never exposed through any RPC method. Use a dedicated
+  Phoniebox Jellyfin user whose permissions cover only the music library.
 - Re-adding an item after a library re-scan on the Jellyfin server may change
   its item ID and invalidate previously stored card values.
