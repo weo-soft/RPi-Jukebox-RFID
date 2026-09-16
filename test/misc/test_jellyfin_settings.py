@@ -31,25 +31,20 @@ def test_get_jellyfin_settings_returns_defaults_without_secrets():
     assert settings['enabled'] is False
     assert settings['host'] == ''
     assert settings['username'] == ''
-    assert settings['has_api_key'] is False
     assert settings['has_password'] is False
     assert settings['catalog_cache_ttl'] == 300
     assert settings['request_timeout'] == 30
-    # The secrets themselves must never leave the backend.
-    assert 'api_key' not in settings
+    # The secret itself must never leave the backend.
     assert 'password' not in settings
 
 
 def test_get_jellyfin_settings_reports_secrets_as_set_only():
     cfg = cfghandler.get_handler('jukebox')
-    cfg.setn('players', 'jellyfin', 'api_key', value='stored-key')
     cfg.setn('players', 'jellyfin', 'password', value='stored-pw')
 
     settings = misc.get_jellyfin_settings()
 
-    assert settings['has_api_key'] is True
     assert settings['has_password'] is True
-    assert 'api_key' not in settings
     assert 'password' not in settings
 
 
@@ -75,15 +70,17 @@ def test_set_jellyfin_settings_updates_values():
 
 def test_set_jellyfin_settings_empty_secret_keeps_stored_value():
     cfg = cfghandler.get_handler('jukebox')
-    cfg.setn('players', 'jellyfin', 'api_key', value='stored-key')
+    cfg.setn('players', 'jellyfin', 'password', value='stored-pw')
 
     # An empty secret must not clear the stored value.
-    misc.set_jellyfin_settings({'api_key': ''})
-    assert misc.get_jellyfin_settings()['has_api_key'] is True
+    misc.set_jellyfin_settings({'password': ''})
+    assert misc.get_jellyfin_settings()['has_password'] is True
+    assert cfg.getn('players', 'jellyfin', 'password') == 'stored-pw'
 
     # A new non-empty value overwrites the stored secret.
-    misc.set_jellyfin_settings({'api_key': 'new-key'})
-    assert misc.get_jellyfin_settings()['has_api_key'] is True
+    misc.set_jellyfin_settings({'password': 'new-pw'})
+    assert misc.get_jellyfin_settings()['has_password'] is True
+    assert cfg.getn('players', 'jellyfin', 'password') == 'new-pw'
 
 
 def test_set_jellyfin_settings_rejects_unknown_keys():
@@ -118,9 +115,10 @@ def test_set_jellyfin_settings_validates_enabled_requirements():
 
 def test_set_jellyfin_settings_accepts_existing_credentials_when_enabling():
     cfg = cfghandler.get_handler('jukebox')
-    cfg.setn('players', 'jellyfin', 'api_key', value='stored-key')
+    cfg.setn('players', 'jellyfin', 'username', value='stored-user')
+    cfg.setn('players', 'jellyfin', 'password', value='stored-pw')
 
-    # Enabling with only the host works when a credential is already stored.
+    # Enabling with only the host works when the credentials are stored.
     misc.set_jellyfin_settings(
         {'enabled': True, 'host': 'http://jellyfin.local:8096'})
     assert misc.get_jellyfin_settings()['enabled'] is True

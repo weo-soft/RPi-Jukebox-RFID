@@ -131,7 +131,6 @@ def set_app_settings(settings={}):
 JELLYFIN_SETTINGS_DEFAULTS = {
     'enabled': False,
     'host': '',
-    'api_key': '',
     'username': '',
     'password': '',
     'catalog_cache_ttl': 300,
@@ -140,7 +139,9 @@ JELLYFIN_SETTINGS_DEFAULTS = {
 
 #: Keys whose stored value is a secret. They are never returned to the web
 #: app and only overwritten when a new non-empty value is submitted.
-JELLYFIN_SECRET_KEYS = frozenset({'api_key', 'password'})
+#: players.jellyfin.token_file and players.jellyfin.device_id belong to the
+#: installation and are edited in jukebox.yaml, not in the web app.
+JELLYFIN_SECRET_KEYS = frozenset({'password'})
 
 #: Keys that must be positive numbers.
 JELLYFIN_NUMERIC_KEYS = frozenset({'catalog_cache_ttl', 'request_timeout'})
@@ -150,10 +151,9 @@ JELLYFIN_NUMERIC_KEYS = frozenset({'catalog_cache_ttl', 'request_timeout'})
 def get_jellyfin_settings() -> dict:
     """Return the Jellyfin plugin configuration for the web app.
 
-    Secret values (``api_key``, ``password``) are never returned. Only a
-    boolean per secret (``has_api_key``, ``has_password``) tells the UI
-    whether a value is currently configured, so it can indicate the set
-    state without ever revealing the secret itself.
+    The password never leaves the backend. Instead of its value the response
+    carries ``has_password``, so the UI can indicate that a password is
+    stored without ever revealing it.
     """
     settings = {}
     for key, default in JELLYFIN_SETTINGS_DEFAULTS.items():
@@ -208,22 +208,20 @@ def _validate_jellyfin_enabled(merged):
         return
     if not str(merged['host'] or '').strip():
         raise ValueError('Jellyfin is enabled but no server host is set')
-    if not merged['api_key'] and not (
-            merged['username'] and merged['password']):
+    if not merged['username'] or not merged['password']:
         raise ValueError(
-            'Jellyfin is enabled but neither an API key nor a '
-            'username/password pair is set')
+            'Jellyfin is enabled but username/password are not set')
 
 
 @plugin.register
 def set_jellyfin_settings(settings={}) -> dict:
     """Set the Jellyfin plugin configuration for the web app.
 
-    Only known keys are accepted. Secret values (``api_key``, ``password``)
-    are only overwritten when a new non-empty value is submitted, so the UI
-    never has to know (or send back) the stored secret; an empty value
-    leaves it untouched. The merged result is validated like
-    ``configure_jellyfin`` and persisted to ``jukebox.yaml``.
+    Only known keys are accepted. The password is only overwritten when a new
+    non-empty value is submitted, so the UI never has to know (or send back)
+    the stored secret; an empty value leaves it untouched. The merged result
+    is validated like ``configure_jellyfin`` and persisted to
+    ``jukebox.yaml``.
     """
     merged = _jellyfin_merged(settings)
     _validate_jellyfin_enabled(merged)
