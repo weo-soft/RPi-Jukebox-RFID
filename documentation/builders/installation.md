@@ -292,16 +292,15 @@ Every option below is a plain shell variable. Values set via the config file or 
 | `LIBRESPOT_ALLOW_SOURCE_BUILD` | `false` | Compile librespot from source if no prebuilt binary matches |
 | `ENABLE_JELLYFIN` | `false` | Configure the Jellyfin player backend in `jukebox.yaml` |
 | `JELLYFIN_HOST` | – | Jellyfin server URL, e.g. `http://jellyfin.local:8096` (required when `ENABLE_JELLYFIN=true`) |
-| `JELLYFIN_API_KEY` | – | Jellyfin API key (Dashboard → API Keys); alternative to user login |
-| `JELLYFIN_USERNAME` | – | Jellyfin username; requires `JELLYFIN_PASSWORD` |
-| `JELLYFIN_PASSWORD` | – | Jellyfin password (used together with `JELLYFIN_USERNAME`) |
+| `JELLYFIN_USERNAME` | – | Jellyfin username (required when `ENABLE_JELLYFIN=true`) |
+| `JELLYFIN_PASSWORD` | – | Jellyfin password (required when `ENABLE_JELLYFIN=true`) |
 | `EXISTING_INSTALL_ACTION` | `backup` | Handling of an existing installation: `backup` or `remove` |
 
 The Spotify/Jellyfin options replace the interactive Spotify/Jellyfin setup
 prompts. The default OAuth redirect
-URI is `http://127.0.0.1:3000/api/v1/spotify/oauth/callback`. Jellyfin accepts
-either an API key or a username/password pair; at least one authentication
-method must be provided.
+URI is `http://127.0.0.1:3000/api/v1/spotify/oauth/callback`. Jellyfin needs the
+server URL plus a username and password; the login token inherits the library
+permissions of that user.
 
 The installer prints the log file path to the console (e.g. `INSTALLATION_LOGFILE=/home/pi/INSTALL-1234567890.log`) so a calling process can follow the installation live — see [Logs](#logs) below.
 

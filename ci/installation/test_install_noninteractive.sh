@@ -37,7 +37,8 @@ SPOTIFY_REDIRECT_URI="http://example.test/callback"
 SPOTIFY_DEVICE_NAME="Kitchen"
 ENABLE_JELLYFIN="true"
 JELLYFIN_HOST="http://jellyfin.local:8096"
-JELLYFIN_API_KEY="secret-key"
+JELLYFIN_USERNAME="jelly"
+JELLYFIN_PASSWORD="secret-pw"
 source "${REPOSITORY_ROOT}/installation/includes/01_default_config.sh"
 [[ "${ENABLE_STATIC_IP}" == "false" ]]
 [[ "${ENABLE_SAMBA}" == "true" ]]
@@ -49,7 +50,8 @@ source "${REPOSITORY_ROOT}/installation/includes/01_default_config.sh"
 [[ "${SPOTIFY_DEVICE_NAME}" == "Kitchen" ]]
 [[ "${ENABLE_JELLYFIN}" == "true" ]]
 [[ "${JELLYFIN_HOST}" == "http://jellyfin.local:8096" ]]
-[[ "${JELLYFIN_API_KEY}" == "secret-key" ]]
+[[ "${JELLYFIN_USERNAME}" == "jelly" ]]
+[[ "${JELLYFIN_PASSWORD}" == "secret-pw" ]]
 
 # Defaults still apply when a variable is unset
 unset ENABLE_SAMBA SETUP_SPOTIFY ENABLE_JELLYFIN
@@ -113,29 +115,20 @@ _jellyfin_write_config() { WRITE_CALLS=$((WRITE_CALLS + 1)); }
 # Missing host → Jellyfin is skipped, nothing is written
 ENABLE_JELLYFIN="true"
 JELLYFIN_HOST=""
-JELLYFIN_API_KEY=""
+JELLYFIN_USERNAME="jelly"
+JELLYFIN_PASSWORD="secret-pw"
 _jellyfin_set_user_config
 [[ "${ENABLE_JELLYFIN}" == "false" ]] || fail "missing Jellyfin host was accepted"
 [[ "${WRITE_CALLS}" == "0" ]]          || fail "Jellyfin config was written without a host"
 
-# Host + API key → config is written
-ENABLE_JELLYFIN="true"
-JELLYFIN_HOST="http://jellyfin.local:8096"
-JELLYFIN_API_KEY="secret-key"
-JELLYFIN_USERNAME=""
-JELLYFIN_PASSWORD=""
-_jellyfin_set_user_config
-[[ "${ENABLE_JELLYFIN}" == "true" ]] || fail "Jellyfin API key setup failed"
-[[ "${WRITE_CALLS}" == "1" ]]        || fail "Jellyfin config was not written once"
-
 # Host + username + password → config is written
 ENABLE_JELLYFIN="true"
-JELLYFIN_API_KEY=""
+JELLYFIN_HOST="http://jellyfin.local:8096"
 JELLYFIN_USERNAME="jelly"
-JELLYFIN_PASSWORD="pw"
+JELLYFIN_PASSWORD="secret-pw"
 _jellyfin_set_user_config
 [[ "${ENABLE_JELLYFIN}" == "true" ]] || fail "Jellyfin user login setup failed"
-[[ "${WRITE_CALLS}" == "2" ]]        || fail "Jellyfin user config was not written once"
+[[ "${WRITE_CALLS}" == "1" ]]        || fail "Jellyfin config was not written once"
 
 # Username without password → Jellyfin is skipped
 ENABLE_JELLYFIN="true"
@@ -143,7 +136,7 @@ JELLYFIN_USERNAME="jelly"
 JELLYFIN_PASSWORD=""
 _jellyfin_set_user_config
 [[ "${ENABLE_JELLYFIN}" == "false" ]] || fail "Jellyfin user without password was accepted"
-[[ "${WRITE_CALLS}" == "2" ]]         || fail "Jellyfin config was written without a password"
+[[ "${WRITE_CALLS}" == "1" ]]         || fail "Jellyfin config was written without a password"
 
 unset -f read run_with_log_frame print_verify_installation echo
 unset -f _jellyfin_write_config

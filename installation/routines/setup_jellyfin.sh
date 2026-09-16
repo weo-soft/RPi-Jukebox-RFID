@@ -8,7 +8,6 @@ _jellyfin_write_config() {
   # preserved. The delimiter is quoted to prevent any shell expansion inside
   # the Python code.
   JELLYFIN_HOST="$JELLYFIN_HOST" \
-  JELLYFIN_API_KEY="${JELLYFIN_API_KEY:-}" \
   JELLYFIN_USERNAME="${JELLYFIN_USERNAME:-}" \
   JELLYFIN_PASSWORD="${JELLYFIN_PASSWORD:-}" \
   JELLYFIN_SETTINGS_FILE="$JELLYFIN_SETTINGS_FILE" \
@@ -31,12 +30,16 @@ jellyfin = {
     'catalog_cache_ttl': existing.get('catalog_cache_ttl', 300),
     'request_timeout': existing.get('request_timeout', 30),
 }
-if os.environ.get('JELLYFIN_API_KEY'):
-    jellyfin['api_key'] = os.environ['JELLYFIN_API_KEY']
 if os.environ.get('JELLYFIN_USERNAME'):
     jellyfin['username'] = os.environ['JELLYFIN_USERNAME']
 if os.environ.get('JELLYFIN_PASSWORD'):
     jellyfin['password'] = os.environ['JELLYFIN_PASSWORD']
+# The token file and the device id belong to this installation, not to the
+# credentials: a re-run keeps them, so a device id set on a cloned SD card
+# survives.
+for key in ('token_file', 'device_id'):
+    if key in existing:
+        jellyfin[key] = existing[key]
 data['players']['jellyfin'] = jellyfin
 with open(settings_file, 'w') as stream:
     yaml.dump(data, stream)
@@ -50,25 +53,21 @@ PYEOF
 _jellyfin_set_user_config() {
   print_lc "  Configure Jellyfin"
 
-  # In non-interactive mode (--config / --non-interactive) the server and
+  # In non-interactive mode (--config / --non-interactive) the server and the
   # credentials are supplied via the flat config file / environment
-  # (JELLYFIN_HOST plus JELLYFIN_API_KEY or JELLYFIN_USERNAME/PASSWORD).
-  # No 'read' prompts are issued — a missing value skips Jellyfin setup.
+  # (JELLYFIN_HOST plus JELLYFIN_USERNAME and JELLYFIN_PASSWORD). No 'read'
+  # prompts are issued — a missing value skips Jellyfin setup.
   if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
     if [[ -z "$JELLYFIN_HOST" ]]; then
       print_c "  WARNING: Jellyfin server URL is required. Skipping Jellyfin setup."
       ENABLE_JELLYFIN=false
       return
     fi
-    if [[ -n "$JELLYFIN_API_KEY" ]]; then
-      _jellyfin_write_config
-      return
-    fi
     if [[ -n "$JELLYFIN_USERNAME" && -n "$JELLYFIN_PASSWORD" ]]; then
       _jellyfin_write_config
       return
     fi
-    print_c "  WARNING: A Jellyfin API key or username and password are required. Skipping Jellyfin setup."
+    print_c "  WARNING: Jellyfin username and password are required. Skipping Jellyfin setup."
     ENABLE_JELLYFIN=false
     return
   fi
@@ -76,39 +75,21 @@ _jellyfin_set_user_config() {
   print_lc "    Enter your Jellyfin server URL (e.g. http://jellyfin.local:8096):"
   read -r JELLYFIN_HOST
 
-  unset JELLYFIN_API_KEY JELLYFIN_USERNAME JELLYFIN_PASSWORD
-  print_c "    Authenticate with an API key or a Jellyfin user?
-1 - API key (Dashboard -> API Keys)
-2 - Jellyfin username and password (honors the user's library permissions)
-Choice [1/2]:"
-  read -r JELLYFIN_AUTH_METHOD
-  case "$JELLYFIN_AUTH_METHOD" in
-    2)
-      print_lc "    Enter the Jellyfin username:"
-      read -r JELLYFIN_USERNAME
-      print_lc "    Enter the Jellyfin password (input is hidden):"
-      read -r -s JELLYFIN_PASSWORD
-      echo
-      ;;
-    *)
-      print_lc "    Enter your Jellyfin API key (Dashboard -> API Keys):"
-      read -r JELLYFIN_API_KEY
-      ;;
-  esac
+  unset JELLYFIN_USERNAME JELLYFIN_PASSWORD
+  print_lc "    Enter the Jellyfin username:"
+  read -r JELLYFIN_USERNAME
+  print_lc "    Enter the Jellyfin password (input is hidden):"
+  read -r -s JELLYFIN_PASSWORD
+  echo
+  print_lc "    The login token inherits the library permissions of that user."
 
   if [[ -z "$JELLYFIN_HOST" ]]; then
     print_c "  WARNING: Jellyfin server URL is required. Skipping Jellyfin setup."
     ENABLE_JELLYFIN=false
     return
   fi
-  if [[ "$JELLYFIN_AUTH_METHOD" == "2" ]]; then
-    if [[ -z "$JELLYFIN_USERNAME" || -z "$JELLYFIN_PASSWORD" ]]; then
-      print_c "  WARNING: Jellyfin username and password are required. Skipping Jellyfin setup."
-      ENABLE_JELLYFIN=false
-      return
-    fi
-  elif [[ -z "$JELLYFIN_API_KEY" ]]; then
-    print_c "  WARNING: Jellyfin API key is required. Skipping Jellyfin setup."
+  if [[ -z "$JELLYFIN_USERNAME" || -z "$JELLYFIN_PASSWORD" ]]; then
+    print_c "  WARNING: Jellyfin username and password are required. Skipping Jellyfin setup."
     ENABLE_JELLYFIN=false
     return
   fi

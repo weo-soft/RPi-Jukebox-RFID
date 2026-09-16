@@ -54,9 +54,8 @@ const SettingsJellyfin = () => {
       enabled: Boolean(loaded.enabled),
       host: loaded.host || '',
       username: loaded.username || '',
-      // Secrets are never pre-filled: the backend only reports whether
-      // they are configured (has_api_key / has_password).
-      api_key: '',
+      // The secret is never pre-filled: the backend only reports whether a
+      // password is stored (has_password).
       password: '',
       catalog_cache_ttl: loaded.catalog_cache_ttl ?? 300,
       request_timeout: loaded.request_timeout ?? 30,
@@ -117,9 +116,8 @@ const SettingsJellyfin = () => {
       catalog_cache_ttl: Number(form.catalog_cache_ttl),
       request_timeout: Number(form.request_timeout),
     };
-    // Secrets are only transmitted when the user typed a new value. An
-    // empty field keeps the stored secret, which is never sent back.
-    if (form.api_key) payload.api_key = form.api_key;
+    // The password is only transmitted when the user typed a new value. An
+    // empty field keeps the stored one, which is never sent back.
     if (form.password) payload.password = form.password;
 
     const { error: requestError } = await request('setJellyfinSettings', {
@@ -254,13 +252,6 @@ const SettingsJellyfin = () => {
             }
           </Grid>
           <Grid>
-            {renderSecretField(
-              'api_key',
-              t('settings.jellyfin.api-key'),
-              Boolean(settings?.has_api_key),
-            )}
-          </Grid>
-          <Grid>
             <TextField
               fullWidth
               label={t('settings.jellyfin.username')}
@@ -295,6 +286,11 @@ const SettingsJellyfin = () => {
               type="number"
               value={form.request_timeout ?? ''}
             />
+          </Grid>
+          <Grid>
+            <Alert severity="info">
+              {t('settings.jellyfin.user-hint')}
+            </Alert>
           </Grid>
           <Grid>
             <Alert severity="info">

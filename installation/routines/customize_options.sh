@@ -340,7 +340,8 @@ music source. The Jellyfin player backend streams audio through
 MPD, so no extra playback daemon is installed.
 
 You will be asked for the Jellyfin server address and the
-authentication (API key or Jellyfin user login) after installation.
+username and password of the Jellyfin user after installation.
+The login token inherits that user's library permissions.
 
 Would you like to setup Jellyfin? [y/N]"
   read -r response

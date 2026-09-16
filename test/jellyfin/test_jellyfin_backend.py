@@ -10,7 +10,10 @@ import jukebox.cfghandler as cfghandler
 import jukebox.publishing as publishing
 
 from components.jellyfin import configure_jellyfin
-from components.jellyfin.jellyfin_api_client import DEFAULT_TIMEOUT
+from components.jellyfin.jellyfin_api_client import (
+    DEFAULT_TIMEOUT,
+    JellyfinAuthError,
+)
 from components.jellyfin.jellyfin_backend import (
     ALBUM_PAGE_SIZE,
     ALBUM_URI_PREFIX,
@@ -19,7 +22,10 @@ from components.jellyfin.jellyfin_backend import (
     component_id_from_uri,
 )
 
-STREAM_URL = 'http://jellyfin.local:8096/Audio/{item_id}/stream?static=true&api_key=key'
+STREAM_URL = (
+    'http://jellyfin.local:8096/Audio/{item_id}/stream'
+    '?static=true&ApiKey=secret-token'
+)
 
 
 class FakeTimer:
@@ -650,6 +656,36 @@ def test_playback_failure_does_not_mutate_mpd():
     mpd.play.assert_not_called()
 
 
+def test_play_album_degrades_when_auth_fails(caplog):
+    api = make_api()
+    api.get_album_children.return_value = [track_item()]
+    api.get_stream_url.side_effect = JellyfinAuthError('login failed')
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+
+    backend.play_album(None, None, content_uri=f'{ALBUM_URI_PREFIX}album-1')
+
+    # get_stream_url() logs in lazily; a rejected login must not reach the
+    # card-swipe path.
+    mpd.clear_playlist.assert_not_called()
+    mpd.add_to_playlist.assert_not_called()
+    assert 'Jellyfin play_album failed' in caplog.text
+
+
+def test_play_single_degrades_when_auth_fails(caplog):
+    api = make_api()
+    api.get_item.return_value = track_item()
+    api.get_stream_url.side_effect = JellyfinAuthError('login failed')
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+
+    backend.play_single(f'{TRACK_URI_PREFIX}track-1')
+
+    mpd.clear_playlist.assert_not_called()
+    mpd.add_to_playlist.assert_not_called()
+    assert 'Jellyfin play_single failed' in caplog.text
+
+
 def test_play_streams_mpd_failure_leaves_mapping_untouched():
     api = make_api()
     api.get_item.return_value = track_item()
@@ -1022,7 +1058,9 @@ def test_playerstatus_masks_stream_url():
     status = backend.playerstatus()
 
     assert status['file'] == f'{TRACK_URI_PREFIX}track-1'
-    assert 'api_key' not in str(status)
+    # The assertion checks the token value: the parameter name alone would
+    # make it trivially true.
+    assert 'secret-token' not in str(status)
 
 
 def test_playerstatus_resolves_normalized_stream_url_via_item_id():
@@ -1044,7 +1082,7 @@ def test_playerstatus_resolves_normalized_stream_url_via_item_id():
 
     assert status['file'] == f'{TRACK_URI_PREFIX}track-1'
     assert status['title'] == 'Track One'
-    assert 'api_key' not in str(status)
+    assert 'secret-token' not in str(status)
 
 
 def test_playerstatus_masks_unmapped_stream_url():
@@ -1052,16 +1090,16 @@ def test_playerstatus_masks_unmapped_stream_url():
     mpd = make_mpd()
     backend = make_backend(api, mpd)
     mpd.playerstatus.return_value = {
-        'file': 'http://jellyfin.local:8096/Audio/unknown-item/stream?static=true&api_key=secret',
+        'file': ('http://jellyfin.local:8096/Audio/unknown-item/stream'
+                 '?static=true&ApiKey=secret-token'),
         'state': 'play',
     }
 
     status = backend.playerstatus()
 
-    # The raw stream URL (with API key) must never surface on an RPC channel.
+    # The raw stream URL (with its token) must never surface on an RPC channel.
     assert status['file'] == ''
-    assert 'api_key' not in str(status)
-    assert 'secret' not in str(status)
+    assert 'secret-token' not in str(status)
 
 
 def test_playerstatus_keeps_non_stream_mpd_file():
@@ -1231,6 +1269,25 @@ def make_player_ctrl():
     )
 
 
+def enable_jellyfin(tmp_path, **extra):
+    """Return a config handler with an enabled and configured Jellyfin.
+
+    The token file is part of the installation and lives in tmp_path: without
+    it the store would resolve the shipped default relative to the working
+    directory and write outside the repository.
+    """
+    cfg = reset_cfg()
+    cfg.setn('players', 'jellyfin', 'enabled', value=True)
+    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
+    cfg.setn('players', 'jellyfin', 'username', value='user')
+    cfg.setn('players', 'jellyfin', 'password', value='pass')
+    cfg.setn('players', 'jellyfin', 'token_file',
+             value=str(tmp_path / 'jellyfin_token.json'))
+    for key, value in extra.items():
+        cfg.setn('players', 'jellyfin', key, value=value)
+    return cfg
+
+
 def test_configure_jellyfin_disabled(monkeypatch):
     reset_cfg()
     player_ctrl = make_player_ctrl()
@@ -1248,13 +1305,10 @@ def test_configure_jellyfin_missing_config(monkeypatch):
     player_ctrl.register_backend.assert_not_called()
 
 
-def test_configure_jellyfin_registers(monkeypatch):
+def test_configure_jellyfin_registers(tmp_path, monkeypatch):
     monkeypatch.setattr(
         'jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
-    cfg = reset_cfg()
-    cfg.setn('players', 'jellyfin', 'enabled', value=True)
-    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
-    cfg.setn('players', 'jellyfin', 'api_key', value='secret')
+    enable_jellyfin(tmp_path)
     player_ctrl = make_player_ctrl()
 
     backend = configure_jellyfin(player_ctrl)
@@ -1263,14 +1317,10 @@ def test_configure_jellyfin_registers(monkeypatch):
     player_ctrl.register_backend.assert_called_once_with('jellyfin', backend)
 
 
-def test_configure_jellyfin_uses_login_credentials(monkeypatch):
+def test_configure_jellyfin_uses_login_credentials(tmp_path, monkeypatch):
     monkeypatch.setattr(
         'jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
-    cfg = reset_cfg()
-    cfg.setn('players', 'jellyfin', 'enabled', value=True)
-    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
-    cfg.setn('players', 'jellyfin', 'username', value='user')
-    cfg.setn('players', 'jellyfin', 'password', value='pass')
+    enable_jellyfin(tmp_path)
     player_ctrl = make_player_ctrl()
 
     backend = configure_jellyfin(player_ctrl)
@@ -1278,7 +1328,23 @@ def test_configure_jellyfin_uses_login_credentials(monkeypatch):
     assert backend is not None
     assert backend._api.username == 'user'
     assert backend._api.password == 'pass'
-    assert backend._api.api_key == ''
+    assert backend._api._access_token is None
+
+
+def test_configure_jellyfin_leaves_the_config_file_untouched(tmp_path):
+    """An incomplete setup registers nothing and writes no file."""
+    cfg = reset_cfg()
+    cfg.setn('players', 'jellyfin', 'enabled', value=True)
+    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
+    cfg.setn('players', 'jellyfin', 'token_file',
+             value=str(tmp_path / 'jellyfin_token.json'))
+    cfg.save = Mock()
+    player_ctrl = make_player_ctrl()
+
+    assert configure_jellyfin(player_ctrl) is None
+    player_ctrl.register_backend.assert_not_called()
+    cfg.save.assert_not_called()
+    assert not (tmp_path / 'jellyfin_token.json').exists()
 
 
 def test_configure_jellyfin_requires_credentials(monkeypatch):
@@ -1309,33 +1375,27 @@ def test_configure_jellyfin_default_cache_ttl():
     assert cache_ttl == 300
 
 
-def test_configure_jellyfin_does_not_authenticate_at_startup(monkeypatch):
+def test_configure_jellyfin_does_not_authenticate_at_startup(tmp_path, monkeypatch):
     monkeypatch.setattr(
         'jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
     api = make_api()
     monkeypatch.setattr('components.jellyfin.JellyfinApiClient', Mock(return_value=api))
-    cfg = reset_cfg()
-    cfg.setn('players', 'jellyfin', 'enabled', value=True)
-    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
-    cfg.setn('players', 'jellyfin', 'api_key', value='secret')
+    enable_jellyfin(tmp_path)
     player_ctrl = make_player_ctrl()
 
     backend = configure_jellyfin(player_ctrl)
 
     assert backend._api is api
-    api.authenticate.assert_not_called()
+    api.authenticate_user.assert_not_called()
 
 
-def test_configure_jellyfin_starts_catalog_warmup(monkeypatch):
+def test_configure_jellyfin_starts_catalog_warmup(tmp_path, monkeypatch):
     monkeypatch.setattr(
         'jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
     api = make_api()
     api.get_albums.return_value = [album_item()]
     monkeypatch.setattr('components.jellyfin.JellyfinApiClient', Mock(return_value=api))
-    cfg = reset_cfg()
-    cfg.setn('players', 'jellyfin', 'enabled', value=True)
-    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
-    cfg.setn('players', 'jellyfin', 'api_key', value='secret')
+    enable_jellyfin(tmp_path)
     player_ctrl = make_player_ctrl()
 
     backend = configure_jellyfin(player_ctrl)
@@ -1348,14 +1408,10 @@ def test_configure_jellyfin_starts_catalog_warmup(monkeypatch):
     assert backend._catalog_cache == [album_item()]
 
 
-def test_configure_jellyfin_reads_request_timeout(monkeypatch):
+def test_configure_jellyfin_reads_request_timeout(tmp_path, monkeypatch):
     monkeypatch.setattr(
         'jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
-    cfg = reset_cfg()
-    cfg.setn('players', 'jellyfin', 'enabled', value=True)
-    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
-    cfg.setn('players', 'jellyfin', 'api_key', value='secret')
-    cfg.setn('players', 'jellyfin', 'request_timeout', value=45)
+    enable_jellyfin(tmp_path, request_timeout=45)
     player_ctrl = make_player_ctrl()
 
     backend = configure_jellyfin(player_ctrl)
@@ -1372,13 +1428,9 @@ def test_configure_jellyfin_default_request_timeout():
     assert timeout == 30
 
 
-def test_configure_jellyfin_invalid_cache_ttl_falls_back(monkeypatch):
+def test_configure_jellyfin_invalid_cache_ttl_falls_back(tmp_path, monkeypatch):
     monkeypatch.setattr('jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
-    cfg = reset_cfg()
-    cfg.setn('players', 'jellyfin', 'enabled', value=True)
-    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
-    cfg.setn('players', 'jellyfin', 'api_key', value='secret')
-    cfg.setn('players', 'jellyfin', 'catalog_cache_ttl', value='not-a-number')
+    enable_jellyfin(tmp_path, catalog_cache_ttl='not-a-number')
     player_ctrl = make_player_ctrl()
 
     backend = configure_jellyfin(player_ctrl)
@@ -1387,13 +1439,9 @@ def test_configure_jellyfin_invalid_cache_ttl_falls_back(monkeypatch):
     assert backend._cache_ttl == 300.0
 
 
-def test_configure_jellyfin_nonpositive_cache_ttl_falls_back(monkeypatch):
+def test_configure_jellyfin_nonpositive_cache_ttl_falls_back(tmp_path, monkeypatch):
     monkeypatch.setattr('jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
-    cfg = reset_cfg()
-    cfg.setn('players', 'jellyfin', 'enabled', value=True)
-    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
-    cfg.setn('players', 'jellyfin', 'api_key', value='secret')
-    cfg.setn('players', 'jellyfin', 'catalog_cache_ttl', value=-5)
+    enable_jellyfin(tmp_path, catalog_cache_ttl=-5)
     player_ctrl = make_player_ctrl()
 
     backend = configure_jellyfin(player_ctrl)
@@ -1402,13 +1450,9 @@ def test_configure_jellyfin_nonpositive_cache_ttl_falls_back(monkeypatch):
     assert backend._cache_ttl == 300.0
 
 
-def test_configure_jellyfin_invalid_request_timeout_falls_back(monkeypatch):
+def test_configure_jellyfin_invalid_request_timeout_falls_back(tmp_path, monkeypatch):
     monkeypatch.setattr('jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
-    cfg = reset_cfg()
-    cfg.setn('players', 'jellyfin', 'enabled', value=True)
-    cfg.setn('players', 'jellyfin', 'host', value='http://jellyfin.local:8096')
-    cfg.setn('players', 'jellyfin', 'api_key', value='secret')
-    cfg.setn('players', 'jellyfin', 'request_timeout', value='abc')
+    enable_jellyfin(tmp_path, request_timeout='abc')
     player_ctrl = make_player_ctrl()
 
     backend = configure_jellyfin(player_ctrl)

@@ -36,7 +36,7 @@ COVER_RETRY_DELAY = 60.0
 CATALOG_RETRY_DELAY = 30.0
 
 #: Matches the item id inside a Jellyfin stream URL, e.g.
-#: ``http://host/Audio/<id>/stream?static=true&api_key=...``. Used to recover
+#: ``http://host/Audio/<id>/stream?static=true&ApiKey=...``. Used to recover
 #: track metadata when MPD reports a normalized variant of the stream URL.
 _STREAM_URL_ITEM_ID_RE = re.compile(r'/Audio/(?P<item_id>[^/?#]+)/stream')
 
@@ -399,14 +399,18 @@ class JellyfinBackend:
             return
         try:
             tracks = self._api.get_album_children(album_id)
+            # get_stream_url() authenticates lazily and can raise, so it
+            # stays inside the guarded block: an unreachable server or
+            # rejected credentials must degrade to a logged error and not
+            # propagate into the card-swipe path.
+            stream_to_track = {
+                self._api.get_stream_url(track['Id']): self._track_info(track)
+                for track in tracks
+                if track.get('Id')
+            }
         except Exception as error:
             logger.error("Jellyfin play_album failed: %s", error)
             return
-        stream_to_track = {
-            self._api.get_stream_url(track['Id']): self._track_info(track)
-            for track in tracks
-            if track.get('Id')
-        }
         self._play_streams(list(stream_to_track), stream_to_track)
 
     def play_single(self, song_url, provider=None):
@@ -422,7 +426,13 @@ class JellyfinBackend:
         if not item:
             logger.warning("Jellyfin track not found: '%s'", song_url)
             return
-        stream_url = self._api.get_stream_url(track_id)
+        # Separate block: the item check sits between the two API calls, so
+        # the guard around get_item() cannot be extended.
+        try:
+            stream_url = self._api.get_stream_url(track_id)
+        except Exception as error:
+            logger.error("Jellyfin play_single failed: %s", error)
+            return
         self._play_streams([stream_url], {stream_url: self._track_info(item)})
 
     def play_folder(self, folder, recursive=False):
@@ -473,7 +483,7 @@ class JellyfinBackend:
             return
         # Remember the stream URL -> track-metadata mapping for playerstatus.
         # Set on every playback path (album and single track) so the
-        # normalized status never exposes the raw stream URL (API key).
+        # normalized status never exposes the raw stream URL (it carries the token).
         self._stream_to_track = stream_to_track or {}
         # Secondary index by item id: if MPD reports a normalized variant of a
         # stream URL (exact match fails), the track metadata can still be
@@ -659,7 +669,7 @@ class JellyfinBackend:
             if self._is_stream_url(file_url):
                 # A Jellyfin stream URL that could not be mapped to a track
                 # must never surface on an RPC/publish channel (it carries the
-                # API key/token). Mask it and warn once per URL.
+                # token). Mask it and warn once per URL.
                 self._warn_unmapped_stream(file_url)
                 file_url = ''
         cover_item_id = track.get('album_id') or track.get('item_id')
@@ -698,7 +708,7 @@ class JellyfinBackend:
     def _warn_unmapped_stream(self, file_url):
         """Log a throttled warning for a stream URL that could not be mapped.
 
-        The warning never contains the URL itself (it carries the API key).
+        The warning never contains the URL itself (it carries the token).
         """
         if file_url in self._unmapped_stream_warnings:
             return
