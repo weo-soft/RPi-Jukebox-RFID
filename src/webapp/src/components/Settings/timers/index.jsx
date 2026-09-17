@@ -14,7 +14,8 @@ const SettingsTimers = () => {
   return (
     <SettingsSection id="timers" title={t('settings.timers.title')}>
       <Grid size={12}>
-        <List>
+        {/* the card content already carries the padding */}
+        <List disablePadding>
           <Timer type={'fade-volume'} />
           <Timer type={'shutdown'} />
           <Timer type={'stop-player'} />

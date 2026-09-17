@@ -6,6 +6,8 @@ export const SETTINGS_STORAGE_KEY = 'settingsCollapsedSections';
 
 // Everyday functions stay open; setup and maintenance start collapsed.
 export const DEFAULT_COLLAPSED_SECTIONS = [
+  'spotify',
+  'jellyfin',
   'system-controls',
   'second-swipe',
   'auto-hotspot',

@@ -20,6 +20,7 @@ import {
  * area, so it is at least 64 px high and carries the open state.
  */
 const SettingsSection = ({
+  action,
   children,
   id,
   subheader,
@@ -41,30 +42,41 @@ const SettingsSection = ({
 
   return (
     <Card>
-      <ButtonBase
-        aria-expanded={!collapsed}
-        onClick={toggle}
+      <Box
         sx={{
           alignItems: 'center',
           display: 'flex',
-          justifyContent: 'space-between',
-          minHeight: 64,
-          paddingX: 'var(--space-4)',
-          paddingY: 'var(--space-2)',
-          textAlign: 'left',
-          width: '100%',
+          paddingRight: 'var(--space-2)',
         }}
       >
-        <Typography component="h2" variant="sectionTitle">
-          {title}
-        </Typography>
-        <ExpandMoreIcon
+        <ButtonBase
+          aria-expanded={!collapsed}
+          onClick={toggle}
           sx={{
-            transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)',
-            transition: 'transform 200ms',
+            alignItems: 'center',
+            display: 'flex',
+            flex: 1,
+            justifyContent: 'space-between',
+            minHeight: 64,
+            minWidth: 0,
+            paddingX: 'var(--space-4)',
+            paddingY: 'var(--space-2)',
+            textAlign: 'left',
           }}
-        />
-      </ButtonBase>
+        >
+          <Typography component="h2" variant="sectionTitle">
+            {title}
+          </Typography>
+          <ExpandMoreIcon
+            sx={{
+              transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)',
+              transition: 'transform 200ms',
+            }}
+          />
+        </ButtonBase>
+        {/* The action belongs to the card, not to the toggle that opens it */}
+        {action}
+      </Box>
       {subheader &&
         <Box sx={{ paddingBottom: 'var(--space-2)', paddingX: 'var(--space-4)' }}>
           {subheader}

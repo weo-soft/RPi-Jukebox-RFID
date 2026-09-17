@@ -2,6 +2,10 @@
 
 _option_static_ip() {
   # ENABLE_STATIC_IP
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "ENABLE_STATIC_IP=${ENABLE_STATIC_IP} (non-interactive)"
+    return 0
+  fi
   # Using the dynamically assigned IP address as it is the best guess to be free
   # Reference: https://unix.stackexchange.com/a/505385
   CURRENT_ROUTE=$(ip route get 8.8.8.8)
@@ -28,28 +32,12 @@ Set a static IP? [Y/n]"
   log "ENABLE_STATIC_IP=${ENABLE_STATIC_IP}"
 }
 
-_option_ipv6() {
-  # DISABLE_IPv6
-  clear_c
-  print_c "------------------------- IP V6 -------------------------
-
-IPv6 is only needed if you intend to use it.
-Otherwise it can be disabled.
-
-Do you want to disable IPv6? [Y/n]"
-  read -r response
-  case "$response" in
-    [nN][oO]|[nN])
-      DISABLE_IPv6=false
-      ;;
-    *)
-      ;;
-  esac
-  log "DISABLE_IPv6=${DISABLE_IPv6}"
-}
-
 _option_autohotspot() {
     # ENABLE_AUTOHOTSPOT
+    if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+        log "ENABLE_AUTOHOTSPOT=${ENABLE_AUTOHOTSPOT} (non-interactive)"
+        return 0
+    fi
     clear_c
     print_c "---------------------- AUTOHOTSPOT ----------------------
 
@@ -145,6 +133,10 @@ Do you want to change this values? [y/N]"
 
 _option_bluetooth() {
   # DISABLE_BLUETOOTH
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "DISABLE_BLUETOOTH=${DISABLE_BLUETOOTH} (non-interactive)"
+    return 0
+  fi
   clear_c
   print_c "----------------------- BLUETOOTH -----------------------
 
@@ -164,6 +156,10 @@ Do you want to disable Bluetooth? [Y/n]"
 }
 
 _option_mpd() {
+    if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+        log "SETUP_MPD=${SETUP_MPD} (non-interactive)"
+        return 0
+    fi
     clear_c
     if [[ "$SETUP_MPD" == true ]]; then
         if [[ -f "${MPD_CONF_PATH}" || -f "${SYSTEMD_USR_PATH}/mpd.service" ]]; then
@@ -189,8 +185,99 @@ Would you like to overwrite your configuration? [Y/n]"
     fi
 }
 
+_option_spotify() {
+  # SETUP_SPOTIFY
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "SETUP_SPOTIFY=${SETUP_SPOTIFY} (non-interactive)"
+    return 0
+  fi
+
+  clear_c
+
+  if [[ "$(get_architecture)" == "armv6" ]]; then
+    print_c "----------------------- SPOTIFY -------------------------
+
+Spotify is not yet supported on ARMv6 Raspberry Pi models.
+Spotify support will not be installed."
+    SETUP_SPOTIFY=false
+    log "SETUP_SPOTIFY=${SETUP_SPOTIFY}"
+    return
+  fi
+
+  print_c "----------------------- SPOTIFY -------------------------
+
+Spotify playback requires a Premium account and a Spotify
+developer app. Librespot will be installed as a user service.
+
+Would you like to install Spotify support? [y/N]"
+  read -r response
+  case "$response" in
+    [yY][eE][sS]|[yY])
+      SETUP_SPOTIFY=true
+      ;;
+    *)
+      SETUP_SPOTIFY=false
+      ;;
+  esac
+
+  if [[ "${SETUP_SPOTIFY}" == true ]]; then
+    if [[ -z "${SPOTIFY_REDIRECT_URI}" ]]; then
+      print_c "Spotify requires an exact OAuth redirect URI.
+Press Enter to use the recommended URI below. A custom LAN or
+public redirect URI normally requires HTTPS.
+
+Spotify OAuth redirect URI [${SPOTIFY_DEFAULT_REDIRECT_URI}]:"
+      read -r response
+      SPOTIFY_REDIRECT_URI="${response:-$SPOTIFY_DEFAULT_REDIRECT_URI}"
+    fi
+
+    print_c "Before continuing, create a Spotify developer app:
+
+1. Go to https://developer.spotify.com/dashboard
+2. Click 'Create app'.
+3. Enter an App name and App description, add this exact
+   Redirect URI, and select 'Web API':
+
+   ${SPOTIFY_REDIRECT_URI}
+
+4. Save the app.
+
+After creating the app, copy the Client ID from its
+Basic Information page and enter it below."
+    while [[ -z "${SPOTIFY_CLIENT_ID}" ]]; do
+      print_c "Spotify developer app client ID:"
+      read -r SPOTIFY_CLIENT_ID
+    done
+
+    if [[ "${SPOTIFY_REDIRECT_URI}" == "${SPOTIFY_DEFAULT_REDIRECT_URI}" ]]; then
+      print_c "After installation, run this command on the computer where
+you will open the Phoniebox Web App:
+
+ssh -L 3000:127.0.0.1:80 ${CURRENT_USER:-USER}@$(hostname).local
+
+Keep the SSH session open, browse to http://127.0.0.1:3000,
+then select Settings > Spotify > Connect."
+    fi
+
+    print_c "Spotify Connect device name [${SPOTIFY_DEVICE_NAME}]:"
+    read -r response
+    response="${response:-$SPOTIFY_DEVICE_NAME}"
+    if [[ ! "${response}" =~ ^[A-Za-z0-9._\ -]+$ ]]; then
+      print_c "Invalid device name. Using '${SPOTIFY_DEVICE_NAME}'."
+    else
+      SPOTIFY_DEVICE_NAME="${response}"
+    fi
+  fi
+
+  log "SETUP_SPOTIFY=${SETUP_SPOTIFY}"
+}
+
 _option_rfid_reader() {
   # ENABLE_RFID_READER
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "ENABLE_RFID_READER=${ENABLE_RFID_READER} (non-interactive)"
+    return 0
+  fi
   clear_c
   print_c "---------------------- RFID READER ----------------------
 
@@ -213,6 +300,10 @@ Do you want to setup a rfid reader? [Y/n]"
 
 _option_samba() {
   # ENABLE_SAMBA
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "ENABLE_SAMBA=${ENABLE_SAMBA} (non-interactive)"
+    return 0
+  fi
   clear_c
   print_c "------------------------- SAMBA -------------------------
 
@@ -234,8 +325,43 @@ Do you want to install Samba? [y/N]"
   log "ENABLE_SAMBA=${ENABLE_SAMBA}"
 }
 
+_option_jellyfin() {
+  # ENABLE_JELLYFIN
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "ENABLE_JELLYFIN=${ENABLE_JELLYFIN} (non-interactive)"
+    return 0
+  fi
+
+  clear_c
+  print_c "------------------------ JELLYFIN -----------------------
+
+The Phoniebox can use a Jellyfin media server as an additional
+music source. The Jellyfin player backend streams audio through
+MPD, so no extra playback daemon is installed.
+
+You will be asked for the Jellyfin server address and the
+username and password of the Jellyfin user after installation.
+The login token inherits that user's library permissions.
+
+Would you like to setup Jellyfin? [y/N]"
+  read -r response
+  case "$response" in
+    [yY][eE][sS]|[yY])
+      ENABLE_JELLYFIN=true
+      ;;
+    *)
+      ENABLE_JELLYFIN=false
+      ;;
+  esac
+  log "ENABLE_JELLYFIN=${ENABLE_JELLYFIN}"
+}
+
 _option_webapp() {
   # ENABLE_WEBAPP
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "ENABLE_WEBAPP=${ENABLE_WEBAPP} (non-interactive)"
+    return 0
+  fi
   clear_c
   print_c "------------------------ WEB APP ------------------------
 
@@ -257,6 +383,10 @@ Would you like to install the Web App? [Y/n]"
 
 _option_kiosk_mode() {
     # ENABLE_KIOSK_MODE
+    if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+        log "ENABLE_KIOSK_MODE=${ENABLE_KIOSK_MODE} (non-interactive)"
+        return 0
+    fi
     clear_c
     print_c "----------------------- KIOSK MODE ----------------------"
     if [[ $(get_architecture) == "armv6" ]]; then
@@ -293,6 +423,10 @@ Would you like to enable the Kiosk Mode? [y/N]"
 
 _options_update_raspi_os() {
   # UPDATE_RASPI_OS
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "UPDATE_RASPI_OS=${UPDATE_RASPI_OS} (non-interactive)"
+    return 0
+  fi
   clear_c
   print_c "----------------------- UPDATE OS -----------------------
 
@@ -313,6 +447,10 @@ Would you like to update the operating system? [Y/n]"
 
 _option_disable_onboard_audio() {
   # Disable BCM on-chip audio (typically Headphones)
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "DISABLE_ONBOARD_AUDIO=${DISABLE_ONBOARD_AUDIO} (non-interactive)"
+    return 0
+  fi
   # not needed when external sound card is sued
   clear_c
   print_c "--------------------- ON-CHIP AUDIO ---------------------
@@ -354,12 +492,13 @@ _configure_webapp_bundle_download() {
 }
 
 _run_customize_options() {
-  _option_ipv6
   _option_static_ip
   _option_autohotspot
   _option_bluetooth
   _option_disable_onboard_audio
   _option_mpd
+  _option_spotify
+  _option_jellyfin
   _option_rfid_reader
   _option_samba
   _option_webapp

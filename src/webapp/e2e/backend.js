@@ -84,12 +84,15 @@ export async function mockBackend(
     rpcGate,
     showCovers = false,
     streamingLibrary = false,
+    spotifyConnected = true,
+    spotifyLibrary = false,
     timerEvents = {},
   } = {},
 ) {
   const eventSockets = new Set();
   const libraryCalls = [];
   const rpcCalls = [];
+  let spotifyLibraryState = { mode: 'account', items: [] };
   const subscribedTopics = new Set();
 
   await page.addInitScript(() => {
@@ -103,6 +106,81 @@ export async function mockBackend(
       body: JSON.stringify({
         entries: rpcResults.get_folder_content,
       }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  await page.route('**/api/v1/spotify', route => route.fulfill({
+    body: JSON.stringify({
+      configured: true,
+      connected: spotifyConnected,
+      device_name: 'Phoniebox',
+      enabled: true,
+      redirect_uri: 'https://box.example/api/v1/spotify/oauth/callback',
+    }),
+    contentType: 'application/json',
+    status: 200,
+  }));
+
+  await page.route('**/api/v1/spotify/oauth/start', route => {
+    const origin = new URL(route.request().url()).origin;
+    return route.fulfill({
+      body: JSON.stringify({
+        authorization_url: `${origin}/logo192.png#spotify-authorize`,
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  await page.route('**/api/v1/spotify/library', async route => {
+    const request = route.request();
+    if (request.method() === 'PUT') {
+      spotifyLibraryState = {
+        ...spotifyLibraryState,
+        mode: request.postDataJSON().mode,
+      };
+    }
+    await route.fulfill({
+      body: JSON.stringify(spotifyLibraryState),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  await page.route('**/api/v1/spotify/library/items', async route => {
+    const request = route.request();
+    if (request.method() === 'POST') {
+      const item = {
+        album: 'Quiet Time',
+        albumartist: 'Family',
+        content_type: 'playlist',
+        content_uri: 'spotify:playlist:quiet-time',
+        cover_url: null,
+        provider: 'spotify',
+      };
+      spotifyLibraryState = {
+        ...spotifyLibraryState,
+        items: [...spotifyLibraryState.items, item],
+      };
+      await route.fulfill({
+        body: JSON.stringify({ item }),
+        contentType: 'application/json',
+        status: 201,
+      });
+      return;
+    }
+    const { uri, uris } = request.postDataJSON();
+    const removedUris = new Set(uris || [uri]);
+    spotifyLibraryState = {
+      ...spotifyLibraryState,
+      items: spotifyLibraryState.items.filter(
+        item => !removedUris.has(item.content_uri),
+      ),
+    };
+    await route.fulfill({
+      body: JSON.stringify(spotifyLibraryState),
       contentType: 'application/json',
       status: 200,
     });
@@ -134,6 +212,16 @@ export async function mockBackend(
     let result = rpcResults[key] ?? null;
     if (key === 'get_app_settings') {
       result = { show_covers: showCovers };
+    }
+    if (
+      key === 'list_songs_by_artist_and_album' &&
+      payload.kwargs.provider === 'spotify'
+    ) {
+      result = rpcResults.list_songs_by_artist_and_album.map(song => ({
+        ...song,
+        file: 'spotify:track:chapter-one',
+        provider: 'spotify',
+      }));
     }
     if (key === 'list_library_sources') {
       result = [
@@ -167,6 +255,30 @@ export async function mockBackend(
             },
           ],
         }] : []),
+        {
+          id: 'spotify',
+          label: 'Spotify',
+          views: [
+            {
+              id: 'albums',
+              label: 'Albums',
+              kind: 'items',
+              content_types: ['album'],
+            },
+            {
+              id: 'playlists',
+              label: 'Playlists',
+              kind: 'items',
+              content_types: ['playlist'],
+            },
+            {
+              id: 'tracks',
+              label: 'Tracks',
+              kind: 'items',
+              content_types: ['track', 'collection'],
+            },
+          ],
+        },
       ];
     }
     if (key === 'list_library_items') {
@@ -185,7 +297,16 @@ export async function mockBackend(
         content_uri: 'service:playlist:bedtime',
         provider: 'streaming',
       }] : [];
-      result = [...localItems, ...streamingItems].filter(item => (
+      const spotifyItems = spotifyLibraryState.mode === 'curated'
+        ? spotifyLibraryState.items
+        : (spotifyLibrary ? [{
+          albumartist: 'Family',
+          album: 'Bedtime Stories',
+          content_type: 'playlist',
+          content_uri: 'spotify:playlist:bedtime',
+          provider: 'spotify',
+        }] : []);
+      result = [...localItems, ...streamingItems, ...spotifyItems].filter(item => (
         (!payload.kwargs.provider || item.provider === payload.kwargs.provider) &&
         (
           !payload.kwargs.content_types ||

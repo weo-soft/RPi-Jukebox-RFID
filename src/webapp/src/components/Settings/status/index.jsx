@@ -20,7 +20,8 @@ const SettingsStatus = () => {
     <SettingsSection id="system-status" title={t('settings.status.title')}>
       <Grid container>
         <Grid size={12}>
-          <List>
+          {/* the card content already carries the padding */}
+          <List disablePadding>
             <StatusVersion />
             <StatusBattery />
             <StatusDiskUsage />

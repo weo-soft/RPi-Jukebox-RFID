@@ -65,6 +65,14 @@ async function expectAbove(top, bottom) {
   expect(topBox.y + topBox.height).toBeLessThanOrEqual(bottomBox.y);
 }
 
+// Provider sections belong to setup and start collapsed.
+async function openSettingsSection(page, name) {
+  const section = page.getByRole('button', { exact: true, name });
+  await section.scrollIntoViewIfNeeded();
+  await section.click();
+  await expect(section).toHaveAttribute('aria-expanded', 'true');
+}
+
 function collectConsoleErrors(page) {
   const errors = [];
   page.on('console', message => {
@@ -238,6 +246,83 @@ test('library playback preserves provider and content URI', async ({ page }) => 
     content_uri: 'service:playlist:bedtime',
     provider: 'streaming',
   });
+  expect(consoleErrors).toEqual([]);
+});
+
+test('Spotify library playback preserves provider and content URI', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  const { rpcCalls } = await mockBackend(page, { spotifyLibrary: true });
+  await page.goto('/#/library/spotify/playlists');
+
+  await page.getByText('Bedtime Stories', { exact: true }).click();
+  await expect(page.getByText('Chapter One', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Play' }).click();
+
+  await expect.poll(() => (
+    rpcCalls.find(call => call.method === 'play_album')?.kwargs
+  )).toEqual({
+    album: 'Bedtime Stories',
+    albumartist: 'Family',
+    content_uri: 'spotify:playlist:bedtime',
+    provider: 'spotify',
+  });
+  expect(consoleErrors).toEqual([]);
+});
+
+test('Spotify account and device status render in settings', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page);
+  await page.goto('/#/settings');
+
+  await openSettingsSection(page, 'Spotify');
+  await expect(page.getByText('Connected', { exact: true })).toBeVisible();
+  await expect(page.getByText('Phoniebox', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Disconnect' })).toBeVisible();
+  await expectStableLayout(page);
+  expect(consoleErrors).toEqual([]);
+});
+
+test('Spotify library manages curated shared links', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page);
+  await page.goto('/#/settings');
+
+  await openSettingsSection(page, 'Spotify');
+  const curated = page.getByRole('button', { name: 'Curated library' });
+  await curated.scrollIntoViewIfNeeded();
+  await curated.click();
+
+  await page.getByRole('link', { name: 'Library' }).click();
+  await page.getByRole('tab', { name: 'Spotify' }).click();
+  await page.getByRole('button', { name: 'Add link' }).click();
+  await page.getByLabel('Spotify link').fill(
+    'https://open.spotify.com/playlist/4LyGZmj7LKOUECh4ZlNCML',
+  );
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+
+  await expect(page).toHaveURL(/#\/library\/spotify\/playlists$/);
+  await expect(page.getByText('Quiet Time', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Select', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Select Quiet Time' }).click();
+  await page.getByRole('button', { name: 'Remove 1 item' }).click();
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(page.getByText('Your library is empty!')).toBeVisible();
+  expect(consoleErrors).toEqual([]);
+});
+
+test('Spotify authorization opens before fetching the redirect URL', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page, { spotifyConnected: false });
+  await page.goto('/#/settings');
+
+  await openSettingsSection(page, 'Spotify');
+
+  const popupPromise = page.waitForEvent('popup');
+  await page.getByRole('button', { name: 'Connect' }).click();
+  const popup = await popupPromise;
+
+  await expect(popup).toHaveURL(/logo192\.png#spotify-authorize$/);
+  await popup.close();
   expect(consoleErrors).toEqual([]);
 });
 

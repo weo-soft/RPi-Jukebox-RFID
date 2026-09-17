@@ -3,7 +3,9 @@ import Box from '@mui/material/Box';
 import SettingsAudio from './audio/index';
 import SettingsAutoHotspot from './autohotspot';
 import SettingsGeneral from './general';
+import SettingsJellyfin from './jellyfin';
 import SettingsSecondSwipe from './secondswipe';
+import SettingsSpotify from './spotify';
 import SettingsStatus from './status/index';
 import SettingsTimers from './timers/index';
 import SystemControls from './systemcontrols';
@@ -14,7 +16,7 @@ const Settings = () => (
     sx={{
       alignItems: 'start',
       display: 'grid',
-      gap: 'var(--space-4)',
+      gap: 'var(--space-3)',
       // two column card grid as soon as the landscape tier has room for it
       gridTemplateColumns: {
         md: 'repeat(2, minmax(0, 1fr))',
@@ -28,6 +30,8 @@ const Settings = () => (
     <SettingsGeneral />
     <SettingsTimers />
     <SettingsAudio />
+    <SettingsSpotify />
+    <SettingsJellyfin />
     <SystemControls />
     <SettingsSecondSwipe />
     <SettingsAutoHotspot />

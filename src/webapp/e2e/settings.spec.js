@@ -17,6 +17,8 @@ test('settings sections start in the documented state', async ({ page }) => {
 
   await expect(section('System')).toHaveAttribute('aria-expanded', 'true');
   await expect(section('Timers')).toHaveAttribute('aria-expanded', 'true');
+  await expect(section('Spotify')).toHaveAttribute('aria-expanded', 'false');
+  await expect(section('Jellyfin')).toHaveAttribute('aria-expanded', 'false');
   await expect(section('System Controls')).toHaveAttribute('aria-expanded', 'false');
   await expect(section('Second Swipe')).toHaveAttribute('aria-expanded', 'false');
   await expect(section('Auto Hotspot')).toHaveAttribute('aria-expanded', 'false');

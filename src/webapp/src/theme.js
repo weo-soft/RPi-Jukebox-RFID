@@ -136,6 +136,13 @@ const theme = createTheme({
         },
       },
     },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          minHeight: 'var(--touch-min)',
+        },
+      },
+    },
     MuiSwitch: {
       styleOverrides: {
         root: {
