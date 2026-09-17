@@ -22,7 +22,17 @@ export default defineConfig({
     {
       name: 'mobile',
       use: {
+        hasTouch: true,
         viewport: { width: 375, height: 812 },
+      },
+    },
+    {
+      name: 'kiosk',
+      testMatch: /layout\.spec\.js/,
+      use: {
+        deviceScaleFactor: 1,
+        hasTouch: true,
+        viewport: { width: 1024, height: 600 },
       },
     },
     {
