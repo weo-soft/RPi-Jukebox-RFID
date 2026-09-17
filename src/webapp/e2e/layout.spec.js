@@ -110,6 +110,13 @@ test('player route keeps the cover place while the cover art loads', async ({ pa
   const cover = await page.locator('#player .MuiPaper-root').boundingBox();
   expect(cover.width).toBeCloseTo(pending.width, 0);
   expect(cover.height).toBeCloseTo(pending.height, 0);
+
+  // The blur that costs GPU time on the panel is only worth its price with a
+  // cover image behind it.
+  const backdropFilter = await page.getByTestId('player-backdrop').evaluate(
+    element => getComputedStyle(element).backdropFilter,
+  );
+  expect(backdropFilter).toBe('blur(14px)');
 });
 
 // Without a song the view keeps its geometry and offers a way into the library.
@@ -129,6 +136,12 @@ test('player route offers a way to the library without a song', async ({ page })
 
   await expect(page.getByText('No playback')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open library' })).toBeVisible();
+
+  // Without a cover image the backdrop stays unfiltered.
+  const backdropFilter = await page.getByTestId('player-backdrop').evaluate(
+    element => getComputedStyle(element).backdropFilter,
+  );
+  expect(backdropFilter).toBe('none');
 
   await expectNoDeadRows(page, {
     and: '.MuiBottomNavigation-root',

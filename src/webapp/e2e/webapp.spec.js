@@ -153,14 +153,18 @@ test('bottom navigation changes routes', async ({ page }) => {
   expect(consoleErrors).toEqual([]);
 });
 
+// The reference image stays without cover art on purpose: a cover turns the
+// backdrop into a blurred, scaled copy of the image, and how a machine
+// rasterises that is not reproducible. The backdrop rules themselves are
+// checked in e2e/layout.spec.js.
 test('player backdrop covers its full width across the md breakpoint', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop');
   const consoleErrors = collectConsoleErrors(page);
   await page.setViewportSize({ width: 800, height: 800 });
-  await mockBackend(page, { showCovers: true });
+  await mockBackend(page);
   await page.goto('/');
 
-  await expect(page.locator('#player img')).toBeVisible();
+  await expect(page.locator('#player img')).toHaveAttribute('src', /noCover/);
   for (const width of [800, 899, 900, 1280]) {
     await page.setViewportSize({ width, height: 800 });
     await expectShellFillsViewport(page);
