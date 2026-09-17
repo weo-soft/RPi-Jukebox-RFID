@@ -39,7 +39,11 @@ const Display = () => {
       </Typography>
       <Typography
         color="textSecondary"
+        // A custom variant has no default mapping, and an inline element neither
+        // clips nor honours text-overflow; long titles need the block box.
+        component="p"
         sx={{
+          margin: 0,
           marginTop: 'var(--space-2)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
