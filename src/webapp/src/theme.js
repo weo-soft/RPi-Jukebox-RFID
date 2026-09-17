@@ -73,6 +73,27 @@ const theme = createTheme({
         },
       },
     },
+    MuiCheckbox: {
+      styleOverrides: {
+        root: {
+          padding: 'calc((var(--touch-min) - 20px) / 2)',
+        },
+      },
+    },
+    MuiFormControlLabel: {
+      styleOverrides: {
+        root: {
+          minHeight: 72,
+        },
+      },
+    },
+    MuiRadio: {
+      styleOverrides: {
+        root: {
+          padding: 'calc((var(--touch-min) - 20px) / 2)',
+        },
+      },
+    },
     MuiMenuItem: {
       styleOverrides: {
         root: {

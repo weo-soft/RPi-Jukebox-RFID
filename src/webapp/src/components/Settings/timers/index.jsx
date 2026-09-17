@@ -1,35 +1,27 @@
 import { useTranslation } from 'react-i18next';
 
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  Divider,
   Grid,
   List,
 } from '@mui/material';
+
+import SettingsSection from '../section';
 import Timer from './timer';
 
 const SettingsTimers = () => {
   const { t } = useTranslation();
 
   return (
-    <Card>
-      <CardHeader
-        title={t('settings.timers.title')}
-      />
-      <Divider />
-      <CardContent>
-        <Grid size={12}>
-          <List>
-            <Timer type={'fade-volume'} />
-            <Timer type={'shutdown'} />
-            <Timer type={'stop-player'} />
-            <Timer type={'idle-shutdown'} />
-          </List>
-        </Grid>
-      </CardContent>
-    </Card>
+    <SettingsSection id="timers" title={t('settings.timers.title')}>
+      <Grid size={12}>
+        <List>
+          <Timer type={'fade-volume'} />
+          <Timer type={'shutdown'} />
+          <Timer type={'stop-player'} />
+          <Timer type={'idle-shutdown'} />
+        </List>
+      </Grid>
+    </SettingsSection>
   );
 };
 

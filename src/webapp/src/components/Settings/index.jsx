@@ -1,5 +1,4 @@
-
-import { Grid } from '@mui/material';
+import Box from '@mui/material/Box';
 
 import SettingsAudio from './audio/index';
 import SettingsAutoHotspot from './autohotspot';
@@ -9,45 +8,30 @@ import SettingsStatus from './status/index';
 import SettingsTimers from './timers/index';
 import SystemControls from './systemcontrols';
 
-import { useTheme } from '@mui/material/styles';
-
-const Settings = () => {
-  const theme = useTheme();
-  const spacer = { marginBottom: theme.spacing(1) }
-
-  return (
-    <Grid
-      container
-      id="settings"
-      sx={{
-        '& > :not(:last-child)': spacer,
-        flexDirection: 'column',
-        padding: '10px',
-      }}
-    >
-      <Grid>
-        <SettingsStatus />
-      </Grid>
-      <Grid>
-        <SettingsGeneral />
-      </Grid>
-      <Grid>
-        <SettingsTimers />
-      </Grid>
-      <Grid>
-        <SettingsAudio />
-      </Grid>
-      <Grid>
-        <SystemControls />
-      </Grid>
-      <Grid>
-        <SettingsSecondSwipe />
-      </Grid>
-      <Grid>
-        <SettingsAutoHotspot />
-      </Grid>
-    </Grid>
-  );
-};
+const Settings = () => (
+  <Box
+    id="settings"
+    sx={{
+      alignItems: 'start',
+      display: 'grid',
+      gap: 'var(--space-4)',
+      // two column card grid as soon as the landscape tier has room for it
+      gridTemplateColumns: {
+        md: 'repeat(2, minmax(0, 1fr))',
+        xs: 'minmax(0, 1fr)',
+      },
+      minWidth: 0,
+      width: '100%',
+    }}
+  >
+    <SettingsStatus />
+    <SettingsGeneral />
+    <SettingsTimers />
+    <SettingsAudio />
+    <SystemControls />
+    <SettingsSecondSwipe />
+    <SettingsAutoHotspot />
+  </Box>
+);
 
 export default Settings;

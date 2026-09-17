@@ -61,9 +61,25 @@ test('the design tokens are applied to the document', async ({ page }) => {
   expect(touchMin).not.toBe('');
 });
 
-test('player route keeps every control touch sized', async ({ page }) => {
-  await openRoute(page, routes[0]);
-  await expectTouchTargets(page, { min: 48 });
+for (const route of routes) {
+  test(`${route.name} route keeps every control touch sized`, async ({ page }) => {
+    await openRoute(page, route);
+    await expectTouchTargets(page, { min: 48 });
+  });
+}
+
+// The panel target of chapter 06: the settings fit two screen fills.
+test('settings route stays within two screen fills', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'kiosk');
+
+  await openRoute(page, routes[3]);
+
+  const { content, viewport } = await page.evaluate(() => ({
+    content: document.querySelector('main').getBoundingClientRect().height,
+    viewport: window.innerHeight,
+  }));
+
+  expect(content).toBeLessThanOrEqual(2 * viewport);
 });
 
 test('player route fits the viewport without scrolling', async ({ page }) => {
