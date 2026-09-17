@@ -8,12 +8,14 @@ import {
 
 import AlbumListItem from './album-list-item';
 
+import { LIBRARY_LIST_SX } from '../../list-layout';
+
 const AlbumList = ({ albums, musicFilter, view }) => {
   const { t } = useTranslation();
 
   if (albums?.length) {
     return (
-      <List sx={{ width: '100%' }}>
+      <List sx={LIBRARY_LIST_SX}>
         {albums.map((entry, i) => (
           <AlbumListItem
             key={entry.content_uri || `${entry.provider}:${entry.albumartist}:${entry.album}:${i}`}

@@ -15,6 +15,13 @@ import {
 
 import noCover from '../../../../../assets/noCover.jpg';
 
+import {
+  LIBRARY_AVATAR_SX,
+  LIBRARY_PRIMARY_SX,
+  LIBRARY_ROW_SX,
+  LIBRARY_SECONDARY_SX,
+} from '../../list-layout';
+
 import AppSettingsContext from '../../../../../context/appsettings/context';
 import request from '../../../../../utils/request';
 
@@ -83,13 +90,22 @@ const AlbumListItem = ({
   const content = (
     <>
       {show_covers &&
-        <ListItemAvatar>
-          <Avatar variant="rounded" alt="Cover" src={coverImage} />
+        <ListItemAvatar sx={{ minWidth: 104 }}>
+          <Avatar
+            alt="Cover"
+            src={coverImage}
+            sx={LIBRARY_AVATAR_SX}
+            variant="rounded"
+          />
         </ListItemAvatar>
       }
       <ListItemText
         primary={album || t('library.albums.unknown-album')}
         secondary={albumartist || null}
+        slotProps={{
+          primary: { sx: LIBRARY_PRIMARY_SX },
+          secondary: { sx: LIBRARY_SECONDARY_SX },
+        }}
       />
     </>
   );
@@ -98,7 +114,7 @@ const AlbumListItem = ({
     <ListItem disablePadding={isButton} key={content_uri || album}>
       {isButton
         ? (
-          <ListItemButton component={AlbumLink} nativeButton={false}>
+          <ListItemButton component={AlbumLink} nativeButton={false} sx={LIBRARY_ROW_SX}>
             {content}
           </ListItemButton>
         )

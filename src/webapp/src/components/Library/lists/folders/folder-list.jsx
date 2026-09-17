@@ -11,6 +11,8 @@ import {
 import FolderListItem from './folder-list-item';
 import FolderListItemBack from './folder-list-item-back';
 
+import { LIBRARY_LIST_SX } from '../list-layout';
+
 import { ROOT_DIR } from '../../../../config';
 
 const FolderList = ({
@@ -36,7 +38,7 @@ const FolderList = ({
   const parentDir = getParentDir(dir);
 
   return (
-    <List sx={{ width: '100%' }}>
+    <List sx={LIBRARY_LIST_SX}>
       {parentDir &&
         <FolderListItemBack dir={parentDir} />
       }

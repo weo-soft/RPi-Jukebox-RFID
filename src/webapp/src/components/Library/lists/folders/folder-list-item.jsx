@@ -16,6 +16,12 @@ import request from '../../../../utils/request';
 import FolderLink from './folder-link';
 import FolderTypeAvatar from './folder-type-avatar';
 
+import {
+  LIBRARY_ACTION_SPACE_SX,
+  LIBRARY_PRIMARY_SX,
+  LIBRARY_ROW_SX,
+} from '../list-layout';
+
 const FolderListItem = ({
   folder,
   isManagementSelecting,
@@ -72,17 +78,13 @@ const FolderListItem = ({
       disablePadding
       secondaryAction={secondaryAction}
       sx={{
-        // MUI reserves a fixed 48 px for the secondary action; the action itself
-        // needs its own width plus the distance from the edge.
-        '& > .MuiListItemButton-root': {
-          paddingRight: 'calc(var(--touch-min) + var(--space-6))',
-        },
+        '& > .MuiListItemButton-root': LIBRARY_ACTION_SPACE_SX,
       }}
     >
       <ListItemButton
         onClick={activateItem}
         selected={isManagementSelecting && isSelected}
-        sx={{ minHeight: 72 }}
+        sx={LIBRARY_ROW_SX}
       >
         {isManagementSelecting &&
           <ListItemIcon sx={{ minWidth: 44 }}>
@@ -101,11 +103,7 @@ const FolderListItem = ({
         <FolderTypeAvatar type={type} />
         <ListItemText
           primary={name}
-          slotProps={{
-            primary: {
-              sx: { overflowWrap: 'anywhere' },
-            },
-          }}
+          slotProps={{ primary: { sx: LIBRARY_PRIMARY_SX } }}
         />
       </ListItemButton>
     </ListItem>

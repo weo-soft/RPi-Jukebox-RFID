@@ -16,6 +16,8 @@ import SongListHeadline from './song-list-headline';
 import SongListControls from './song-list-controls';
 import SongListItem from './song-list-item';
 
+import { LIBRARY_LIST_SX } from '../../list-layout';
+
 const SongList = ({
   isSelecting,
   provider: providerProperty,
@@ -83,7 +85,7 @@ const SongList = ({
       >
         {isLoading
           ? <CircularProgress />
-          : <List sx={{ width: '100%' }}>
+          : <List sx={LIBRARY_LIST_SX}>
               {songs.map(song =>
                 <SongListItem
                   key={song.file || song.track}

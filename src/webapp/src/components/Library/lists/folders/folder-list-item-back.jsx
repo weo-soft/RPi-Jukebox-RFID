@@ -10,6 +10,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import FolderLink from './folder-link';
 
+import { LIBRARY_ROW_SX } from '../list-layout';
+
 const FolderListItemBack = ({ dir }) => {
   const { t } = useTranslation();
 
@@ -20,6 +22,7 @@ const FolderListItemBack = ({ dir }) => {
         data={{ dir }}
         aria-label={t('library.folders.back-button-label')}
         nativeButton={false}
+        sx={LIBRARY_ROW_SX}
       >
         <ArrowBackIcon />
         <ListItemText primary={'..'} />

@@ -39,7 +39,18 @@ const LibraryHeader = ({ handleMusicFilter, musicFilter, sources }) => {
     : t('library.header.search-show');
 
   return (
-    <Grid container size={12} sx={{ marginBottom: '8px' }}>
+    <Grid
+      container
+      size={12}
+      sx={{
+        // the tab strip stays under the page top while the list scrolls
+        backgroundColor: 'background.default',
+        marginBottom: '8px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 2,
+      }}
+    >
       <Box
         sx={{
           borderBottom: 1,
@@ -63,7 +74,7 @@ const LibraryHeader = ({ handleMusicFilter, musicFilter, sources }) => {
           scrollButtons="auto"
           value={sourceValue}
           variant="scrollable"
-          sx={{ flex: 1, minWidth: 0 }}
+          sx={{ flex: 1, minHeight: 56, minWidth: 0 }}
         >
           <Tab label={t('library.header.overview')} value="overview" />
           {sources.map(({ id, label }) => (
@@ -90,7 +101,7 @@ const LibraryHeader = ({ handleMusicFilter, musicFilter, sources }) => {
           scrollButtons="auto"
           value={source.views.some(({ id }) => id === activeView) ? activeView : false}
           variant="scrollable"
-          sx={{ borderBottom: 1, borderColor: 'divider', width: '100%' }}
+          sx={{ borderBottom: 1, borderColor: 'divider', minHeight: 56, width: '100%' }}
         >
           {source.views.map(({ id, label }) => (
             <Tab

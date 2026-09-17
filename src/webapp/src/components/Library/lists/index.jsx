@@ -192,7 +192,7 @@ const LibraryLists = () => {
   return (
     <Grid container id="library">
       {isSelecting && <SelectorHeader />}
-      <Grid container size={12} sx={{ padding: '10px' }}>
+      <Grid container size={12} sx={{ minWidth: 0 }}>
         <LibraryHeader
           handleMusicFilter={handleMusicFilter}
           musicFilter={musicFilter}
@@ -201,10 +201,9 @@ const LibraryLists = () => {
         <Grid
           container
           size={12}
-          spacing={1}
           sx={{
-            display: 'flex',
             justifyContent: 'center',
+            minWidth: 0,
           }}
         >
           <Routes>
