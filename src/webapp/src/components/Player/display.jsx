@@ -1,36 +1,56 @@
 import { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import PlayerContext from '../../context/player/context';
-
-import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+
+import EmptyState from './empty-state';
+
+import PlayerContext from '../../context/player/context';
 
 const Display = () => {
   const { t } = useTranslation();
   const { state: { playerstatus } } = useContext(PlayerContext);
 
-  const dontBreak = {
-    whiteSpace: 'nowrap',
-    width: '100%',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  };
+  if (!playerstatus?.songid) {
+    return <EmptyState />;
+  }
+
+  const title = playerstatus.title || t('player.display.unknown-title');
+  const subtitle = [
+    playerstatus.artist || t('player.display.unknown-artist'),
+    playerstatus.album || playerstatus.file,
+  ].filter(Boolean).join(' \u2022 ');
 
   return (
-    <Grid container>
-      <Typography sx={dontBreak} component="h5" variant="h5">
-        {playerstatus?.songid
-          ? (playerstatus?.title || t('player.display.unknown-title'))
-          : t('player.display.no-song-in-queue')
-        }
+    <Box sx={{ minWidth: 0 }}>
+      <Typography
+        component="h5"
+        sx={{
+          display: '-webkit-box',
+          overflow: 'hidden',
+          overflowWrap: 'anywhere',
+          WebkitBoxOrient: 'vertical',
+          WebkitLineClamp: 2,
+        }}
+        variant="displayTitle"
+      >
+        {title}
       </Typography>
-      <Typography sx={dontBreak} variant="subtitle1" color="textSecondary">
-        {playerstatus?.songid && (playerstatus?.artist || t('player.display.unknown-artist')) }
-        <span style={{ marginLeft: '5px', marginRight: '5px' }}>&bull;</span>
-        {playerstatus?.songid && (playerstatus?.album || playerstatus?.file) }
+      <Typography
+        color="textSecondary"
+        sx={{
+          marginTop: 'var(--space-2)',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+        title={subtitle}
+        variant="displaySubtitle"
+      >
+        {subtitle}
       </Typography>
-    </Grid>
+    </Box>
   );
 };
 

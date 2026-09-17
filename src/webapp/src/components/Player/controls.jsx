@@ -1,7 +1,7 @@
 import { memo, useContext, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import PlayCircleFilledRoundedIcon from '@mui/icons-material/PlayCircleFilledRounded';
 import PauseCircleFilledRoundedIcon from '@mui/icons-material/PauseCircleFilledRounded';
@@ -13,6 +13,18 @@ import RepeatOneRoundedIcon from '@mui/icons-material/RepeatOneRounded';
 
 import PlayerContext from '../../context/player/context';
 import request from '../../utils/request';
+
+// The box of a control comes from its token, the icon size from the matching
+// icon token; padding would couple the hit area to the icon instead.
+const touchBox = (token) => ({
+  height: `var(${token})`,
+  minHeight: `var(${token})`,
+  minWidth: `var(${token})`,
+  padding: 0,
+  width: `var(${token})`,
+});
+
+const ACTIVE_SURFACE = 'rgba(0, 150, 136, .18)';
 
 // TODO: Should be broken up in sub-modules
 const Controls = () => {
@@ -50,8 +62,6 @@ const Controls = () => {
     }));
   }, [playerstatus, setState]);
 
-  const iconStyles = { padding: '7px' };
-
   const labelShuffle = () => (
     isShuffle
       ? t('player.controls.shuffle.disable')
@@ -64,26 +74,31 @@ const Controls = () => {
     if (isRepeat && isSingle) return t('player.controls.repeat.disable');
   };
 
+  // An active toggle is marked by a filled surface and by its color
+  const toggleStyle = (isActive) => ({
+    ...touchBox('--touch-comfort'),
+    backgroundColor: isActive ? ACTIVE_SURFACE : 'transparent',
+    color: isActive ? 'primary.light' : undefined,
+  });
+
   return (
-    <Grid
-      container
+    <Box
       sx={{
         alignItems: 'center',
-        flexWrap: 'nowrap',
-        justifyContent: 'space-evenly',
+        display: 'flex',
+        gap: 'var(--touch-gap)',
+        justifyContent: 'center',
       }}
     >
 
       {/* Shuffle */}
       <IconButton
         aria-label={labelShuffle()}
-        color={isShuffle ? 'primary' : undefined}
         onClick={toggleShuffle}
-        size="large"
-        sx={iconStyles}
+        sx={toggleStyle(isShuffle)}
         title={labelShuffle()}
       >
-        <ShuffleRoundedIcon style={{ fontSize: 22 }} />
+        <ShuffleRoundedIcon sx={{ fontSize: 'var(--icon-comfort)' }} />
       </IconButton>
 
       {/* Skip to previous song */}
@@ -91,11 +106,10 @@ const Controls = () => {
         aria-label={t('player.controls.prev_song')}
         disabled={!songIsScheduled}
         onClick={() => request('prev_song')}
-        size="large"
-        sx={iconStyles}
+        sx={touchBox('--touch-secondary')}
         title={t('player.controls.prev_song')}
       >
-        <SkipPreviousRoundedIcon style={{ fontSize: 35 }} />
+        <SkipPreviousRoundedIcon sx={{ fontSize: 'var(--icon-secondary)' }} />
       </IconButton>
 
       {/* Play */}
@@ -104,11 +118,10 @@ const Controls = () => {
           aria-label={t('player.controls.play')}
           onClick={() => request('play')}
           disabled={!songIsScheduled}
-          size="large"
-          sx={iconStyles}
+          sx={touchBox('--touch-primary')}
           title={t('player.controls.play')}
         >
-          <PlayCircleFilledRoundedIcon style={{ fontSize: 75 }} />
+          <PlayCircleFilledRoundedIcon sx={{ fontSize: 'var(--icon-primary)' }} />
         </IconButton>
       }
       {/* Pause */}
@@ -116,11 +129,10 @@ const Controls = () => {
         <IconButton
           aria-label={t('player.controls.pause')}
           onClick={() => request('pause')}
-          size="large"
-          sx={iconStyles}
+          sx={touchBox('--touch-primary')}
           title={t('player.controls.pause')}
         >
-          <PauseCircleFilledRoundedIcon style={{ fontSize: 75 }} />
+          <PauseCircleFilledRoundedIcon sx={{ fontSize: 'var(--icon-primary)' }} />
         </IconButton>
       }
 
@@ -129,33 +141,30 @@ const Controls = () => {
         aria-label={t('player.controls.next_song')}
         disabled={!songIsScheduled}
         onClick={() => request('next_song')}
-        size="large"
-        sx={iconStyles}
+        sx={touchBox('--touch-secondary')}
         title={t('player.controls.next_song')}
       >
-        <SkipNextRoundedIcon style={{ fontSize: 35 }} />
+        <SkipNextRoundedIcon sx={{ fontSize: 'var(--icon-secondary)' }} />
       </IconButton>
 
       {/* Repeat */}
       <IconButton
         aria-label={labelRepeat()}
-        color={isRepeat ? 'primary' : undefined}
         onClick={toggleRepeat}
-        size="large"
-        sx={iconStyles}
+        sx={toggleStyle(isRepeat)}
         title={labelRepeat()}
       >
         {
           !isSingle &&
-          <RepeatRoundedIcon style={{ fontSize: 22 }} />
+          <RepeatRoundedIcon sx={{ fontSize: 'var(--icon-comfort)' }} />
         }
         {
           isSingle &&
-          <RepeatOneRoundedIcon style={{ fontSize: 22 }} />
+          <RepeatOneRoundedIcon sx={{ fontSize: 'var(--icon-comfort)' }} />
         }
       </IconButton>
 
-    </Grid>
+    </Box>
   );
 };
 

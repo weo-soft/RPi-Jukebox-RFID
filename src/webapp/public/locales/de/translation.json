@@ -254,6 +254,11 @@
       "unknown-artist": "Unbekannter Künstler",
       "no-song-in-queue": "Es wird kein Titel abgespielt"
     },
+    "empty": {
+      "title": "Keine Wiedergabe",
+      "hint": "Karte auflegen oder Musik auswählen",
+      "open-library": "Bibliothek öffnen"
+    },
     "seekbar": {
       "song-position": "Aktuelle Position"
     },

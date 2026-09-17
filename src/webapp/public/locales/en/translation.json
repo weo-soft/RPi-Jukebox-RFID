@@ -254,6 +254,11 @@
       "unknown-artist": "Unknown artists",
       "no-song-in-queue": "No song in queue"
     },
+    "empty": {
+      "title": "No playback",
+      "hint": "Tap a card or pick music",
+      "open-library": "Open library"
+    },
     "seekbar": {
       "song-position": "Current position"
     },

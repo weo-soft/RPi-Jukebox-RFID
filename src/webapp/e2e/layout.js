@@ -10,6 +10,23 @@ const INTERACTIVE = [
 ].join(',');
 
 export const SHELL_SELECTOR = '#routes';
+
+const TOKEN_PROPERTIES = [
+  '--gutter',
+  '--nav-height',
+  '--touch-min',
+  '--font-display',
+];
+
+// The token file is imported by the entry point; without it every var(...)
+// reference falls back to its initial value.
+export async function expectTokensLoaded(page) {
+  await expect.poll(() => page.evaluate(properties => (
+    properties.filter(property => (
+      getComputedStyle(document.documentElement).getPropertyValue(property).trim() === ''
+    ))
+  ), TOKEN_PROPERTIES)).toEqual([]);
+}
 export const NAV_SELECTOR = '.MuiBottomNavigation-root';
 
 export async function collectTouchTargets(page) {
