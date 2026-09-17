@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { mockBackend } from './backend';
+import { mockBackend, socketEvents } from './backend';
 import { expectShellFillsViewport } from './layout';
 
 async function expectStableLayout(page) {
@@ -165,6 +165,28 @@ test('player backdrop covers its full width across the md breakpoint', async ({ 
 
   await page.setViewportSize({ width: 899, height: 800 });
   await expect(page).toHaveScreenshot('player-899.png');
+  expect(consoleErrors).toEqual([]);
+});
+
+// Long German titles and missing provider covers are the normal case on a box,
+// so the reference image covers both at once.
+test('player route renders a long title without a cover', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page, {
+    timerEvents: {
+      playerstatus: {
+        ...socketEvents.playerstatus,
+        album: 'Benjamin Blümchen, Folge 1: … als Wetterelefant',
+        artist: 'Benjamin Blümchen',
+        title: 'Ein Elefant will hoch hinaus',
+      },
+    },
+  });
+  await page.goto('/');
+
+  await expect(page.getByText('Ein Elefant will hoch hinaus')).toBeVisible();
+  await expect(page.locator('#player img')).toHaveAttribute('src', /noCover/);
+  await expect(page).toHaveScreenshot('player-long-title.png');
   expect(consoleErrors).toEqual([]);
 });
 

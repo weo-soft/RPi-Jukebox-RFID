@@ -28,7 +28,6 @@ export default defineConfig({
     },
     {
       name: 'kiosk',
-      testMatch: /layout\.spec\.js/,
       use: {
         deviceScaleFactor: 1,
         hasTouch: true,
