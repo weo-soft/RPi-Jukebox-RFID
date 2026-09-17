@@ -37,6 +37,10 @@ const StatusIpAddress = () => {
   return (
     <ListItem
       disableGutters
+      sx={{
+        // room for the 48 px action plus its distance from the edge
+        paddingRight: 'calc(var(--touch-min) + var(--space-6))',
+      }}
       secondaryAction={
         <IconButton
           aria-label={t('settings.status.ip-address.button-title')}

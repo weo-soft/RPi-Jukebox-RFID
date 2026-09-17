@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 import App from './App';
+import './index.css';
 import theme from './theme';
 import { i18nReady } from './i18n';
 

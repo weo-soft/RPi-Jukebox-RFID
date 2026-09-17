@@ -270,7 +270,6 @@ const UploadDialog = ({
                         aria-label={t('library.folders.manager.upload-dialog.cancel-item')}
                         edge="end"
                         onClick={() => cancelItem(item.id)}
-                        sx={{ height: 44, width: 44 }}
                       >
                         <CancelIcon />
                       </IconButton>
@@ -281,14 +280,16 @@ const UploadDialog = ({
                           aria-label={t('library.folders.manager.upload-dialog.retry-item')}
                           edge="end"
                           onClick={() => retryItem(item.id)}
-                          sx={{ height: 44, width: 44 }}
                         >
                           <ReplayIcon />
                         </IconButton>
                       </Tooltip>
                     : <CheckCircleIcon color="success" />
               }
-              sx={{ paddingRight: 7 }}
+              sx={{
+                // room for the 48 px action plus its distance from the edge
+                paddingRight: 'calc(var(--touch-min) + var(--space-6))',
+              }}
             >
               <ListItemText
                 primary={item.relativePath}

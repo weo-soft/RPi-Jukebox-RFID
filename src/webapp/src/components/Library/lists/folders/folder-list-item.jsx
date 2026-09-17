@@ -61,7 +61,6 @@ const FolderListItem = ({
           data={{ dir: relpath }}
           edge="end"
           nativeButton={false}
-          sx={{ height: 44, width: 44 }}
         >
           <NavigateNextIcon />
         </IconButton>
@@ -72,11 +71,18 @@ const FolderListItem = ({
     <ListItem
       disablePadding
       secondaryAction={secondaryAction}
+      sx={{
+        // MUI reserves a fixed 48 px for the secondary action; the action itself
+        // needs its own width plus the distance from the edge.
+        '& > .MuiListItemButton-root': {
+          paddingRight: 'calc(var(--touch-min) + var(--space-6))',
+        },
+      }}
     >
       <ListItemButton
         onClick={activateItem}
         selected={isManagementSelecting && isSelected}
-        sx={{ minHeight: 56 }}
+        sx={{ minHeight: 72 }}
       >
         {isManagementSelecting &&
           <ListItemIcon sx={{ minWidth: 44 }}>
