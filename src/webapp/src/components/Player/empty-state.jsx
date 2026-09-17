@@ -24,7 +24,8 @@ const EmptyState = () => {
         </Typography>
         <Typography
           color="textSecondary"
-          sx={{ marginTop: 'var(--space-2)' }}
+          component="p"
+          sx={{ margin: 0, marginTop: 'var(--space-2)' }}
           variant="displaySubtitle"
         >
           {t('player.empty.hint')}

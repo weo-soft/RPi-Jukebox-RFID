@@ -187,8 +187,10 @@ test('player backdrop covers its full width across the md breakpoint', async ({ 
   expect(consoleErrors).toEqual([]);
 });
 
-// Long German titles and missing provider covers are the normal case on a box,
-// so the reference image covers both at once.
+// Long German titles and missing provider covers are the normal case on a box.
+// The check reads the geometry instead of comparing pixels: how many lines a
+// title takes follows the metrics of the font the system resolves, so the same
+// page renders a line taller or shorter on another machine.
 test('player route renders a long title without a cover', async ({ page }) => {
   const consoleErrors = collectConsoleErrors(page);
   await mockBackend(page, {
@@ -203,13 +205,47 @@ test('player route renders a long title without a cover', async ({ page }) => {
   });
   await page.goto('/');
 
-  await expect(page.getByText('Ein Elefant will hoch hinaus')).toBeVisible();
-  await expect(page.locator('#player img')).toHaveAttribute('src', /noCover/);
-  await expectImagesLoaded(page);
-  await expect.poll(() => page.locator('#player img').evaluate(
+  const title = page.locator('#player h5');
+  await expect(title).toHaveText('Ein Elefant will hoch hinaus');
+
+  const lines = await title.evaluate(element => {
+    const style = getComputedStyle(element);
+    return {
+      clamp: Number(style.webkitLineClamp),
+      height: element.clientHeight,
+      lineHeight: parseFloat(style.lineHeight),
+    };
+  });
+  // The title breaks into at most two lines and never spills out of its box.
+  expect(lines.clamp).toBe(2);
+  expect(lines.height).toBeLessThanOrEqual((2 * lines.lineHeight) + 1);
+
+  const subtitle = page.locator('#player h5 + *');
+  const subtitleLines = await subtitle.evaluate(element => {
+    const style = getComputedStyle(element);
+    return {
+      height: element.clientHeight,
+      lineHeight: parseFloat(style.lineHeight),
+      overflow: style.textOverflow,
+      whiteSpace: style.whiteSpace,
+    };
+  });
+  // The subtitle stays on one line and is cut with an ellipsis.
+  expect(subtitleLines.whiteSpace).toBe('nowrap');
+  expect(subtitleLines.overflow).toBe('ellipsis');
+  expect(subtitleLines.height).toBeLessThanOrEqual(subtitleLines.lineHeight + 1);
+
+  // A missing cover falls back to the shipped replacement image.
+  const cover = page.locator('#player .MuiPaper-root');
+  await expect(cover.locator('img')).toHaveAttribute('src', /noCover/);
+  await expect.poll(() => cover.locator('img').evaluate(
     image => image.naturalWidth,
   )).toBeGreaterThan(0);
-  await expect(page).toHaveScreenshot('player-long-title.png');
+
+  const coverBox = await cover.boundingBox();
+  expect(coverBox.height).toBeCloseTo(coverBox.width, 0);
+
+  await expectStableLayout(page);
   expect(consoleErrors).toEqual([]);
 });
 
