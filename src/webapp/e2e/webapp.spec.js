@@ -65,6 +65,15 @@ async function expectAbove(top, bottom) {
   expect(topBox.y + topBox.height).toBeLessThanOrEqual(bottomBox.y);
 }
 
+// A reference image is comparable only once every image of the page has
+// finished loading: a placeholder that arrives late changes the pixels below
+// it, and a loaded machine delivers it later than a warm development server.
+async function expectImagesLoaded(page) {
+  await expect.poll(() => page.evaluate(() => (
+    Array.from(document.images).every(image => image.complete)
+  ))).toBe(true);
+}
+
 // Provider sections belong to setup and start collapsed.
 async function openSettingsSection(page, name) {
   const section = page.getByRole('button', { exact: true, name });
@@ -130,6 +139,7 @@ for (const route of routes) {
         page.getByText('0001234567', { exact: true }),
       );
     }
+    await expectImagesLoaded(page);
     await expect(page).toHaveScreenshot(`${route.name}.png`);
     expect(consoleErrors).toEqual([]);
   });
@@ -172,6 +182,7 @@ test('player backdrop covers its full width across the md breakpoint', async ({ 
   }
 
   await page.setViewportSize({ width: 899, height: 800 });
+  await expectImagesLoaded(page);
   await expect(page).toHaveScreenshot('player-899.png');
   expect(consoleErrors).toEqual([]);
 });
@@ -194,6 +205,10 @@ test('player route renders a long title without a cover', async ({ page }) => {
 
   await expect(page.getByText('Ein Elefant will hoch hinaus')).toBeVisible();
   await expect(page.locator('#player img')).toHaveAttribute('src', /noCover/);
+  await expectImagesLoaded(page);
+  await expect.poll(() => page.locator('#player img').evaluate(
+    image => image.naturalWidth,
+  )).toBeGreaterThan(0);
   await expect(page).toHaveScreenshot('player-long-title.png');
   expect(consoleErrors).toEqual([]);
 });
