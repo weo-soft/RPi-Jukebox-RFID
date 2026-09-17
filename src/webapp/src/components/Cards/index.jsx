@@ -13,10 +13,7 @@ const Cards = () => {
   return (
     <Grid
       container
-      id="library"
-      sx={{
-        padding: '10px',
-      }}
+      sx={{ minWidth: 0 }}
     >
       <Routes>
         <Route

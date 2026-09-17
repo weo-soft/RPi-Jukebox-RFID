@@ -41,8 +41,12 @@ const CardsList = ({ cardsList }) => {
 
     return (
       <ListItem disablePadding key={cardId}>
-        <ListItemButton component={EditCardLink} nativeButton={false}>
-          <ListItemAvatar>
+        <ListItemButton
+          component={EditCardLink}
+          nativeButton={false}
+          sx={{ minHeight: 96 }}
+        >
+          <ListItemAvatar sx={{ minWidth: 56 }}>
             <Avatar>
               <BookmarkIcon />
             </Avatar>
@@ -50,6 +54,24 @@ const CardsList = ({ cardsList }) => {
           <ListItemText
             primary={cardId}
             secondary={description}
+            slotProps={{
+              primary: {
+                sx: {
+                  fontFamily: 'monospace',
+                  fontSize: 18,
+                },
+              },
+              secondary: {
+                sx: {
+                  display: '-webkit-box',
+                  overflow: 'hidden',
+                  overflowWrap: 'anywhere',
+                  WebkitBoxOrient: 'vertical',
+                  WebkitLineClamp: 2,
+                },
+                title: description,
+              },
+            }}
           />
         </ListItemButton>
       </ListItem>

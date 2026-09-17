@@ -8,14 +8,12 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Fab from '@mui/material/Fab';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
-import { useTheme } from '@mui/material/styles';
 
 import Header from '../Header';
 import request from '../../utils/request';
 
 const CardsOverview = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
   const { t } = useTranslation();
 
   const [data, setData] = useState({});
@@ -64,9 +62,12 @@ const CardsOverview = () => {
         color="primary"
         onClick={openRegisterCard}
         sx={{
+          bottom: 'calc(var(--nav-height) + var(--space-4))',
+          height: 'var(--touch-secondary)',
+          minHeight: 'var(--touch-secondary)',
           position: 'fixed',
-          bottom: '76px',
-          right: theme.spacing(2),
+          right: 'var(--gutter)',
+          width: 'var(--touch-secondary)',
         }}
       >
         <AddIcon />
