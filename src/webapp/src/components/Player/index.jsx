@@ -99,7 +99,12 @@ const Player = () => {
           sx={{
             alignItems: 'center',
             display: 'grid',
+            // The column has to be definite: the cover square takes its width
+            // from a percentage, which would otherwise collapse on a placeholder
+            // without intrinsic size.
+            gridTemplateColumns: 'minmax(0, 1fr)',
             justifyContent: 'center',
+            justifyItems: 'center',
             minHeight: 0,
             minWidth: 0,
           }}

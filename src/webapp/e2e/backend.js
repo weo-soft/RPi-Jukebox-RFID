@@ -79,6 +79,7 @@ export const socketEvents = {
 export async function mockBackend(
   page,
   {
+    coverGate,
     failRpc = false,
     rpcGate,
     showCovers = false,
@@ -114,6 +115,10 @@ export async function mockBackend(
 
     if (rpcGate) {
       await rpcGate;
+    }
+
+    if (coverGate && (payload.method || payload.plugin) === 'get_single_coverart') {
+      await coverGate;
     }
 
     if (failRpc) {

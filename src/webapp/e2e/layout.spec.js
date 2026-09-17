@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { mockBackend } from './backend';
+import { mockBackend, socketEvents } from './backend';
 import {
   expectNoDeadColumns,
   expectNoDeadRows,
@@ -85,6 +85,59 @@ test('settings route stays within two screen fills', async ({ page }, testInfo) 
 test('player route fits the viewport without scrolling', async ({ page }) => {
   await openRoute(page, routes[0]);
   await expectNoScroll(page);
+});
+
+// The loading state reserves the final cover size instead of jumping when the
+// cover art arrives.
+test('player route keeps the cover place while the cover art loads', async ({ page }) => {
+  let releaseCover;
+  const coverGate = new Promise(resolve => {
+    releaseCover = resolve;
+  });
+
+  await mockBackend(page, { coverGate, showCovers: true });
+  await page.goto(routes[0].path);
+  await expect(page.locator(routes[0].ready)).toBeVisible();
+  await expectTokensLoaded(page);
+
+  const skeleton = page.getByTestId('cover-skeleton');
+  await expect(skeleton).toBeVisible();
+  const pending = await skeleton.boundingBox();
+
+  releaseCover();
+
+  await expect(skeleton).toBeHidden();
+  const cover = await page.locator('#player .MuiPaper-root').boundingBox();
+  expect(cover.width).toBeCloseTo(pending.width, 0);
+  expect(cover.height).toBeCloseTo(pending.height, 0);
+});
+
+// Without a song the view keeps its geometry and offers a way into the library.
+test('player route offers a way to the library without a song', async ({ page }) => {
+  await mockBackend(page, {
+    timerEvents: {
+      playerstatus: {
+        ...socketEvents.playerstatus,
+        songid: '',
+        title: '',
+      },
+    },
+  });
+  await page.goto(routes[0].path);
+  await expect(page.locator(routes[0].ready)).toBeVisible();
+  await expectTokensLoaded(page);
+
+  await expect(page.getByText('No playback')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open library' })).toBeVisible();
+
+  await expectNoDeadRows(page, {
+    and: '.MuiBottomNavigation-root',
+    between: '[data-testid="volume-row"]',
+    max: 24,
+  });
+
+  await page.getByRole('button', { name: 'Open library' }).click();
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toContain('/library');
 });
 
 test('player route ends right above the navigation bar', async ({ page }) => {
