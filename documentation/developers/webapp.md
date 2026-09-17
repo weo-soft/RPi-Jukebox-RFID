@@ -87,6 +87,44 @@ The old ZeroMQ-over-WebSocket endpoints on ports `5556` and `5557` were
 intentionally removed. Native ZeroMQ clients remain wire-compatible on TCP RPC
 port `5555` and publishing port `5558`.
 
+## Kiosk and touch displays
+
+The Web App runs on small touch panels in kiosk mode as well. The reference
+device is a 7 inch panel with 1024 x 600 CSS pixels, where one CSS pixel
+measures 0.15 mm.
+
+The sizes are CSS custom properties in `src/webapp/src/index.css`, which
+`src/webapp/src/index.jsx` imports. The MUI theme in `src/webapp/src/theme.js`
+reads them through `var(...)` and defines no sizes of its own.
+
+- `--touch-min` (48 px) is the lower bound for everything clickable;
+  `--touch-comfort`, `--touch-secondary` and `--touch-primary` follow at 56,
+  64 and 96 px. The icon sizes derive from them.
+- On a coarse pointer (`@media (pointer: coarse)`) the touch tokens scale with
+  the short viewport edge, so a denser panel of the same physical size keeps
+  the millimetre minimum. The upper bounds of the `clamp()` expressions keep a
+  large touch screen from inflating the controls.
+- The shell limits its width to `min(100%, 1100px)` for readability. The
+  bottom navigation carries the same limit, so its tabs line up with the
+  content.
+- The type scale uses `clamp()` with `min(vw, vh)`, so a title grows with both
+  axes and still fits on a wide but low viewport.
+
+The Playwright projects `mobile` (375 x 812) and `kiosk` (1024 x 600) emulate a
+coarse pointer with `hasTouch: true`; that is what makes the token tier apply
+during a test run. `e2e/layout.js` holds the shared invariants.
+`e2e/layout.spec.js` checks the touch minimum, the shell width, the missing
+dead space and the scroll behaviour of every route, `e2e/settings.spec.js`
+checks the collapsed settings sections.
+
+Reference images are stored per route and project. Update them per route and
+look at each generated image:
+
+```bash
+cd src/webapp
+npx playwright test --update-snapshots -g 'route renders'
+```
+
 ## Checks and production build
 
 Run the same checks used by CI:
