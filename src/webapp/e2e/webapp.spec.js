@@ -151,7 +151,7 @@ test('player backdrop covers its full width across the md breakpoint', async ({ 
   await page.goto('/');
 
   await expect(page.locator('#player img')).toBeVisible();
-  for (const width of [800, 899, 900]) {
+  for (const width of [800, 899, 900, 1280]) {
     await page.setViewportSize({ width, height: 800 });
     await expectShellFillsViewport(page);
     const [mainBox, backdropBox] = await Promise.all([

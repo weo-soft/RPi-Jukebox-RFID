@@ -20,6 +20,13 @@ function App() {
             sx={{
               alignItems: 'center',
               justifyContent: 'center',
+              // The readability limit sits on the shell, not on the content column
+              maxWidth: 'min(100%, 1100px)',
+              marginX: 'auto',
+              minHeight: '100dvh',
+              padding: 'var(--gutter)',
+              // space for the fixed navigation bar
+              paddingBottom: 'calc(var(--nav-height) + var(--gutter))',
             }}
           >
             <Router />

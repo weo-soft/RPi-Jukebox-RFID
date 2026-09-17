@@ -15,10 +15,7 @@ const Router = () => {
     <HashRouter>
       <Grid
         component="main"
-        size={{ xs: 12, md: 6 }}
-        sx={{
-          marginBottom: '64px',
-        }}
+        size="grow"
       >
         <Routes>
           <Route
