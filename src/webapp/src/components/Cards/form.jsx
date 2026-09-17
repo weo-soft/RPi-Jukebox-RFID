@@ -44,6 +44,13 @@ const CardsForm = ({
                   <BookmarkIcon />
                 </Avatar>
               }
+              slotProps={{
+                subheader: { sx: { fontSize: 'var(--font-body)' } },
+                title: {
+                  sx: { fontFamily: 'monospace', fontSize: 18 },
+                },
+              }}
+              subheader={cardId ? t('cards.form.card-id-hint') : undefined}
               title={
                 cardId
                   ? cardId
@@ -52,19 +59,21 @@ const CardsForm = ({
             />
             <CardContent>
               {cardId &&
-                <>
-                  <Grid container sx={{ alignItems: 'center' }}>
+                <Grid container spacing={2}>
+                  <Grid size={{ md: 6, xs: 12 }}>
                     <ControlsSelector
                       actionData={actionData}
                       setActionData={setActionData}
                       cardId={cardId}
                     />
                   </Grid>
-                  <ActionsControls
-                    actionData={actionData}
-                    cardId={cardId}
-                  />
-                </>
+                  <Grid size={{ md: 6, xs: 12 }}>
+                    <ActionsControls
+                      actionData={actionData}
+                      cardId={cardId}
+                    />
+                  </Grid>
+                </Grid>
               }
               {!cardId && <InfoNoCardSwiped />}
             </CardContent>

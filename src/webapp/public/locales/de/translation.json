@@ -109,7 +109,8 @@
     },
     "form": {
       "no-card-swiped": "Bitte scanne eine Karte um einen ID zu erhalten. Diese wird dann zur Registrierung einer neuen Aktion verwendet.",
-      "no-card-id": "Keine Karten-ID vorhanden"
+      "no-card-id": "Keine Karten-ID vorhanden",
+      "card-id-hint": "Eine aufgelegte Karte füllt die ID."
     },
     "list": {
       "no-cards-registered": "Es wurden noch keine Karten registriert!"

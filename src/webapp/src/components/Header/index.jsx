@@ -15,8 +15,12 @@ const Header = ({ title, backLink }) => {
       size={12}
       spacing={1}
       sx={{
-        display: 'flex',
         alignItems: 'center',
+        backgroundColor: 'background.default',
+        minHeight: 56,
+        position: 'sticky',
+        top: 0,
+        zIndex: 2,
       }}
     >
       {backLink &&
@@ -24,24 +28,19 @@ const Header = ({ title, backLink }) => {
           aria-label={t('header.back')}
           component={Link}
           nativeButton={false}
-          to={backLink}
-          size="large"
+          sx={{
+            height: 'var(--touch-comfort)',
+            minHeight: 'var(--touch-comfort)',
+            minWidth: 'var(--touch-comfort)',
+            width: 'var(--touch-comfort)',
+          }}
           title={t('header.back')}
+          to={backLink}
         >
           <ArrowBackIcon />
         </IconButton>
       }
-      <Typography
-        variant="h6"
-        sx={
-          !backLink
-          ? {
-              marginTop: '10px',
-              marginLeft: '20px',
-            }
-          : {}
-        }
-      >
+      <Typography component="h2" variant="sectionTitle">
         {title}
       </Typography>
     </Grid>

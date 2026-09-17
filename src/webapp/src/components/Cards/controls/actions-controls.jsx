@@ -58,15 +58,17 @@ const ActionsControls = ({
     <>
       <CardActions
         sx={{
+          flexDirection: { md: 'row', xs: 'column' },
+          gap: 'var(--space-2)',
+          justifyContent: path === 'register' ? 'flex-end' : 'space-between',
           marginTop: '40px',
-          justifyContent: path === 'register' ? 'flex-end' : 'space-between'
         }}
       >
         {path !== 'register' &&
           <Button
             color="secondary"
-            size="small"
             onClick={() => setDeleteDialogOpen(true)}
+            sx={{ width: { md: 'auto', xs: '100%' } }}
           >
             {t('general.buttons.delete')}
           </Button>
@@ -74,7 +76,7 @@ const ActionsControls = ({
         <Button
           color="primary"
           onClick={() => handleRegisterCard(cardId)}
-          size="small"
+          sx={{ width: { md: 'auto', xs: '100%' } }}
         >
           {t('general.buttons.save')}
         </Button>

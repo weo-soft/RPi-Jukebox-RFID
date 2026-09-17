@@ -73,6 +73,13 @@ const theme = createTheme({
         },
       },
     },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          minHeight: 56,
+        },
+      },
+    },
     MuiListItemButton: {
       styleOverrides: {
         root: {
