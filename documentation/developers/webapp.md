@@ -64,7 +64,9 @@ npm run dev
 
 The development server listens on port `3000` and proxies `/api/` to
 `http://localhost:5556`. Set `API_PROXY_TARGET` to use another Jukebox API
-server.
+server. `/cover-cache/` is forwarded as well: nginx serves the cover cache from
+the Web App build directory, which the development server does not serve
+itself.
 
 ## Backend API
 
