@@ -4,6 +4,7 @@ import { Grid } from '@mui/material';
 import SettingsAudio from './audio/index';
 import SettingsAutoHotspot from './autohotspot';
 import SettingsGeneral from './general';
+import SettingsJellyfin from './jellyfin';
 import SettingsSecondSwipe from './secondswipe';
 import SettingsSpotify from './spotify';
 import SettingsStatus from './status/index';
@@ -40,6 +41,9 @@ const Settings = () => {
       </Grid>
       <Grid>
         <SettingsSpotify />
+      </Grid>
+      <Grid>
+        <SettingsJellyfin />
       </Grid>
       <Grid>
         <SystemControls />

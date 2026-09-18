@@ -18,6 +18,7 @@
 * [Auto Hotspot](./autohotspot.md)
 * File Management
   * [Network share / Samba](./samba.md)
+  * [Jellyfin (Media Server)](./jellyfin.md)
 
 ## Hardware Components
 
