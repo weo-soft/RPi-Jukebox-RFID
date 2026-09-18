@@ -12,14 +12,11 @@ const Settings = () => (
   <Box
     id="settings"
     sx={{
-      alignItems: 'start',
-      display: 'grid',
-      gap: 'var(--space-4)',
-      // two column card grid as soon as the landscape tier has room for it
-      gridTemplateColumns: {
-        md: 'repeat(2, minmax(0, 1fr))',
-        xs: 'minmax(0, 1fr)',
-      },
+      // One column, on every screen size: the sections have different heights,
+      // so side by side they never line up and the page reads as unordered.
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 'var(--space-3)',
       minWidth: 0,
       width: '100%',
     }}

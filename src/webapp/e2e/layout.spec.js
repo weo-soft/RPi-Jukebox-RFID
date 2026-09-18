@@ -68,8 +68,13 @@ for (const route of routes) {
   });
 }
 
-// The panel target of chapter 06: the settings fit two screen fills.
-test('settings route stays within two screen fills', async ({ page }, testInfo) => {
+// Stacked sections make the page as tall as their sum, which is what keeps them
+// lining up with each other. The sections that belong to setup start collapsed
+// and the rows are compact, so the page stays around three screen fills; the
+// bound keeps a pile of new sections from passing unnoticed.
+const MAX_SETTINGS_FILLS = 3.5;
+
+test('settings route keeps its length within its bound', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'kiosk');
 
   await openRoute(page, routes[3]);
@@ -79,7 +84,28 @@ test('settings route stays within two screen fills', async ({ page }, testInfo) 
     viewport: window.innerHeight,
   }));
 
-  expect(content).toBeLessThanOrEqual(2 * viewport);
+  expect(content / viewport).toBeLessThanOrEqual(MAX_SETTINGS_FILLS);
+});
+
+// The reference image of this route cannot hold the arrangement: the sections
+// and the background are both dark, so a rearrangement stays below the colour
+// distance a pixel comparison counts. The geometry carries it instead.
+test('settings sections are stacked in one column', async ({ page }) => {
+  await openRoute(page, routes[3]);
+
+  const sections = await page.locator('#settings > .MuiCard-root').evaluateAll(
+    cards => cards.map(card => {
+      const rect = card.getBoundingClientRect();
+      return { left: Math.round(rect.left), top: Math.round(rect.top), width: Math.round(rect.width) };
+    }),
+  );
+
+  expect(sections.length).toBeGreaterThan(1);
+  // Side by side they never line up: the sections hold a different number of rows.
+  expect(new Set(sections.map(({ left }) => left)).size).toBe(1);
+  expect(new Set(sections.map(({ width }) => width)).size).toBe(1);
+  // And they follow each other downwards.
+  expect(sections.map(({ top }) => top)).toEqual([...sections.map(({ top }) => top)].sort((a, b) => a - b));
 });
 
 test('player route fits the viewport without scrolling', async ({ page }) => {
