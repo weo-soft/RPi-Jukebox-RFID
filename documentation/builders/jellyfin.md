@@ -73,6 +73,15 @@ The plugin is configured under **Settings → Jellyfin**: server address,
 username, password, catalog cache TTL and request timeout. The password is
 never displayed; enter a new value to change it.
 
+### After a restart
+
+MPD restores its queue when it starts, so a Jellyfin album keeps playing
+after a reboot or a `systemctl restart jukebox-daemon`. The Jellyfin backend
+claims that playback within a few seconds: the Start view then shows the
+track metadata and the album cover from the local cover cache, as before the
+restart. Covers that were downloaded once are reused and are not fetched
+again; only a cover that is still missing is downloaded.
+
 ### RFID cards
 
 ```yaml
@@ -100,6 +109,10 @@ rfid_card_02:
   are played by MPD).
 - **Jellyfin source shows an error while local library works** — the Jellyfin
   server is offline or unreachable; the local MPD library is unaffected.
+- **Cover and title of the restored song are missing after a restart** — the
+  album cover is looked up as soon as the Jellyfin server answers. A server
+  that is unreachable while the box boots delays that by up to a minute per
+  attempt, and the cover itself is then served from the local cache.
 - **Large library (1000+ albums) times out on first open** — building the
   initial album catalog takes several seconds per page (500 albums). The daemon
   warms the catalog in the background at start-up and the WebApp waits up

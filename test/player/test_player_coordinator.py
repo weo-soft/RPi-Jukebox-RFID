@@ -144,6 +144,49 @@ def test_switch_updates_optional_backend_activation_state():
     streaming_backend.set_active.assert_called_once_with(True)
 
 
+def test_adopt_backend_takes_over_a_running_playback_without_stopping_it():
+    events = []
+    local_backend = backend_with(
+        stop=Mock(side_effect=lambda: events.append('local.stop')),
+        set_active=Mock(
+            side_effect=lambda active: events.append(f'local.active={active}')),
+    )
+    streaming_backend = backend_with(
+        set_active=Mock(
+            side_effect=lambda active: events.append(f'streaming.active={active}')),
+    )
+    coordinator = PlayerCoordinator()
+    coordinator.register_backend('local', local_backend)
+    coordinator.register_backend('streaming', streaming_backend)
+
+    assert coordinator.adopt_backend('streaming') == 'streaming'
+
+    # Playback that outlived its backend keeps running: only the status
+    # ownership moves to the backend that owns the content.
+    assert events == [
+        'local.active=True', 'local.active=False', 'streaming.active=True']
+    local_backend.stop.assert_not_called()
+    assert coordinator.get_active_backend() == 'streaming'
+    assert coordinator.get_default_backend() == 'local'
+
+
+def test_adopt_backend_keeps_the_backend_that_already_owns_the_status():
+    backend = backend_with(set_active=Mock())
+    coordinator = PlayerCoordinator()
+    coordinator.register_backend('mpd', backend)
+
+    assert coordinator.adopt_backend('mpd') == 'mpd'
+    backend.set_active.assert_called_once_with(True)
+
+
+def test_adopt_backend_rejects_an_unknown_backend():
+    coordinator = PlayerCoordinator()
+    coordinator.register_backend('mpd', backend_with())
+
+    with pytest.raises(KeyError, match='Unknown player backend'):
+        coordinator.adopt_backend('streaming')
+
+
 def test_provider_qualified_content_selects_matching_backend():
     events = []
     local_backend = backend_with(

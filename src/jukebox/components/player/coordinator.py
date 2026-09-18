@@ -136,6 +136,28 @@ class PlayerCoordinator:
             return name
 
     @plugs.tag
+    def adopt_backend(self, name: str):
+        """Move status ownership to a backend whose playback is already running.
+
+        Playback can outlive the backend that started it: MPD restores its
+        queue across a restart, so content of another backend is already
+        playing when the daemon starts. That content belongs to its own
+        backend, which publishes the status for it. Unlike select_backend()
+        the previously active backend is not stopped, because the running
+        playback is taken over instead of replaced.
+        """
+        with self._lock:
+            backend = self._get_backend(name)
+            if self._active_backend_name == name:
+                return name
+            if self._active_backend_name is not None:
+                self._set_backend_active(self._get_active_backend(), False)
+            self._active_backend_name = name
+            self._set_backend_active(backend, True)
+            logger.info(f"Player backend '{name}' took over the running playback")
+            return name
+
+    @plugs.tag
     def get_player_type_and_version(self):
         return self._call_active('get_player_type_and_version')
 

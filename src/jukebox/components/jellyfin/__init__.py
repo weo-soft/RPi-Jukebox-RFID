@@ -114,5 +114,9 @@ def configure_jellyfin(player_ctrl):
     player_ctrl.register_backend('jellyfin', backend)
     _jellyfin_backend = backend
     backend.start_warmup()
+    # MPD restores its queue across a restart, so a Jellyfin stream can
+    # already be playing when the daemon starts. That playback is reported
+    # by this backend, which owns the metadata and the cover.
+    backend.start_restore(lambda: player_ctrl.adopt_backend('jellyfin'))
     logger.info("Jellyfin backend registered")
     return backend
