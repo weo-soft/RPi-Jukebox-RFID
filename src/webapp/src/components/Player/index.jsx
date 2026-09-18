@@ -73,18 +73,35 @@ const Player = () => {
     <Box
       id="player"
       sx={{
-        backgroundImage,
-        backgroundPosition: 'center',
+        overflow: 'hidden',
+        position: 'relative',
       }}
     >
+      {/* The blurred cover is its own layer instead of a backdrop-filter. A
+          filtered backdrop covers whole device pixels only, so the fraction of
+          a row that a layout of fractional sizes leaves over stays sharp and
+          shows the cover at the edge. The layer reaches past the container and
+          is clipped by it, which keeps its blurred edge out of sight. */}
+      {coverImage &&
+        <Box
+          aria-hidden="true"
+          data-testid="player-backdrop-blur"
+          sx={{
+            backgroundImage,
+            backgroundPosition: 'center',
+            filter: 'blur(var(--backdrop-blur))',
+            inset: 'calc(-1 * var(--backdrop-spread))',
+            position: 'absolute',
+          }}
+        />
+      }
       <Box
         data-testid="player-backdrop"
         sx={{
-          // The blur costs GPU time on the Raspberry Pi and is pointless without
-          // a cover image; the gradient alone carries the readability.
-          backdropFilter: coverImage ? 'blur(14px)' : 'none',
           columnGap: 'var(--space-6)',
           display: 'grid',
+          // Positioned as well, so it paints above the blurred layer.
+          position: 'relative',
           gridTemplateColumns: 'minmax(0, 1fr)',
           gridTemplateRows: 'minmax(0, 1fr)',
           height: 'calc(100dvh - var(--nav-height) - 2 * var(--gutter))',

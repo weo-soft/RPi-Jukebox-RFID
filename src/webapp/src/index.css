@@ -36,6 +36,12 @@
   /* Navigation bar */
   --nav-height: clamp(64px, 12vh, 76px);
 
+  /* The blurred backdrop of the now playing view. The layer reaches
+   * --backdrop-spread past its container so that its blurred edge stays
+   * outside the visible area. */
+  --backdrop-blur: 14px;
+  --backdrop-spread: 32px;
+
   /* Typography; the vh share keeps titles from overflowing on wide, low viewports */
   --font-display: clamp(24px, min(4.2vw, 7vh), 44px);
   --font-display-sub: clamp(16px, min(2.1vw, 3.6vh), 26px);
