@@ -2,30 +2,7 @@
 
 JELLYFIN_SETTINGS_FILE="${SETTINGS_PATH}/jukebox.yaml"
 
-_jellyfin_set_user_config() {
-  print_lc "  Configure Jellyfin"
-  print_lc "    Enter your Jellyfin server URL (e.g. http://jellyfin.local:8096):"
-  read -r JELLYFIN_HOST
-
-  unset JELLYFIN_USERNAME JELLYFIN_PASSWORD
-  print_lc "    Enter the Jellyfin username:"
-  read -r JELLYFIN_USERNAME
-  print_lc "    Enter the Jellyfin password (input is hidden):"
-  read -r -s JELLYFIN_PASSWORD
-  echo
-  print_lc "    The login token inherits the library permissions of that user."
-
-  if [[ -z "$JELLYFIN_HOST" ]]; then
-    print_c "  WARNING: Jellyfin server URL is required. Skipping Jellyfin setup."
-    ENABLE_JELLYFIN=false
-    return
-  fi
-  if [[ -z "$JELLYFIN_USERNAME" || -z "$JELLYFIN_PASSWORD" ]]; then
-    print_c "  WARNING: Jellyfin username and password are required. Skipping Jellyfin setup."
-    ENABLE_JELLYFIN=false
-    return
-  fi
-
+_jellyfin_write_config() {
   # The Python heredoc reads the values from the environment, never from shell
   # interpolation, so special characters in host and credentials are
   # preserved. The delimiter is quoted to prevent any shell expansion inside
@@ -71,6 +48,53 @@ PYEOF
     print_c "  WARNING: Failed to write jellyfin config to ${JELLYFIN_SETTINGS_FILE}."
     ENABLE_JELLYFIN=false
   fi
+}
+
+_jellyfin_set_user_config() {
+  print_lc "  Configure Jellyfin"
+
+  # In non-interactive mode (--config / --non-interactive) the server and the
+  # credentials are supplied via the flat config file / environment
+  # (JELLYFIN_HOST plus JELLYFIN_USERNAME and JELLYFIN_PASSWORD). No 'read'
+  # prompts are issued — a missing value skips Jellyfin setup.
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    if [[ -z "$JELLYFIN_HOST" ]]; then
+      print_c "  WARNING: Jellyfin server URL is required. Skipping Jellyfin setup."
+      ENABLE_JELLYFIN=false
+      return
+    fi
+    if [[ -n "$JELLYFIN_USERNAME" && -n "$JELLYFIN_PASSWORD" ]]; then
+      _jellyfin_write_config
+      return
+    fi
+    print_c "  WARNING: Jellyfin username and password are required. Skipping Jellyfin setup."
+    ENABLE_JELLYFIN=false
+    return
+  fi
+
+  print_lc "    Enter your Jellyfin server URL (e.g. http://jellyfin.local:8096):"
+  read -r JELLYFIN_HOST
+
+  unset JELLYFIN_USERNAME JELLYFIN_PASSWORD
+  print_lc "    Enter the Jellyfin username:"
+  read -r JELLYFIN_USERNAME
+  print_lc "    Enter the Jellyfin password (input is hidden):"
+  read -r -s JELLYFIN_PASSWORD
+  echo
+  print_lc "    The login token inherits the library permissions of that user."
+
+  if [[ -z "$JELLYFIN_HOST" ]]; then
+    print_c "  WARNING: Jellyfin server URL is required. Skipping Jellyfin setup."
+    ENABLE_JELLYFIN=false
+    return
+  fi
+  if [[ -z "$JELLYFIN_USERNAME" || -z "$JELLYFIN_PASSWORD" ]]; then
+    print_c "  WARNING: Jellyfin username and password are required. Skipping Jellyfin setup."
+    ENABLE_JELLYFIN=false
+    return
+  fi
+
+  _jellyfin_write_config
 }
 
 _jellyfin_check() {
