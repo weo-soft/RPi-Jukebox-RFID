@@ -3,11 +3,12 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import {
-  CircularProgress,
   Grid,
   List,
   Typography,
 } from '@mui/material';
+
+import { Loading } from '../../../../general';
 
 import request from '../../../../../utils/request';
 
@@ -84,7 +85,7 @@ const SongList = ({
         }}
       >
         {isLoading
-          ? <CircularProgress />
+          ? <Loading />
           : <List sx={LIBRARY_LIST_SX}>
               {songs.map(song =>
                 <SongListItem

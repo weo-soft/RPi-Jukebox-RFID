@@ -8,9 +8,10 @@ import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Box,
-  CircularProgress,
   Typography,
 } from "@mui/material";
+
+import { Loading } from '../../../general';
 
 import request from '../../../../utils/request';
 import {
@@ -183,7 +184,7 @@ const Albums = ({
         </Alert>
       }
       {isLoading
-        ? <CircularProgress />
+        ? <Loading />
         : <AlbumList
             albums={filteredAlbums}
             isManagementSelecting={isManagementSelecting}

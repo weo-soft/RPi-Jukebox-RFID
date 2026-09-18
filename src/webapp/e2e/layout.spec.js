@@ -108,6 +108,37 @@ test('settings sections are stacked in one column', async ({ page }) => {
   expect(sections.map(({ top }) => top)).toEqual([...sections.map(({ top }) => top)].sort((a, b) => a - b));
 });
 
+// A view that loads shows its state where its content will appear, centred and
+// at a size that reads from the sofa, not as a speck in the corner.
+test('library route centres its loading state', async ({ page }) => {
+  let releaseRpc;
+  const rpcGate = new Promise(resolve => {
+    releaseRpc = resolve;
+  });
+
+  await mockBackend(page, { rpcGate });
+  await page.goto(routes[1].path);
+  await expect(page.locator(routes[1].ready)).toBeVisible();
+  await expectTokensLoaded(page);
+
+  const loading = page.getByTestId('view-loading');
+  await expect(loading).toBeVisible();
+
+  const [loadingBox, shellBox, spinnerBox] = await Promise.all([
+    loading.boundingBox(),
+    page.locator('#routes').boundingBox(),
+    loading.locator('.MuiCircularProgress-root').boundingBox(),
+  ]);
+
+  expect(loadingBox.x + (loadingBox.width / 2))
+    .toBeCloseTo(shellBox.x + (shellBox.width / 2), 0);
+  expect(loadingBox.height).toBeGreaterThanOrEqual(300);
+  expect(spinnerBox.width).toBeGreaterThanOrEqual(56);
+
+  releaseRpc();
+  await expect(page.getByText('Discovery', { exact: true })).toBeVisible();
+});
+
 test('player route fits the viewport without scrolling', async ({ page }) => {
   await openRoute(page, routes[0]);
   await expectNoScroll(page);
