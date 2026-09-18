@@ -119,6 +119,9 @@ test('player route keeps the cover place while the cover art loads', async ({ pa
   const blurred = page.getByTestId('player-backdrop-blur');
   await expect(blurred).toBeVisible();
   await expect(blurred).toHaveCSS('filter', 'blur(14px)');
+  // One cover across the whole area, not the image repeated at its own size.
+  await expect(blurred).toHaveCSS('background-repeat', 'no-repeat, no-repeat');
+  await expect(blurred).toHaveCSS('background-size', '100% 100%, cover');
 
   const [blurBox, backdropBox] = await Promise.all([
     blurred.boundingBox(),

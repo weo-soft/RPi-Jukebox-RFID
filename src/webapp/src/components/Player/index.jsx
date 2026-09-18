@@ -89,6 +89,10 @@ const Player = () => {
           sx={{
             backgroundImage,
             backgroundPosition: 'center',
+            // One cover across the whole area instead of the image repeated at
+            // its own size; the gradient keeps the area behind it covered.
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: '100% 100%, cover',
             filter: 'blur(var(--backdrop-blur))',
             inset: 'calc(-1 * var(--backdrop-spread))',
             position: 'absolute',
