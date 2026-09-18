@@ -18,7 +18,10 @@ function App() {
             container
             id="routes"
             sx={{
-              alignItems: 'center',
+              // Views start at the top. Centring them vertically moved a view
+              // that was still loading into the middle of the screen and let it
+              // jump up as soon as its content arrived.
+              alignItems: 'flex-start',
               justifyContent: 'center',
               // The readability limit sits on the shell, not on the content column
               maxWidth: 'min(100%, 1100px)',
