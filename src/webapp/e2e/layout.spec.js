@@ -112,11 +112,22 @@ test('player route keeps the cover place while the cover art loads', async ({ pa
   expect(cover.height).toBeCloseTo(pending.height, 0);
 
   // The blur that costs GPU time on the panel is only worth its price with a
-  // cover image behind it.
-  const backdropFilter = await page.getByTestId('player-backdrop').evaluate(
-    element => getComputedStyle(element).backdropFilter,
-  );
-  expect(backdropFilter).toBe('blur(14px)');
+  // cover image behind it. It reaches past the content on every side: a blurred
+  // layer that ends on the edge of the layout leaves the fraction of a device
+  // pixel row that a fractional layout leaves over sharp, and the cover shows
+  // through as a line at the edge.
+  const blurred = page.getByTestId('player-backdrop-blur');
+  await expect(blurred).toBeVisible();
+  await expect(blurred).toHaveCSS('filter', 'blur(14px)');
+
+  const [blurBox, backdropBox] = await Promise.all([
+    blurred.boundingBox(),
+    page.getByTestId('player-backdrop').boundingBox(),
+  ]);
+  expect(blurBox.x).toBeLessThan(backdropBox.x);
+  expect(blurBox.y).toBeLessThan(backdropBox.y);
+  expect(blurBox.x + blurBox.width).toBeGreaterThan(backdropBox.x + backdropBox.width);
+  expect(blurBox.y + blurBox.height).toBeGreaterThan(backdropBox.y + backdropBox.height);
 });
 
 // Without a song the view keeps its geometry and offers a way into the library.
@@ -137,11 +148,8 @@ test('player route offers a way to the library without a song', async ({ page })
   await expect(page.getByText('No playback')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open library' })).toBeVisible();
 
-  // Without a cover image the backdrop stays unfiltered.
-  const backdropFilter = await page.getByTestId('player-backdrop').evaluate(
-    element => getComputedStyle(element).backdropFilter,
-  );
-  expect(backdropFilter).toBe('none');
+  // Without a cover image there is no blurred layer at all.
+  await expect(page.getByTestId('player-backdrop-blur')).toHaveCount(0);
 
   await expectNoDeadRows(page, {
     and: '.MuiBottomNavigation-root',
