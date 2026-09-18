@@ -1,3 +1,4 @@
+import logging
 import threading
 import time
 from contextlib import nullcontext
@@ -9,7 +10,7 @@ import pytest
 import jukebox.cfghandler as cfghandler
 import jukebox.publishing as publishing
 
-from components.jellyfin import configure_jellyfin
+from components.jellyfin import configure_jellyfin, jellyfin_backend
 from components.jellyfin.jellyfin_api_client import (
     DEFAULT_TIMEOUT,
     JellyfinAuthError,
@@ -829,7 +830,7 @@ def test_get_single_coverart_falls_back_to_track_cover_when_album_unresolvable(t
     api.get_coverart_bytes.assert_called_once_with('track-1')
 
 
-def test_status_cover_resolves_album_for_unmapped_stream(tmp_path):
+def test_status_resolves_unmapped_stream_off_the_poller_thread(tmp_path):
     api = make_api()
     api.get_item.return_value = track_item()
     mpd = make_mpd()
@@ -842,14 +843,51 @@ def test_status_cover_resolves_album_for_unmapped_stream(tmp_path):
     }
 
     status = backend._normalize_status(mpd.mpd_status)
-    # The stream URL stays masked; the album cover download is enqueued.
+    # The stream URL stays masked and the metadata is not resolved on the
+    # calling thread (the status poller would block on the network).
     assert status['file'] == ''
+    assert status['title'] == ''
+    assert status['cover_url'] is None
+
+    backend._track_resolve_queue.join()
+    status = backend._normalize_status(mpd.mpd_status)
+    # The next poll publishes the resolved metadata: the stable URI, the
+    # track data and (after the download) the album cover.
+    assert status['file'] == f'{TRACK_URI_PREFIX}track-1'
+    assert status['title'] == 'Track One'
+    assert status['artist'] == 'Artist One'
+    assert status['album'] == 'Album One'
+    assert status['duration'] == '12'
     assert status['cover_url'] is None
     backend._cover_write_queue.join()
 
     status = backend._normalize_status(mpd.mpd_status)
     assert status['cover_url'] == '/cover-cache/jellyfin-album-1.jpg'
     api.get_coverart_bytes.assert_called_once_with('album-1')
+
+
+def test_status_resolves_restored_track_on_the_metadata_worker(tmp_path):
+    threads = []
+
+    def record_thread(item_id):
+        threads.append(threading.current_thread().name)
+        return track_item()
+
+    api = make_api()
+    api.get_item.side_effect = record_thread
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+    backend._cover_cache_dir = tmp_path
+    mpd.mpd_status = {
+        'file': STREAM_URL.format(item_id='track-1'),
+        'state': 'play',
+    }
+
+    backend._normalize_status(mpd.mpd_status)
+    backend._track_resolve_queue.join()
+
+    assert threads == ['jellyfin.metadata']
+    assert api.get_item.call_args == call('track-1')
 
 
 def test_status_cover_uses_cached_album_cover_for_unmapped_stream(tmp_path):
@@ -865,10 +903,67 @@ def test_status_cover_uses_cached_album_cover_for_unmapped_stream(tmp_path):
         'song': '0',
     }
 
+    backend._normalize_status(mpd.mpd_status)
+    backend._track_resolve_queue.join()
     status = backend._normalize_status(mpd.mpd_status)
 
+    # The album cover of the restored track comes from the cache: nothing is
+    # downloaded again after a restart.
     assert status['cover_url'] == '/cover-cache/jellyfin-album-1.jpg'
     api.get_coverart_bytes.assert_not_called()
+
+
+def test_unresolvable_track_metadata_is_retried_after_cooldown(tmp_path):
+    api = make_api()
+    api.get_item.side_effect = [RuntimeError('offline'), track_item()]
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+    backend._cover_cache_dir = tmp_path
+    mpd.mpd_status = {
+        'file': STREAM_URL.format(item_id='track-1'),
+        'state': 'play',
+    }
+
+    backend._normalize_status(mpd.mpd_status)
+    backend._track_resolve_queue.join()
+    assert backend._normalize_status(mpd.mpd_status)['title'] == ''
+
+    # The failed lookup is not repeated on every status tick ...
+    for _ in range(10):
+        backend._normalize_status(mpd.mpd_status)
+    backend._track_resolve_queue.join()
+    assert api.get_item.call_count == 1
+
+    # ... but it is retried once the cooldown has expired, so a server that
+    # was unreachable for a moment cannot hide the metadata for the rest of
+    # the run.
+    backend._track_resolve_retry_after['track-1'] = time.monotonic() - 1.0
+    backend._normalize_status(mpd.mpd_status)
+    backend._track_resolve_queue.join()
+
+    status = backend._normalize_status(mpd.mpd_status)
+    assert status['title'] == 'Track One'
+    assert status['file'] == f'{TRACK_URI_PREFIX}track-1'
+
+
+def test_album_resolve_failure_can_be_retried_after_cooldown(tmp_path):
+    api = make_api()
+    api.get_item.side_effect = [RuntimeError('offline'), track_item()]
+    backend = make_backend(api)
+    backend._cover_cache_dir = tmp_path
+
+    # A failed lookup is not memoized: a server that does not answer for a
+    # moment (e.g. while the box is still booting) must not disable the
+    # cover for the rest of the run.
+    assert backend._resolve_album_id('track-1') is None
+    # ... but it is not repeated immediately either.
+    assert backend._resolve_album_id('track-1') is None
+    assert api.get_item.call_count == 1
+
+    backend._album_resolve_retry_after['track-1'] = time.monotonic() - 1.0
+
+    assert backend._resolve_album_id('track-1') == 'album-1'
+    assert api.get_item.call_count == 2
 
 
 def test_cover_cache_is_memoized_and_written_async(tmp_path):
@@ -956,6 +1051,114 @@ def test_cover_url_reuses_existing_file_after_restart(tmp_path):
     assert backend._cover_url('track-1') == '/cover-cache/jellyfin-track-1.jpg'
     api.get_coverart_bytes.assert_not_called()
 
+
+# ---------------------------------------------------------------------------
+# Restored playback (MPD restores its queue across a restart)
+# ---------------------------------------------------------------------------
+
+
+def test_restore_claims_the_stream_mpd_restored_and_adopts(tmp_path, monkeypatch):
+    monkeypatch.setattr(jellyfin_backend, 'RESTORE_POLL_INTERVAL', 0.01)
+    api = make_api()
+    api.get_item.return_value = track_item()
+    mpd = make_mpd()
+    mpd.mpd_status = {
+        'file': STREAM_URL.format(item_id='track-1'),
+        'state': 'pause',
+        'song': '2',
+    }
+    backend = make_backend(api, mpd)
+    backend._cover_cache_dir = tmp_path
+    (tmp_path / 'jellyfin-album-1.jpg').write_bytes(b'cached-album-cover')
+    adopted = threading.Event()
+
+    backend.start_restore(adopted.set)
+
+    assert adopted.wait(5.0)
+    # The first poll masks the restored stream URL (it carries the token) and
+    # asks for the metadata in the background.
+    assert backend._normalize_status(mpd.mpd_status)['file'] == ''
+    backend._track_resolve_queue.join()
+    # The next poll reports the track, and the album cover comes from the
+    # cache that survived the restart.
+    status = backend._normalize_status(mpd.mpd_status)
+    assert status['file'] == f'{TRACK_URI_PREFIX}track-1'
+    assert status['title'] == 'Track One'
+    assert status['cover_url'] == '/cover-cache/jellyfin-album-1.jpg'
+    assert 'secret-token' not in str(status)
+    api.get_coverart_bytes.assert_not_called()
+
+
+def test_restore_ignores_content_of_other_providers(monkeypatch):
+    monkeypatch.setattr(jellyfin_backend, 'RESTORE_POLL_INTERVAL', 0.01)
+    api = make_api()
+    mpd = make_mpd()
+    mpd.mpd_status = {
+        'file': '/home/pi/Music/Album/track.mp3',
+        'state': 'play',
+    }
+    backend = make_backend(api, mpd)
+    adopted = threading.Event()
+
+    backend.start_restore(adopted.set).join(5.0)
+
+    assert not adopted.is_set()
+    api.get_item.assert_not_called()
+
+
+def test_restore_does_not_claim_playback_started_in_this_process(
+        monkeypatch):
+    monkeypatch.setattr(jellyfin_backend, 'RESTORE_POLL_INTERVAL', 0.01)
+    monkeypatch.setattr(
+        publishing, 'get_publisher', Mock(return_value=Mock()))
+    api = make_api()
+    api.get_item.return_value = track_item()
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+    backend.play_single(f'{TRACK_URI_PREFIX}track-1')
+    mpd.mpd_status = {
+        'file': STREAM_URL.format(item_id='track-1'),
+        'state': 'play',
+    }
+    backend.set_active(True)
+    adopted = threading.Event()
+
+    # Playback this process started is already reported by this backend: the
+    # restore must not claim it a second time.
+    backend.start_restore(adopted.set).join(5.0)
+
+    assert not adopted.is_set()
+
+
+def test_restore_waits_until_mpd_reports_a_song(monkeypatch):
+    monkeypatch.setattr(jellyfin_backend, 'RESTORE_POLL_INTERVAL', 0.01)
+    monkeypatch.setattr(jellyfin_backend, 'RESTORE_TIMEOUT', 0.2)
+    api = make_api()
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+    adopted = threading.Event()
+
+    # MPD restores its queue when MPD starts, which can lag this process: an
+    # empty status means 'not yet' and must not stop the restore.
+    backend.start_restore(adopted.set).join(5.0)
+
+    assert not adopted.is_set()
+    api.get_item.assert_not_called()
+
+
+def test_restore_survives_a_failing_check(monkeypatch):
+    monkeypatch.setattr(jellyfin_backend, 'RESTORE_POLL_INTERVAL', 0.01)
+    api = make_api()
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+    monkeypatch.setattr(
+        backend, '_claim_restored_playback',
+        Mock(side_effect=[RuntimeError('mpd unreachable'), True]))
+    adopted = threading.Event()
+
+    backend.start_restore(adopted.set)
+
+    assert adopted.wait(5.0)
 
 # ---------------------------------------------------------------------------
 # Status
@@ -1083,6 +1286,35 @@ def test_playerstatus_resolves_normalized_stream_url_via_item_id():
     assert status['file'] == f'{TRACK_URI_PREFIX}track-1'
     assert status['title'] == 'Track One'
     assert 'secret-token' not in str(status)
+
+
+def test_failed_metadata_lookup_warns_once_about_the_masked_stream(caplog):
+    api = make_api()
+    api.get_item.side_effect = RuntimeError('offline')
+    mpd = make_mpd()
+    backend = make_backend(api, mpd)
+    mpd.mpd_status = {
+        "file": STREAM_URL.format(item_id='track-1'),
+        'state': 'play',
+    }
+
+    with caplog.at_level(logging.WARNING):
+        # The first poll masks the URL (it carries the token) and starts the
+        # metadata lookup, which fails.
+        assert backend._normalize_status(mpd.mpd_status)['file'] == ''
+        backend._track_resolve_queue.join()
+        # The failed lookup is worth one warning per stream URL, not one per
+        # status tick.
+        status = backend._normalize_status(mpd.mpd_status)
+        backend._normalize_status(mpd.mpd_status)
+
+    assert status['file'] == ''
+    assert 'secret-token' not in str(status)
+    warned = [
+        record for record in caplog.records
+        if 'not mapped to a track' in record.getMessage()
+    ]
+    assert len(warned) == 1
 
 
 def test_playerstatus_masks_unmapped_stream_url():
@@ -1266,6 +1498,7 @@ def make_player_ctrl():
     return SimpleNamespace(
         _get_backend=Mock(return_value=make_mpd()),
         register_backend=Mock(),
+        adopt_backend=Mock(),
     )
 
 
@@ -1406,6 +1639,34 @@ def test_configure_jellyfin_starts_catalog_warmup(tmp_path, monkeypatch):
         time.sleep(0.01)
 
     assert backend._catalog_cache == [album_item()]
+
+
+def test_configure_jellyfin_claims_a_restored_playback(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        'jukebox.multitimer.GenericEndlessTimerClass', FakeTimer)
+    monkeypatch.setattr(jellyfin_backend, 'RESTORE_POLL_INTERVAL', 0.01)
+    api = make_api()
+    api.get_item.return_value = track_item()
+    monkeypatch.setattr(
+        'components.jellyfin.JellyfinApiClient', Mock(return_value=api))
+    enable_jellyfin(tmp_path)
+    mpd = make_mpd()
+    mpd.mpd_status = {
+        'file': STREAM_URL.format(item_id='track-1'),
+        'state': 'play',
+    }
+    player_ctrl = make_player_ctrl()
+    player_ctrl._get_backend = Mock(return_value=mpd)
+
+    configure_jellyfin(player_ctrl)
+
+    # MPD holds the stream of the previous run, so the backend that owns its
+    # metadata takes the status over.
+    deadline = time.monotonic() + 2.0
+    while not player_ctrl.adopt_backend.called and time.monotonic() < deadline:
+        time.sleep(0.01)
+
+    player_ctrl.adopt_backend.assert_called_once_with('jellyfin')
 
 
 def test_configure_jellyfin_reads_request_timeout(tmp_path, monkeypatch):

@@ -29,6 +29,21 @@ ALBUM_PAGE_SIZE = 500
 #: offline server (~4 requests/second).
 COVER_RETRY_DELAY = 60.0
 
+#: Seconds a failed track metadata lookup is not retried. The status poller
+#: asks for the metadata of the stream MPD is on, so a server that cannot
+#: answer right now (e.g. while the box is still booting) must not be asked
+#: again on every tick. A failed lookup is never cached permanently: the
+#: cover and the track metadata recover on their own once it succeeds.
+TRACK_RESOLVE_RETRY_DELAY = 60.0
+
+#: Seconds between attempts to claim the playback MPD restored at start-up.
+RESTORE_POLL_INTERVAL = 5.0
+
+#: Seconds the start-up restore keeps looking for a restored playback. MPD
+#: restores its queue when MPD starts, which can lag this process, and the
+#: server may answer only after the network is up.
+RESTORE_TIMEOUT = 300.0
+
 #: Seconds a failed catalog fill is not retried. Waiting and concurrent
 #: callers get the stale catalog (or an empty list on the very first fill)
 #: during this window instead of each starting a new full fetch against a
@@ -109,6 +124,19 @@ class JellyfinBackend:
         self._cover_worker = threading.Thread(
             target=self._cover_worker_loop, daemon=True)
         self._cover_worker.start()
+        # Metadata of a track that was not played in this process (MPD
+        # restores its queue across a restart) is looked up by a background
+        # worker as well, so the status poller never waits for the network.
+        self._track_resolve_queue = queue.Queue()
+        self._track_resolve_pending = set()
+        self._track_resolve_retry_after = {}
+        self._album_resolve_retry_after = {}
+        self._track_resolve_worker = threading.Thread(
+            target=self._track_resolve_loop,
+            name='jellyfin.metadata',
+            daemon=True,
+        )
+        self._track_resolve_worker.start()
         self._status_timer = multitimer.GenericEndlessTimerClass(
             'jellyfin.timer_status', 0.25, self._publish_status)
         self._status_timer.start()
@@ -488,13 +516,149 @@ class JellyfinBackend:
         # Secondary index by item id: if MPD reports a normalized variant of a
         # stream URL (exact match fails), the track metadata can still be
         # recovered from the item id embedded in the URL (see _normalize_status).
-        self._track_by_item_id = {
-            track['item_id']: track
-            for track in self._stream_to_track.values()
-            if track.get('item_id')
-        }
+        self._track_by_item_id = {}
+        for track in self._stream_to_track.values():
+            self._remember_track(track)
         self._unmapped_stream_warnings = set()
         logger.info("Playing %d Jellyfin stream(s)", len(stream_urls))
+
+    # ------------------------------------------------------------------
+    # Restored playback
+    # ------------------------------------------------------------------
+
+    def start_restore(self, on_adopt):
+        """Claim the playback MPD restored before this backend was active.
+
+        MPD restores its queue across a restart, so a Jellyfin stream can
+        already be playing when the daemon (or the whole box) starts. That
+        playback belongs to this backend: only it knows the metadata of the
+        track and the artwork, and the WebApp routes the cover lookup by the
+        provider of the published status. ``on_adopt`` hands the status
+        ownership over; the coordinator switches without stopping MPD, so the
+        restored playback keeps running.
+
+        The check runs in the background because neither MPD nor the server
+        is guaranteed to answer at plugin start-up.
+        """
+        thread = threading.Thread(
+            target=self._restore_worker,
+            args=(on_adopt,),
+            name='jellyfin.restore',
+            daemon=True,
+        )
+        thread.start()
+        return thread
+
+    def _restore_worker(self, on_adopt):
+        """Adopt the playback MPD restored, as soon as MPD reports it."""
+        deadline = time.monotonic() + RESTORE_TIMEOUT
+        while time.monotonic() < deadline:
+            try:
+                claimed = self._claim_restored_playback()
+            except Exception as error:
+                logger.warning(
+                    "Could not check the restored Jellyfin playback: %s",
+                    error)
+                claimed = None
+            if claimed is True:
+                on_adopt()
+                return
+            if claimed is False:
+                logger.info("No restored Jellyfin playback to claim")
+                return
+            time.sleep(RESTORE_POLL_INTERVAL)
+        logger.info(
+            "No restored Jellyfin playback found within %s s",
+            RESTORE_TIMEOUT)
+
+    def _claim_restored_playback(self):
+        """Return whether the playback MPD restored belongs to this backend.
+
+        ``True`` claims it (the caller adopts the backend), ``False`` means
+        MPD is up and plays content of another provider, and ``None`` means
+        MPD has not reported a current song yet: its queue is restored when
+        MPD starts, which can lag this process.
+
+        The track metadata is not part of the decision. It is looked up by
+        the status path like for any other restored stream, so a slow cover
+        or metadata request cannot delay taking the status over.
+        """
+        if self._active:
+            # This backend already reports the playback because it started it
+            # in this process: nothing was restored.
+            return False
+        file_url = self._mpd_stream_url()
+        if file_url is None:
+            return None
+        if _STREAM_URL_ITEM_ID_RE.search(file_url) is None:
+            return False
+        logger.info("Claiming the Jellyfin stream MPD restored after a restart")
+        return True
+
+    def _mpd_stream_url(self):
+        """Return the file MPD is on, or ``None`` while it reports none.
+
+        MPD restores its queue when MPD starts, which can lag this process,
+        so an empty status means 'not yet' rather than 'nothing playing'.
+        """
+        status = getattr(self._mpd, 'mpd_status', None)
+        if not isinstance(status, dict):
+            return None
+        file_url = status.get('file')
+        return file_url if isinstance(file_url, str) and file_url else None
+
+    def _remember_track(self, track):
+        """Index resolved track metadata by its item id.
+
+        Playlist playback and a restored queue share these indexes: a track
+        resolved from the server is known exactly like one of this session's
+        playlist entries.
+        """
+        item_id = track.get('item_id')
+        if not item_id:
+            return
+        self._track_by_item_id[item_id] = track
+        album_id = track.get('album_id')
+        if album_id:
+            self._track_album_id[item_id] = album_id
+
+    def _request_track_resolution(self, item_id):
+        """Look up the metadata of a track that MPD restored, in the background.
+
+        The status poller must never wait for the network, so the lookup runs
+        on the metadata worker and the next poll (0.25 s) publishes the
+        resolved title, artist, album, duration and cover. A failed lookup is
+        not retried for :data:`TRACK_RESOLVE_RETRY_DELAY` seconds.
+        """
+        if item_id is None or item_id in self._track_by_item_id:
+            return
+        if item_id in self._track_resolve_pending:
+            return
+        if time.monotonic() < self._track_resolve_retry_after.get(item_id, 0.0):
+            return
+        self._track_resolve_pending.add(item_id)
+        self._track_resolve_queue.put(item_id)
+
+    def _track_resolve_loop(self):
+        """Background worker resolving the metadata of restored tracks."""
+        while True:
+            item_id = self._track_resolve_queue.get()
+            try:
+                item = self._api.get_item(item_id)
+                if not isinstance(item, dict) or not item.get('Id'):
+                    raise ValueError('server returned no metadata')
+                self._remember_track(self._track_info(item))
+            except Exception as error:
+                logger.warning(
+                    "Could not resolve the metadata of Jellyfin item %s: %s",
+                    item_id, error)
+                self._track_resolve_retry_after[item_id] = (
+                    time.monotonic() + TRACK_RESOLVE_RETRY_DELAY)
+            else:
+                self._track_resolve_retry_after.pop(item_id, None)
+            finally:
+                self._track_resolve_pending.discard(item_id)
+                self._track_resolve_queue.task_done()
 
     # ------------------------------------------------------------------
     # Cover art
@@ -534,22 +698,33 @@ class JellyfinBackend:
         """Return the album id a track belongs to, resolving it once.
 
         Tracks are only mapped to their album while a playlist built by this
-        backend is playing. After a restart (MPD restores the playlist, the
-        in-memory map is empty) the album id is fetched from the server once
-        and memoized, so covers keep resolving to the per-album artwork.
+        backend is playing; for a queue MPD restored the album id is fetched
+        from the server, so covers keep resolving to the per-album artwork
+        instead of a per-track cover.
+
+        Only a successful lookup is memoized. A failure is retried after
+        :data:`TRACK_RESOLVE_RETRY_DELAY` seconds, so a server that does not
+        answer for a moment (e.g. while the box is still booting) cannot
+        disable the cover for the rest of the run.
         """
         if track_id in self._track_album_id:
             return self._track_album_id[track_id]
-        album_id = None
+        if time.monotonic() < self._album_resolve_retry_after.get(track_id, 0.0):
+            return None
         try:
             item = self._api.get_item(track_id)
         except Exception as error:
             logger.warning(
                 "Could not resolve the album for track %s: %s",
                 track_id, error)
-        else:
-            album_id = (item or {}).get('AlbumId') or None
+            item = None
+        album_id = (item or {}).get('AlbumId') or None
+        if album_id is None:
+            self._album_resolve_retry_after[track_id] = (
+                time.monotonic() + TRACK_RESOLVE_RETRY_DELAY)
+            return None
         self._track_album_id[track_id] = album_id
+        self._album_resolve_retry_after.pop(track_id, None)
         return album_id
 
     @staticmethod
@@ -656,30 +831,33 @@ class JellyfinBackend:
         """Build the complete status from MPD state and Jellyfin metadata."""
         file_url = mpd_status.get('file')
         track = self._stream_to_track.get(file_url)
-        stream_match = None
+        stream_item_id = None
         if track is None and isinstance(file_url, str):
             # MPD may normalize the stream URL (query order, path), so the
             # exact lookup above can miss. Recover the metadata from the item
             # id that is embedded in the stream URL.
             stream_match = _STREAM_URL_ITEM_ID_RE.search(file_url)
             if stream_match:
-                track = self._track_by_item_id.get(stream_match.group('item_id'))
+                stream_item_id = stream_match.group('item_id')
+                track = self._track_by_item_id.get(stream_item_id)
+                if track is None:
+                    # A stream this process did not start (MPD restores its
+                    # queue across a restart): the metadata is looked up in
+                    # the background, so this poller never waits for the
+                    # network. The next poll publishes the metadata and the
+                    # cover.
+                    self._request_track_resolution(stream_item_id)
         if track is None:
             track = {}
             if self._is_stream_url(file_url):
-                # A Jellyfin stream URL that could not be mapped to a track
-                # must never surface on an RPC/publish channel (it carries the
-                # token). Mask it and warn once per URL.
-                self._warn_unmapped_stream(file_url)
+                # A Jellyfin stream URL must never surface on an RPC/publish
+                # channel (it carries the token). Mask it; a lookup that is
+                # still running resolves on its own, only one that failed is
+                # worth a warning.
+                if stream_item_id in self._track_resolve_retry_after:
+                    self._warn_unmapped_stream(file_url)
                 file_url = ''
         cover_item_id = track.get('album_id') or track.get('item_id')
-        if cover_item_id is None and stream_match is not None:
-            # The track was not seen this session (e.g. MPD restored the
-            # playlist after a restart): resolve the album from the item id
-            # embedded in the stream URL so the published cover always matches
-            # the per-album artwork.
-            cover_item_id = self._resolve_album_id(
-                stream_match.group('item_id'))
         return {
             'state': mpd_status.get('state', 'stop'),
             'songid': track.get('uri') or mpd_status.get('songid'),
@@ -706,9 +884,11 @@ class JellyfinBackend:
         )
 
     def _warn_unmapped_stream(self, file_url):
-        """Log a throttled warning for a stream URL that could not be mapped.
+        """Log a throttled warning for a stream that could not be mapped.
 
-        The warning never contains the URL itself (it carries the token).
+        Called once per URL when looking up the metadata of the playing
+        stream failed. The warning never contains the URL itself (it
+        carries the token).
         """
         if file_url in self._unmapped_stream_warnings:
             return
