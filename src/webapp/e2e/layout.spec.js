@@ -164,6 +164,31 @@ test('player route offers a way to the library without a song', async ({ page })
   await expect.poll(() => page.evaluate(() => window.location.hash)).toContain('/library');
 });
 
+// A view that is still loading has to sit where the loaded view sits: the
+// library used to be centred while its entries were on their way and jumped to
+// the top as soon as they arrived.
+test('library header keeps its place while the entries load', async ({ page }) => {
+  let releaseRpc;
+  const rpcGate = new Promise(resolve => {
+    releaseRpc = resolve;
+  });
+
+  await mockBackend(page, { rpcGate });
+  await page.goto(routes[1].path);
+  await expect(page.locator(routes[1].ready)).toBeVisible();
+  await expectTokensLoaded(page);
+
+  const header = page.getByRole('tab', { exact: true, name: 'Overview' });
+  await expect(header).toBeVisible();
+  const loading = await header.boundingBox();
+
+  releaseRpc();
+  await expect(page.getByText('Discovery', { exact: true })).toBeVisible();
+  const loaded = await header.boundingBox();
+
+  expect(loaded.y).toBeCloseTo(loading.y, 0);
+});
+
 test('player route ends right above the navigation bar', async ({ page }) => {
   await openRoute(page, routes[0]);
   await expectNoDeadRows(page, {
