@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { useTranslation } from 'react-i18next';
 
 import {
-  CircularProgress,
   Typography,
 } from "@mui/material";
 
+import { Loading } from '../../../general';
 import request from '../../../../utils/request';
 import { flatByAlbum } from '../../../../utils/utils';
 
@@ -59,7 +59,7 @@ const Albums = ({
   return (
     <>
       {isLoading
-        ? <CircularProgress />
+        ? <Loading />
         : <AlbumList
             albums={albums.filter(search)}
             musicFilter={musicFilter}

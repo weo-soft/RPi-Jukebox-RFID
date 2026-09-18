@@ -9,9 +9,10 @@ import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Box,
-  CircularProgress,
   Typography,
 } from "@mui/material";
+
+import { Loading } from '../../../general';
 
 import { listLibraryEntries } from '../../../../utils/library-api';
 import CreateFolderDialog from './create-folder-dialog';
@@ -190,7 +191,7 @@ const Folders = ({
           {operationWarning}
         </Alert>
       }
-      {isLoading && <CircularProgress />}
+      {isLoading && <Loading />}
       {!isLoading && error &&
         <Typography>{t('library.loading-error')}</Typography>
       }

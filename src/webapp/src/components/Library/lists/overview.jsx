@@ -5,10 +5,11 @@ import { useTranslation } from 'react-i18next';
 import {
   Box,
   Button,
-  CircularProgress,
   Stack,
   Typography,
 } from '@mui/material';
+
+import { Loading } from '../../general';
 
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 
@@ -65,7 +66,7 @@ const LibraryOverview = ({ musicFilter, sources }) => {
       })))
     .filter(({ items: groupItems }) => groupItems.length);
 
-  if (isLoading) return <CircularProgress />;
+  if (isLoading) return <Loading />;
   if (error) return <Typography>{t('library.loading-error')}</Typography>;
   if (!groups.length) {
     return (
