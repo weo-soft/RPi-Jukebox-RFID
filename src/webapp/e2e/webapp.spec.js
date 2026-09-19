@@ -172,7 +172,7 @@ test('player backdrop covers its full width across the md breakpoint', async ({ 
   await mockBackend(page);
   await page.goto('/');
 
-  await expect(page.locator('#player img')).toHaveAttribute('src', /noCover/);
+  await expect(page.locator('#player .MuiPaper-root svg')).toBeVisible();
   for (const width of [800, 899, 900, 1280]) {
     await page.setViewportSize({ width, height: 800 });
     await expectShellFillsViewport(page);
@@ -239,12 +239,11 @@ test('player route renders a long title without a cover', async ({ page }) => {
   expect(subtitleLines.overflow).toBe('ellipsis');
   expect(subtitleLines.height).toBeLessThanOrEqual(subtitleLines.lineHeight + 1);
 
-  // A missing cover falls back to the shipped replacement image.
+  // A missing cover stays a dark square with the note icon; a bright image
+  // would light up the panel in a dark room.
   const cover = page.locator('#player .MuiPaper-root');
-  await expect(cover.locator('img')).toHaveAttribute('src', /noCover/);
-  await expect.poll(() => cover.locator('img').evaluate(
-    image => image.naturalWidth,
-  )).toBeGreaterThan(0);
+  await expect(cover.locator('img')).toHaveCount(0);
+  await expect(cover.locator('svg')).toBeVisible();
 
   const coverBox = await cover.boundingBox();
   expect(coverBox.height).toBeCloseTo(coverBox.width, 0);
