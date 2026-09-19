@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Skeleton from '@mui/material/Skeleton';
-
-import noCover from '../../assets/noCover.jpg';
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
 
 const coverBox = {
   aspectRatio: '1',
@@ -38,17 +37,23 @@ const Cover = ({ coverImage, dimmed = false, isLoading = false }) => {
         />
       }
       {!isLoading && !coverImage &&
+        // A dark square with one quiet icon: a bright replacement image lights
+        // up the whole panel in a dark room.
         <Box
-          alt={t('player.cover.unavailable')}
-          component="img"
-          src={noCover}
           sx={{
+            alignItems: 'center',
+            display: 'flex',
             height: '100%',
-            objectFit: 'cover',
+            justifyContent: 'center',
             opacity: dimmed ? 0.6 : 1,
             width: '100%',
           }}
-        />
+        >
+          <MusicNoteIcon
+            sx={{ color: 'text.secondary', fontSize: 'var(--icon-primary)' }}
+            titleAccess={t('player.cover.unavailable')}
+          />
+        </Box>
       }
     </Paper>
   );
