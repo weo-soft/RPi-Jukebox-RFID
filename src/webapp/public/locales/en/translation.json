@@ -98,6 +98,9 @@
         }
       }
     },
+    "card-id": {
+      "label": "Card ID"
+    },
     "dialogs": {
       "delete": {
         "title": "Delete Card '{{cardId}}'",
@@ -138,6 +141,15 @@
       "open-list": "Series list",
       "last-at": "Last at no. {{number}}.",
       "continue": "Continue there",
+      "bind": "Bind",
+      "bound-at": "Just bound: no. {{number}}",
+      "undo": "Undo",
+      "conflict": "Card {{cardId}} is already registered with {{content}}.",
+      "conflict-unknown": "a hand-written entry",
+      "conflict-list": "Check in the card list",
+      "rebind": "Reassign",
+      "dismiss": "Close",
+      "binding-failed": "The binding failed: {{error}}",
       "position": "No. {{number}} of {{total}}",
       "open-count": "open: {{count}}",
       "place-card": "Place a card",

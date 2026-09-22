@@ -98,6 +98,9 @@
         }
       }
     },
+    "card-id": {
+      "label": "Karten-ID"
+    },
     "dialogs": {
       "delete": {
         "title": "Karte löschen '{{cardId}}'",
@@ -138,6 +141,15 @@
       "open-list": "Serienliste",
       "last-at": "Zuletzt bei Nr. {{number}}.",
       "continue": "Dort weitermachen",
+      "bind": "Binden",
+      "bound-at": "Gerade gebunden: Nr. {{number}}",
+      "undo": "Zurücknehmen",
+      "conflict": "Karte {{cardId}} ist bereits belegt mit {{content}}.",
+      "conflict-unknown": "einem handgeschriebenen Eintrag",
+      "conflict-list": "In der Kartenliste prüfen",
+      "rebind": "Umhängen",
+      "dismiss": "Schließen",
+      "binding-failed": "Die Bindung ist fehlgeschlagen: {{error}}",
       "position": "Nr. {{number}} von {{total}}",
       "open-count": "offen: {{count}}",
       "place-card": "Karte auflegen",

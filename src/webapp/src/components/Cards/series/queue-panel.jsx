@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 
 import AlbumListItem from '../../Library/lists/albums/album-list/album-list-item';
+import CardIdField from '../card-id-field';
 
 /*
  * The running series: the album whose card is put on the reader next, the
@@ -18,6 +19,7 @@ import AlbumListItem from '../../Library/lists/albums/album-list/album-list-item
 const QueuePanel = ({
   album,
   onBack,
+  onBind,
   onOpenList,
   openAlbums,
   position,
@@ -55,6 +57,12 @@ const QueuePanel = ({
             <Typography variant="displaySubtitle">
               {t('cards.series.place-card')}
             </Typography>
+          </Grid>
+          <Grid size={12}>
+            <CardIdField
+              actionLabel={t('cards.series.bind')}
+              onActivate={onBind}
+            />
           </Grid>
           <Grid
             container
