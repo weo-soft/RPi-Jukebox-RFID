@@ -155,6 +155,18 @@
       "rebind": "Reassign",
       "dismiss": "Close",
       "binding-failed": "The binding failed: {{error}}",
+      "mode": "Mode",
+      "modes": {
+        "guided": "Series",
+        "free": "Free"
+      },
+      "start-free": "Open selection",
+      "picker-with-card": "Choose an album — card {{cardId}}",
+      "picker-no-card": "Place a card or type an id",
+      "picker-continue": "Continue",
+      "picker-only-open": "Only open albums",
+      "picker-no-match": "No album matches the search.",
+      "album-conflict": "Album {{album}} is already held by card {{cardId}}.",
       "position": "No. {{number}} of {{total}}",
       "open-count": "open: {{count}}",
       "place-card": "Place a card",

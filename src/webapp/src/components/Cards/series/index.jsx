@@ -17,7 +17,7 @@ import { initSockets } from '../../../sockets';
 import { flatByAlbum } from '../../../utils/utils';
 import { buildActionData, getActionAndCommand, getArgsValues } from '../utils';
 import { loadRegisteredCards, registeredEntry } from '../registered-cards';
-import { isAlbumCard } from './keys';
+import { holdingCard, isAlbumCard } from './keys';
 import { orderById } from './orders';
 import {
   buildQueue,
@@ -39,6 +39,7 @@ import {
   withCard,
   withoutCard,
 } from './session';
+import AlbumPicker from './album-picker';
 import BoundFeedback from './bound-feedback';
 import ConflictPanel from './conflict-panel';
 import QueuePanel from './queue-panel';
@@ -48,6 +49,7 @@ import StartPanel from './start-panel';
 const VIEW_START = 'start';
 const VIEW_QUEUE = 'queue';
 const VIEW_LIST = 'list';
+const VIEW_PICKER = 'picker';
 
 const albumActionData = (album) => buildActionData('play_music', 'play_album', {
   albumartist: album.albumartist,
@@ -59,7 +61,8 @@ const albumActionData = (album) => buildActionData('play_music', 'play_album', {
 /*
  * A card series: the album list of one source in one order. The screen leads
  * from its start area into the queue or into the numbered list that brings the
- * physical stack into the same order. What counts as open follows from the
+ * physical stack into the same order, and it offers the free mode for cards
+ * that do not follow that order. What counts as open follows from the
  * inventory - an album is open while no card names it - so no progress of its
  * own has to be kept.
  */
@@ -69,6 +72,7 @@ const CardsSeries = () => {
   const [memory] = useState(() => readSeriesMemory());
   const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState(VIEW_START);
+  const [mode, setMode] = useState('guided');
   const [sources, setSources] = useState([]);
   const [provider, setProvider] = useState(null);
   const [orderId, setOrderId] = useState(() => orderById(memory?.order).id);
@@ -85,7 +89,9 @@ const CardsSeries = () => {
   const [session, setSession] = useState(EMPTY_SESSION);
   const [bound, setBound] = useState(null);
   const [conflict, setConflict] = useState(null);
+  const [albumConflict, setAlbumConflict] = useState(null);
   const [failure, setFailure] = useState(null);
+  const [freeCardId, setFreeCardId] = useState(null);
 
   const isFirstEvent = useRef(true);
   const isNewPlacement = useRef(createPlacementCounter());
@@ -209,12 +215,16 @@ const CardsSeries = () => {
   const startNumber = startPosition >= 0 && queue[startPosition] ? queue[startPosition].position : 0;
   const canStart = openAlbums > 0;
 
-  const bind = useCallback(async (cardId) => {
-    const album = queue[position];
+  const remember = useCallback((album) => {
+    writeSeriesMemory({ source: provider, order: orderId, albumKey: album.key });
+  }, [orderId, provider]);
+
+  const bindAlbum = useCallback(async (cardId, album) => {
     // Without the card list the conflict test would run into nothing.
-    if (cards === null || !album || album.bound) return;
+    if (cards === null || !cardId || !album) return;
 
     setFailure(null);
+    setAlbumConflict(null);
 
     const existing = registeredEntry(cards, cardId);
     if (existing) {
@@ -223,6 +233,12 @@ const CardsSeries = () => {
     }
 
     setConflict(null);
+
+    const holder = album.bound ? holdingCard(cards, album.key) : undefined;
+    if (holder) {
+      setAlbumConflict({ album, cardId, holderId: holder[0] });
+      return;
+    }
 
     const actionData = albumActionData(album);
     const { command: cmdAlias } = getActionAndCommand(actionData);
@@ -259,8 +275,12 @@ const CardsSeries = () => {
     setSession(current => rememberBinding(current, { albumKey: album.key, cardId }));
     setBound({ album, cardId, number: album.position });
     setPosition(nextOpenIndex(nextQueue, position + 1));
-    writeSeriesMemory({ source: provider, order: orderId, albumKey: album.key });
-  }, [albums, cards, order, orderId, position, provider, queue]);
+    remember(album);
+  }, [albums, cards, order, position, remember]);
+
+  const bind = useCallback(async (cardId) => {
+    await bindAlbum(cardId, queue[position]);
+  }, [bindAlbum, position, queue]);
 
   const rebind = useCallback(async () => {
     if (!conflict) return;
@@ -291,8 +311,8 @@ const CardsSeries = () => {
     setSession(current => rememberBinding(current, { albumKey: album.key, cardId, previous: existing }));
     setBound({ album, cardId, number: album.position });
     setPosition(nextOpenIndex(nextQueue, position + 1));
-    writeSeriesMemory({ source: provider, order: orderId, albumKey: album.key });
-  }, [albums, cards, conflict, order, orderId, position, provider]);
+    remember(album);
+  }, [albums, cards, conflict, order, position, remember]);
 
   const undo = useCallback(async () => {
     const binding = lastBinding(session);
@@ -351,7 +371,8 @@ const CardsSeries = () => {
 
   const start = () => {
     setPosition(startPosition >= 0 ? startPosition : 0);
-    setView(VIEW_QUEUE);
+    setFreeCardId(null);
+    setView(mode === 'free' ? VIEW_PICKER : VIEW_QUEUE);
   };
 
   const startHere = (index) => {
@@ -360,17 +381,93 @@ const CardsSeries = () => {
     setView(VIEW_QUEUE);
   };
 
-  // A placement only binds while the queue is on screen: there the album that
-  // is offered is the one the card belongs to.
+  const backToStart = () => {
+    setFreeCardId(null);
+    setView(VIEW_START);
+  };
+
+  // A placement binds in the queue and names the card in the free mode: there
+  // the album is chosen afterwards.
   useEffect(() => {
     if (!placement || placement.serial <= handledPlacement.current) return;
     handledPlacement.current = placement.serial;
-    if (view !== VIEW_QUEUE) return;
 
-    bind(placement.cardId);
+    if (view === VIEW_QUEUE) {
+      bind(placement.cardId);
+      return;
+    }
+
+    if (view === VIEW_PICKER) setFreeCardId(placement.cardId);
   }, [bind, placement, view]);
 
   const isLoading = isLoadingSources || isLoadingCards || isLoadingAlbums;
+
+  const notices = (
+    <>
+      {conflict &&
+        <ConflictPanel
+          canRebind={isAlbumCard(conflict.existing)}
+          cardId={conflict.cardId}
+          existing={conflict.existing}
+          onClose={() => setConflict(null)}
+          onRebind={rebind}
+        />
+      }
+      {albumConflict &&
+        <Card elevation={0}>
+          <CardContent>
+            <Typography>
+              {t('cards.series.album-conflict', {
+                album: albumConflict.album.album || albumConflict.album.albumartist,
+                cardId: albumConflict.holderId,
+              })}
+            </Typography>
+            <Grid
+              container
+              sx={{ gap: 'var(--space-2)', justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}
+            >
+              <Button onClick={() => setAlbumConflict(null)} variant="outlined">
+                {t('cards.series.dismiss')}
+              </Button>
+              <Button
+                component={Link}
+                nativeButton={false}
+                to={`/cards?search=${encodeURIComponent(albumConflict.holderId)}`}
+                variant="contained"
+              >
+                {t('cards.series.conflict-list')}
+              </Button>
+            </Grid>
+          </CardContent>
+        </Card>
+      }
+      {failure &&
+        <Card elevation={0}>
+          <CardContent>
+            <Typography>
+              {t('cards.series.binding-failed', { error: failure.error })}
+            </Typography>
+            <Grid
+              container
+              sx={{ justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}
+            >
+              <Button onClick={() => setFailure(null)} variant="outlined">
+                {t('cards.series.dismiss')}
+              </Button>
+            </Grid>
+          </CardContent>
+        </Card>
+      }
+      {bound &&
+        <BoundFeedback
+          album={bound.album}
+          cardId={bound.cardId}
+          number={bound.number}
+          onUndo={undo}
+        />
+      }
+    </>
+  );
 
   let body;
 
@@ -392,11 +489,25 @@ const CardsSeries = () => {
   else if (view === VIEW_LIST) {
     body = (
       <SeriesList
-        onBack={() => setView(VIEW_START)}
+        onBack={backToStart}
         onStartHere={startHere}
         position={position}
         queue={queue}
       />
+    );
+  }
+  else if (view === VIEW_PICKER) {
+    body = (
+      <>
+        <AlbumPicker
+          albums={queue}
+          cardId={freeCardId}
+          onBack={backToStart}
+          onBind={(album) => bindAlbum(freeCardId, album)}
+          onCardId={setFreeCardId}
+        />
+        {notices}
+      </>
     );
   }
   else if (view === VIEW_QUEUE && queue[position] && openAlbums > 0) {
@@ -404,47 +515,14 @@ const CardsSeries = () => {
       <>
         <QueuePanel
           album={queue[position]}
-          onBack={() => setView(VIEW_START)}
+          onBack={backToStart}
           onBind={bind}
           onOpenList={() => setView(VIEW_LIST)}
           openAlbums={openAlbums}
           position={queue[position].position}
           total={queue.length}
         />
-        {conflict &&
-          <ConflictPanel
-            canRebind={isAlbumCard(conflict.existing)}
-            cardId={conflict.cardId}
-            existing={conflict.existing}
-            onClose={() => setConflict(null)}
-            onRebind={rebind}
-          />
-        }
-        {failure &&
-          <Card elevation={0}>
-            <CardContent>
-              <Typography>
-                {t('cards.series.binding-failed', { error: failure.error })}
-              </Typography>
-              <Grid
-                container
-                sx={{ justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}
-              >
-                <Button onClick={() => setFailure(null)} variant="outlined">
-                  {t('cards.series.dismiss')}
-                </Button>
-              </Grid>
-            </CardContent>
-          </Card>
-        }
-        {bound &&
-          <BoundFeedback
-            album={bound.album}
-            cardId={bound.cardId}
-            number={bound.number}
-            onUndo={undo}
-          />
-        }
+        {notices}
       </>
     );
   }
@@ -484,7 +562,9 @@ const CardsSeries = () => {
         canStart={canStart}
         emptySource={queue.length === 0}
         memoryNumber={rememberedIndex >= 0 ? queue[rememberedIndex].position : 0}
+        mode={mode}
         onContinue={() => setStartIndex(continuing >= 0 ? continuing : firstOpen)}
+        onModeChange={setMode}
         onOpenList={() => setView(VIEW_LIST)}
         onOrderChange={changeOrder}
         onProviderChange={changeProvider}

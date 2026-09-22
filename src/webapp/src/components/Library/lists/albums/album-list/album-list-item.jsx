@@ -31,6 +31,7 @@ const AlbumListItem = ({
   content_uri,
   cover_url,
   isButton = true,
+  onSelect,
   provider = 'mpd',
   view = 'albums',
 }) => {
@@ -112,14 +113,17 @@ const AlbumListItem = ({
 
   return (
     <ListItem disablePadding={isButton} key={content_uri || album}>
-      {isButton
-        ? (
-          <ListItemButton component={AlbumLink} nativeButton={false} sx={LIBRARY_ROW_SX}>
-            {content}
-          </ListItemButton>
-        )
-        : content
+      {isButton && onSelect &&
+        <ListItemButton onClick={onSelect} sx={LIBRARY_ROW_SX}>
+          {content}
+        </ListItemButton>
       }
+      {isButton && !onSelect &&
+        <ListItemButton component={AlbumLink} nativeButton={false} sx={LIBRARY_ROW_SX}>
+          {content}
+        </ListItemButton>
+      }
+      {!isButton && content}
     </ListItem>
   );
 }

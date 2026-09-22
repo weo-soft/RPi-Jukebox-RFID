@@ -6,6 +6,7 @@ import {
   albumFromArgs,
   albumKey,
   boundKeys,
+  holdingCard,
   isAlbumCard,
 } from './keys';
 
@@ -63,6 +64,19 @@ test('a card without arguments holds nothing', () => {
   };
 
   expect(boundKeys(cards).size).toBe(0);
+});
+
+test('the card that holds an album is found by its key', () => {
+  const cards = {
+    '0001': { from_alias: 'shutdown', action: { args: null } },
+    '0002': {
+      from_alias: 'play_album',
+      action: { args: ['Benjamin Blümchen', 'Folge 37', null, 'mpd'] },
+    },
+  };
+
+  expect(holdingCard(cards, albumKey(localAlbum))).toEqual(['0002', cards['0002']]);
+  expect(holdingCard(cards, '["mpd","Nobody","Nothing",null]')).toBeUndefined();
 });
 
 test('a folder card holds no album', () => {

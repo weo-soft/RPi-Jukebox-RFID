@@ -24,7 +24,9 @@ const StartPanel = ({
   canStart,
   emptySource,
   memoryNumber,
+  mode,
   onContinue,
+  onModeChange,
   onOpenList,
   onOrderChange,
   onProviderChange,
@@ -70,6 +72,21 @@ const StartPanel = ({
                 {ORDERS.map(({ id, labelKey }) => (
                   <option key={id} value={id}>{t(labelKey)}</option>
                 ))}
+              </NativeSelect>
+            </FormControl>
+          </Grid>
+          <Grid size={{ md: 6, xs: 12 }}>
+            <FormControl fullWidth>
+              <InputLabel htmlFor="cards-series-mode" shrink>
+                {t('cards.series.mode')}
+              </InputLabel>
+              <NativeSelect
+                inputProps={{ id: 'cards-series-mode' }}
+                onChange={(event) => onModeChange(event.target.value)}
+                value={mode}
+              >
+                <option value="guided">{t('cards.series.modes.guided')}</option>
+                <option value="free">{t('cards.series.modes.free')}</option>
               </NativeSelect>
             </FormControl>
           </Grid>
@@ -123,7 +140,7 @@ const StartPanel = ({
               {t('cards.series.open-list')}
             </Button>
             <Button disabled={!canStart} onClick={onStart} variant="contained">
-              {t('cards.series.start')}
+              {mode === 'free' ? t('cards.series.start-free') : t('cards.series.start')}
             </Button>
           </Grid>
         </Grid>

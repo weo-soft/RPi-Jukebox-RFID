@@ -33,11 +33,19 @@ const boundKeys = (cardsList = {}) => {
   return albums;
 };
 
+// The card that holds a given album, as [cardId, entry] or undefined.
+const holdingCard = (cardsList = {}, key) => (
+  Object.entries(cardsList).find(([, card]) => (
+    isAlbumCard(card) && albumKey(albumFromArgs(card.action?.args ?? [])) === key
+  ))
+);
+
 export {
   ALBUM_ALIAS,
   ALBUM_ARGS,
   albumFromArgs,
   albumKey,
   boundKeys,
+  holdingCard,
   isAlbumCard,
 };

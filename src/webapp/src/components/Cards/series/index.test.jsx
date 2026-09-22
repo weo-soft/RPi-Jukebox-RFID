@@ -183,6 +183,50 @@ test('the undo removes the binding of the last card', async () => {
   });
 });
 
+test('the free mode binds the album that is chosen for the placed card', async () => {
+  const user = userEvent.setup();
+  cards = {};
+
+  await openScreen();
+  await replayCachedValue();
+  await user.selectOptions(screen.getByLabelText('cards.series.mode'), 'free');
+  await user.click(screen.getByRole('button', { name: 'cards.series.start-free' }));
+  await placeCard('0001');
+
+  expect(await screen.findByText('cards.series.picker-with-card')).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: /Folge 10/ }));
+
+  await waitFor(() => {
+    expect(request).toHaveBeenCalledWith('registerCard', {
+      card_id: '0001',
+      cmd_alias: 'play_album',
+      args: ['Benjamin Blümchen', 'Folge 10', null, 'mpd'],
+      overwrite: false,
+    });
+  });
+});
+
+test('an album another card holds is not bound a second time', async () => {
+  const user = userEvent.setup();
+  cards = Object.fromEntries([
+    albumCard('0002', 'play_album', ['Benjamin Blümchen', 'Folge 2', null, 'mpd']),
+  ]);
+
+  await openScreen();
+  await replayCachedValue();
+  await user.selectOptions(screen.getByLabelText('cards.series.mode'), 'free');
+  await user.click(screen.getByRole('button', { name: 'cards.series.start-free' }));
+  await placeCard('0001');
+  await screen.findByText('cards.series.picker-with-card');
+
+  await user.click(screen.getByLabelText('cards.series.picker-only-open'));
+  await user.click(screen.getByRole('button', { name: /Folge 2/ }));
+
+  expect(await screen.findByText('cards.series.album-conflict')).toBeInTheDocument();
+  expect(request).not.toHaveBeenCalledWith('registerCard', expect.anything());
+});
+
 test('a typed card id binds without a reader', async () => {
   const user = userEvent.setup();
   cards = {};
