@@ -113,7 +113,8 @@
     "form": {
       "no-card-swiped": "Please swipe a card to receive an ID which will be used to register a new action.",
       "no-card-id": "No card ID",
-      "card-id-hint": "Swiping a card fills in the ID."
+      "card-id-hint": "Swiping a card fills in the ID.",
+      "save-failed": "Saving failed: {{error}}"
     },
     "list": {
       "no-cards-registered": "No cards registered!",
