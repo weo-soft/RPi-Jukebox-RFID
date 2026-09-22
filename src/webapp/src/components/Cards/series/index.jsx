@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
@@ -12,6 +12,7 @@ import {
 
 import Header from '../../Header';
 import { Loading } from '../../general';
+import PubSubContext from '../../../context/pubsub/context';
 import request from '../../../utils/request';
 import { initSockets } from '../../../sockets';
 import { flatByAlbum } from '../../../utils/utils';
@@ -68,6 +69,7 @@ const albumActionData = (album) => buildActionData('play_music', 'play_album', {
  */
 const CardsSeries = () => {
   const { t } = useTranslation();
+  const { state: published } = useContext(PubSubContext);
 
   const [memory] = useState(() => readSeriesMemory());
   const [attempt, setAttempt] = useState(0);
@@ -93,10 +95,15 @@ const CardsSeries = () => {
   const [failure, setFailure] = useState(null);
   const [freeCardId, setFreeCardId] = useState(null);
 
-  const isFirstEvent = useRef(true);
+  const publishedCardId = useRef(published);
+  publishedCardId.current = published;
+  // The value the stream already carried when this screen subscribed.
+  const entryCardId = useRef(undefined);
   const isNewPlacement = useRef(createPlacementCounter());
   const placements = useRef(0);
   const handledPlacement = useRef(0);
+
+  const isLoading = isLoadingSources || isLoadingCards || isLoadingAlbums;
 
   useEffect(() => {
     let isCurrent = true;
@@ -179,17 +186,23 @@ const CardsSeries = () => {
     setProvider(known ? remembered : sources[0].id);
   }, [isLoadingSources, memory, provider, sources]);
 
-  // The event stream carries the card placements. The broker repeats the last
-  // value on every subscription, so the value that is already there when the
-  // screen opens is no placement.
-  useEffect(() => initSockets({ events: ['rfid.card_id'], setState: setEvents }), []);
+  // The event stream carries the card placements. The broker repeats the cached
+  // value on every subscription, and this screen subscribes once its data is
+  // there: the value the app already holds at that moment comes back once more
+  // and is the repetition, not a placement.
+  useEffect(() => {
+    if (isLoading) return undefined;
+
+    entryCardId.current = publishedCardId.current['rfid.card_id'];
+    return initSockets({ events: ['rfid.card_id'], setState: setEvents });
+  }, [isLoading]);
 
   useEffect(() => {
     const cardId = events['rfid.card_id'];
     if (cardId === undefined) return;
 
-    if (isFirstEvent.current) {
-      isFirstEvent.current = false;
+    if (entryCardId.current !== undefined && entryCardId.current === cardId) {
+      entryCardId.current = undefined;
       return;
     }
 
@@ -400,8 +413,6 @@ const CardsSeries = () => {
     if (view === VIEW_PICKER) setFreeCardId(placement.cardId);
   }, [bind, placement, view]);
 
-  const isLoading = isLoadingSources || isLoadingCards || isLoadingAlbums;
-
   const notices = (
     <>
       {conflict &&
@@ -510,26 +521,21 @@ const CardsSeries = () => {
       </>
     );
   }
-  else if (view === VIEW_QUEUE && queue[position] && openAlbums > 0) {
-    body = (
-      <>
-        <QueuePanel
-          album={queue[position]}
-          onBack={backToStart}
-          onBind={bind}
-          onOpenList={() => setView(VIEW_LIST)}
-          openAlbums={openAlbums}
-          position={queue[position].position}
-          total={queue.length}
-        />
-        {notices}
-      </>
-    );
-  }
   else if (view === VIEW_QUEUE) {
     body = (
-      <Card elevation={0}>
-        <CardContent>
+      <>
+        {queue[position] && openAlbums > 0
+          ? <QueuePanel
+              album={queue[position]}
+              onBack={backToStart}
+              onBind={bind}
+              onOpenList={() => setView(VIEW_LIST)}
+              openAlbums={openAlbums}
+              position={queue[position].position}
+              total={queue.length}
+            />
+          : <Card elevation={0}>
+              <CardContent>
           <Typography variant="contentBody">
             {t('cards.series.exhausted', { count: queue.length })}
           </Typography>
@@ -552,8 +558,11 @@ const CardsSeries = () => {
               {t('cards.series.to-cards')}
             </Button>
           </Grid>
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+        }
+        {notices}
+      </>
     );
   }
   else {

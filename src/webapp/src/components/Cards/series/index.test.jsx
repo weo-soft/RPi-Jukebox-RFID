@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, expect, test, vi } from 'vitest';
 
 import AppSettingsProvider from '../../../context/appsettings';
+import PubSubContext from '../../../context/pubsub/context';
 import request from '../../../utils/request';
 import CardsSeries from './index';
 
@@ -59,26 +60,29 @@ const answer = (command) => {
   }
 };
 
-const openScreen = async () => {
+const openScreen = async ({ publishedCardId } = {}) => {
   request.mockImplementation(async (command) => answer(command));
 
   render(
     <AppSettingsProvider>
-      <MemoryRouter initialEntries={['/cards/series']}>
-        <Routes>
-          <Route element={<CardsSeries />} path="/cards/series" />
-        </Routes>
-      </MemoryRouter>
+      <PubSubContext.Provider
+        value={{
+          setState: () => {},
+          state: publishedCardId === undefined
+            ? {}
+            : { 'rfid.card_id': publishedCardId },
+        }}
+      >
+        <MemoryRouter initialEntries={['/cards/series']}>
+          <Routes>
+            <Route element={<CardsSeries />} path="/cards/series" />
+          </Routes>
+        </MemoryRouter>
+      </PubSubContext.Provider>
     </AppSettingsProvider>,
   );
 
   await screen.findByRole('button', { name: 'cards.series.start' });
-};
-
-// The event broker repeats its last value on every subscription: the first
-// value a screen sees is the one of an earlier session.
-const replayCachedValue = async (cardId = '0000') => {
-  await act(async () => { socket.publish(cardId); });
 };
 
 const placeCard = async (cardId) => {
@@ -94,7 +98,6 @@ test('a placed card binds the album that is offered', async () => {
   cards = {};
 
   await openScreen();
-  await replayCachedValue();
   await startSeries(user);
   await placeCard('0001');
 
@@ -109,15 +112,24 @@ test('a placed card binds the album that is offered', async () => {
   expect(await screen.findByText('cards.series.bound-at')).toBeInTheDocument();
 });
 
-test('the value of an earlier session binds nothing', async () => {
+test('the value of an earlier session binds nothing, the next placement does', async () => {
   const user = userEvent.setup();
   cards = {};
 
-  await openScreen();
+  await openScreen({ publishedCardId: '0009' });
   await startSeries(user);
   await placeCard('0009');
 
   expect(request).not.toHaveBeenCalledWith('registerCard', expect.anything());
+
+  await placeCard('0001');
+
+  await waitFor(() => {
+    expect(request).toHaveBeenCalledWith('registerCard', expect.objectContaining({
+      card_id: '0001',
+      overwrite: false,
+    }));
+  });
 });
 
 test('a repetition of the same card binds once', async () => {
@@ -125,7 +137,6 @@ test('a repetition of the same card binds once', async () => {
   cards = {};
 
   await openScreen();
-  await replayCachedValue();
   await startSeries(user);
   await placeCard('0001');
   await placeCard('0001');
@@ -142,7 +153,6 @@ test('an occupied card opens the conflict and binds nothing', async () => {
   ]);
 
   await openScreen();
-  await replayCachedValue();
   await startSeries(user);
   await placeCard('0001');
 
@@ -156,7 +166,6 @@ test('a card of another kind is not offered for re-hanging', async () => {
   cards = Object.fromEntries([albumCard('0001', 'shutdown', null)]);
 
   await openScreen();
-  await replayCachedValue();
   await startSeries(user);
   await placeCard('0001');
 
@@ -171,7 +180,6 @@ test('the undo removes the binding of the last card', async () => {
   cards = {};
 
   await openScreen();
-  await replayCachedValue();
   await startSeries(user);
   await placeCard('0001');
   await screen.findByText('cards.series.bound-at');
@@ -188,7 +196,6 @@ test('the free mode binds the album that is chosen for the placed card', async (
   cards = {};
 
   await openScreen();
-  await replayCachedValue();
   await user.selectOptions(screen.getByLabelText('cards.series.mode'), 'free');
   await user.click(screen.getByRole('button', { name: 'cards.series.start-free' }));
   await placeCard('0001');
@@ -214,7 +221,6 @@ test('an album another card holds is not bound a second time', async () => {
   ]);
 
   await openScreen();
-  await replayCachedValue();
   await user.selectOptions(screen.getByLabelText('cards.series.mode'), 'free');
   await user.click(screen.getByRole('button', { name: 'cards.series.start-free' }));
   await placeCard('0001');
