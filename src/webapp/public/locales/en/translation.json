@@ -116,7 +116,12 @@
       "card-id-hint": "Swiping a card fills in the ID."
     },
     "list": {
-      "no-cards-registered": "No cards registered!"
+      "no-cards-registered": "No cards registered!",
+      "search": "Search content or card ID",
+      "group-by-source": "Group by source",
+      "unassignable": "Not assignable",
+      "unknown-content": "No content",
+      "no-match": "No card matches the search."
     },
     "overview": {
       "cards": "Cards",

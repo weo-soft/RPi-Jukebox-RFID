@@ -116,7 +116,12 @@
       "card-id-hint": "Eine aufgelegte Karte füllt die ID."
     },
     "list": {
-      "no-cards-registered": "Es wurden noch keine Karten registriert!"
+      "no-cards-registered": "Es wurden noch keine Karten registriert!",
+      "search": "Nach Inhalt oder ID suchen",
+      "group-by-source": "Nach Quelle gruppieren",
+      "unassignable": "Nicht zuordenbar",
+      "unknown-content": "Ohne Inhalt",
+      "no-match": "Keine Karte passt zur Suche."
     },
     "overview": {
       "cards": "Karten",
