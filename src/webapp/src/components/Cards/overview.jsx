@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import AddIcon from '@mui/icons-material/Add';
 import CardsList from './list';
+import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Fab from '@mui/material/Fab';
 import Grid from '@mui/material/Grid';
@@ -22,6 +23,10 @@ const CardsOverview = () => {
 
   const openRegisterCard = () => {
     navigate('register');
+  };
+
+  const openSeries = () => {
+    navigate('series');
   };
 
   useEffect(() => {
@@ -49,6 +54,15 @@ const CardsOverview = () => {
           justifyContent: 'center',
         }}
       >
+        <Grid container size={12} sx={{ justifyContent: 'flex-end' }}>
+          <Button
+            onClick={openSeries}
+            sx={{ width: { md: 'auto', xs: '100%' } }}
+            variant="outlined"
+          >
+            {t('cards.overview.start-series')}
+          </Button>
+        </Grid>
         {isLoading
           ? <CircularProgress />
           : <CardsList cardsList={data} />

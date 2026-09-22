@@ -118,10 +118,45 @@
     "overview": {
       "cards": "Cards",
       "loading-error": "An error occurred while loading cards list.",
-      "register-card": "Register a card"
+      "register-card": "Register a card",
+      "start-series": "Start series"
     },
     "register": {
       "register-card": "Register a card"
+    },
+    "series": {
+      "title": "Series",
+      "source": "Source",
+      "order": "Order",
+      "orders": {
+        "album-natural": "Albums A→Z",
+        "artist-album": "Artist, then album",
+        "source": "Order of the source"
+      },
+      "start-at": "Starts at no. {{number}} of {{total}}.",
+      "start": "Start series",
+      "open-list": "Series list",
+      "last-at": "Last at no. {{number}}.",
+      "continue": "Continue there",
+      "position": "No. {{number}} of {{total}}",
+      "open-count": "open: {{count}}",
+      "place-card": "Place a card",
+      "back": "Back to start",
+      "to-cards": "To the card list",
+      "to-library": "To the library",
+      "empty-source": "This source delivers no album.",
+      "empty-source-hint": "Add music in the library or choose another source above.",
+      "exhausted": "All {{count}} albums of this source have a card.",
+      "exhausted-hint": "New cards are created through the existing form.",
+      "loading-error": "The series could not be loaded. Without the card list nothing is bound.",
+      "retry": "Load again",
+      "list": {
+        "search": "Search album or artist",
+        "row": "{{number}}. {{album}}",
+        "start-here": "Start here",
+        "bound": "bound",
+        "no-match": "No album matches the search."
+      }
     }
   },
   "header": {

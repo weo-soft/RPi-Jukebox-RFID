@@ -118,10 +118,45 @@
     "overview": {
       "cards": "Karten",
       "loading-error": "Während des Ladens der Karten ist ein Fehler aufgetreten",
-      "register-card": "Registriere eine Karte"
+      "register-card": "Registriere eine Karte",
+      "start-series": "Serie starten"
     },
     "register": {
       "register-card": "Registriere eine Karte"
+    },
+    "series": {
+      "title": "Serie",
+      "source": "Quelle",
+      "order": "Ordnung",
+      "orders": {
+        "album-natural": "Alben A→Z",
+        "artist-album": "Interpret, dann Album",
+        "source": "Reihenfolge der Quelle"
+      },
+      "start-at": "Beginnt bei Nr. {{number}} von {{total}}.",
+      "start": "Serie starten",
+      "open-list": "Serienliste",
+      "last-at": "Zuletzt bei Nr. {{number}}.",
+      "continue": "Dort weitermachen",
+      "position": "Nr. {{number}} von {{total}}",
+      "open-count": "offen: {{count}}",
+      "place-card": "Karte auflegen",
+      "back": "Zurück zum Start",
+      "to-cards": "Zur Kartenliste",
+      "to-library": "Zur Bibliothek",
+      "empty-source": "Diese Quelle liefert kein Album.",
+      "empty-source-hint": "In der Bibliothek Musik hinzufügen oder oben eine andere Quelle wählen.",
+      "exhausted": "Alle {{count}} Alben dieser Quelle haben eine Karte.",
+      "exhausted-hint": "Neue Karten entstehen über das bestehende Formular.",
+      "loading-error": "Die Serie konnte nicht geladen werden. Ohne Kartenliste wird nicht gebunden.",
+      "retry": "Erneut laden",
+      "list": {
+        "search": "Album oder Interpret suchen",
+        "row": "{{number}}. {{album}}",
+        "start-here": "Hier starten",
+        "bound": "gebunden",
+        "no-match": "Kein Album passt zur Suche."
+      }
     }
   },
   "header": {
