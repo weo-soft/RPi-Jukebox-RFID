@@ -12,7 +12,7 @@
     "controls": {
       "command-selector": {
         "title": "Befehl",
-        "label": "{{title}} Befehle",
+        "label": "Befehl",
         "placeholder": "Wähle einen Befehl aus",
         "commands": {
           "change_volume": "Lautstärke anpassen",
@@ -35,10 +35,10 @@
         }
       },
       "controls-selector": {
-        "label": "Jukebox Aktion"
+        "label": "Aktion"
       },
       "select-command-aliases": {
-        "label": "Aktionen",
+        "label": "Aktion",
         "placeholder": "Wähle eine Aktion aus",
         "actions": {
           "play_music": "Musik abspielen",

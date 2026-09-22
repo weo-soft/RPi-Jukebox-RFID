@@ -11,8 +11,8 @@
   "cards": {
     "controls": {
       "command-selector": {
-        "title": "Commands",
-        "label": "{{title}} commands",
+        "title": "Command",
+        "label": "Command",
         "placeholder": "Select a command",
         "commands": {
           "change_volume": "Change volume by",
@@ -35,10 +35,10 @@
         }
       },
       "controls-selector": {
-        "label": "Jukebox action"
+        "label": "Action"
       },
       "select-command-aliases": {
-        "label": "Actions",
+        "label": "Action",
         "placeholder": "Select an action",
         "actions": {
           "play_music": "Play music",
