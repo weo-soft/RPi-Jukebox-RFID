@@ -588,7 +588,7 @@ const CardsSeries = () => {
   }
 
   return (
-    <Grid container size={12} spacing={2} sx={{ alignContent: 'flex-start' }}>
+    <Grid container id="cards-series" size={12} spacing={2} sx={{ alignContent: 'flex-start' }}>
       <Header backLink="/cards" title={t('cards.series.title')} />
       <Grid size={12} sx={{ display: 'grid', gap: 'var(--space-4)' }}>
         {body}

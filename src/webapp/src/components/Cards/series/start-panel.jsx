@@ -51,6 +51,7 @@ const StartPanel = ({
               <NativeSelect
                 inputProps={{ id: 'cards-series-source' }}
                 onChange={(event) => onProviderChange(event.target.value)}
+                sx={{ '& select': { height: 'var(--touch-min)' } }}
                 value={provider || ''}
               >
                 {sources.map(({ id, label }) => (
@@ -67,6 +68,7 @@ const StartPanel = ({
               <NativeSelect
                 inputProps={{ id: 'cards-series-order' }}
                 onChange={(event) => onOrderChange(event.target.value)}
+                sx={{ '& select': { height: 'var(--touch-min)' } }}
                 value={orderId}
               >
                 {ORDERS.map(({ id, labelKey }) => (
@@ -83,6 +85,7 @@ const StartPanel = ({
               <NativeSelect
                 inputProps={{ id: 'cards-series-mode' }}
                 onChange={(event) => onModeChange(event.target.value)}
+                sx={{ '& select': { height: 'var(--touch-min)' } }}
                 value={mode}
               >
                 <option value="guided">{t('cards.series.modes.guided')}</option>
