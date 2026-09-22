@@ -40,6 +40,19 @@ a **list** of arguments to be passed! Even if ony a single argument is
 passed. So, use *args: \[value\]*. We try catch mis-uses but that might
 not always work.
 
+## Folder cards
+
+A card that plays a folder passes the folder as its first argument and the
+recursion as its second one. The second argument is optional and defaults to
+*false*: `args: [path/to/folder]` plays that folder only, while
+`args: [path/to/folder, true]` plays everything below it as well.
+
+``` yaml
+'0008':
+    alias: play_folder
+    args: [path/to/folder, true]
+```
+
 ## Additional options
 
 In addition to the RPC commands, these options may be specified for
