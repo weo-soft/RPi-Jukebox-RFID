@@ -267,11 +267,34 @@ test('a series without a chosen album names the state and cannot start', async (
 
   await openScreen();
   await user.click(screen.getByRole('button', { name: 'cards.series.choice.title' }));
-  await user.click(screen.getAllByRole('checkbox')[0]);
+  await user.click(screen.getByRole('button', { name: 'cards.series.choice.clear-all' }));
   await user.click(screen.getByRole('button', { name: 'cards.series.back' }));
 
   expect(await screen.findByText('cards.series.choice.empty')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'cards.series.start' })).toBeDisabled();
+});
+
+test('a cleared choice is built up again from a group', async () => {
+  const user = userEvent.setup();
+  cards = {};
+
+  await openScreen();
+  await user.click(screen.getByRole('button', { name: 'cards.series.choice.title' }));
+  await user.click(screen.getByRole('button', { name: 'cards.series.choice.clear-all' }));
+  await user.click(screen.getAllByRole('checkbox')[0]);
+  await user.click(screen.getByRole('button', { name: 'cards.series.back' }));
+
+  await startSeries(user);
+  await placeCard('0002');
+
+  await waitFor(() => {
+    expect(request).toHaveBeenCalledWith('registerCard', {
+      card_id: '0002',
+      cmd_alias: 'play_album',
+      args: ['Benjamin Blümchen', 'Folge 2', null, 'mpd'],
+      overwrite: false,
+    });
+  });
 });
 
 test('a typed card id binds without a reader', async () => {
