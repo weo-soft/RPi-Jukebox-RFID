@@ -22,17 +22,24 @@ import { ORDERS } from './orders';
  */
 const StartPanel = ({
   canStart,
+  emptySelection,
   emptySource,
+  isSelected,
   memoryNumber,
+  missingCount,
   mode,
+  onChoose,
+  onClearSelection,
   onContinue,
   onModeChange,
   onOpenList,
   onOrderChange,
   onProviderChange,
   onStart,
+  openAlbums,
   orderId,
   provider,
+  selectedCount,
   sources,
   startNumber,
   total,
@@ -93,6 +100,32 @@ const StartPanel = ({
               </NativeSelect>
             </FormControl>
           </Grid>
+          {mode === 'guided' && !emptySource &&
+            <Grid size={{ md: 6, xs: 12 }}>
+              <Typography variant="contentBody">{t('cards.series.selection')}</Typography>
+              <Typography color="textSecondary" variant="contentBody">
+                {isSelected
+                  ? t('cards.series.choice.selected', { count: selectedCount, open: openAlbums })
+                  : t('cards.series.choice.selected-all')
+                }
+              </Typography>
+              {missingCount > 0 &&
+                <Typography color="textSecondary" variant="contentBody">
+                  {t('cards.series.choice.missing', { count: missingCount })}
+                </Typography>
+              }
+              <Grid container sx={{ gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                <Button onClick={onChoose} variant="outlined">
+                  {isSelected ? t('cards.series.choice.change') : t('cards.series.choice.title')}
+                </Button>
+                {isSelected &&
+                  <Button onClick={onClearSelection} variant="outlined">
+                    {t('cards.series.choice.clear')}
+                  </Button>
+                }
+              </Grid>
+            </Grid>
+          }
           <Grid size={12}>
             {emptySource &&
               <>
@@ -111,12 +144,20 @@ const StartPanel = ({
                 </Button>
               </>
             }
-            {!emptySource && canStart &&
+            {!emptySource && emptySelection &&
+              <>
+                <Typography>{t('cards.series.choice.empty')}</Typography>
+                <Typography color="textSecondary" variant="contentBody">
+                  {t('cards.series.choice.empty-hint')}
+                </Typography>
+              </>
+            }
+            {!emptySource && !emptySelection && canStart &&
               <Typography>
                 {t('cards.series.start-at', { number: startNumber, total })}
               </Typography>
             }
-            {!emptySource && !canStart &&
+            {!emptySource && !emptySelection && !canStart &&
               <Typography>{t('cards.series.exhausted', { count: total })}</Typography>
             }
           </Grid>

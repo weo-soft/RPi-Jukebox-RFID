@@ -215,7 +215,7 @@ test('a fully bound source ends the series with its count', async ({ page }) => 
     ]),
   });
 
-  await expect(page.getByText('All 1 albums of this source have a card.')).toBeVisible();
+  await expect(page.getByText('All 1 albums of this series have a card.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start series' })).toBeDisabled();
 });
 
@@ -261,6 +261,50 @@ test('a source with hundreds of albums stays usable', async ({ page }) => {
     () => document.documentElement.scrollWidth > window.innerWidth + 1,
   );
   expect(overflow).toBe(false);
+});
+
+test('the albums chosen by their group are the series', async ({ page }) => {
+  await openSeries(page, { albums: [discovery, memories, mezzanine], cards: {} });
+
+  await page.getByRole('button', { name: 'Choose albums' }).click();
+  await expect(page.getByText('3 albums chosen, open: 3')).toBeVisible();
+
+  await page.getByRole('checkbox', { name: 'Select Daft Punk' }).uncheck();
+  await expect(page.getByText('1 album chosen, open: 1')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Back to start' }).click();
+  await expect(page.getByText('1 album, open: 1')).toBeVisible();
+
+  await startSeries(page);
+  await expect(page.getByText('No. 1 of 1')).toBeVisible();
+  await expect(page.getByText('Mezzanine')).toBeVisible();
+});
+
+test('the chosen albums survive a reload', async ({ page }) => {
+  await openSeries(page, { albums: [discovery, memories, mezzanine], cards: {} });
+
+  await page.getByRole('button', { name: 'Choose albums' }).click();
+  await page.getByRole('checkbox', { name: 'Select Daft Punk' }).uncheck();
+  await page.getByRole('button', { name: 'Back to start' }).click();
+
+  await page.reload();
+
+  await expect(page.getByText('1 album, open: 1')).toBeVisible();
+  await startSeries(page);
+  await expect(page.getByText('No. 1 of 1')).toBeVisible();
+  await expect(page.getByText('Mezzanine')).toBeVisible();
+});
+
+test('a source without a chosen album points at the choice', async ({ page }) => {
+  await openSeries(page, { albums: [discovery, memories], cards: {} });
+
+  await page.getByRole('button', { name: 'Choose albums' }).click();
+  await page.getByRole('checkbox', { name: 'Select Daft Punk' }).uncheck();
+  await page.getByRole('button', { name: 'Back to start' }).click();
+
+  await expect(page.getByText('The selection holds no album of this source.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start series' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Change the selection' })).toBeVisible();
 });
 
 test('the card list is searched by content and marks cards without an album', async ({ page }) => {

@@ -40,6 +40,7 @@ import {
   withCard,
   withoutCard,
 } from './session';
+import AlbumChoice from './album-choice';
 import AlbumPicker from './album-picker';
 import BoundFeedback from './bound-feedback';
 import ConflictPanel from './conflict-panel';
@@ -51,6 +52,7 @@ const VIEW_START = 'start';
 const VIEW_QUEUE = 'queue';
 const VIEW_LIST = 'list';
 const VIEW_PICKER = 'picker';
+const VIEW_CHOICE = 'choice';
 
 const albumActionData = (album) => buildActionData('play_music', 'play_album', {
   albumartist: album.albumartist,
@@ -60,12 +62,12 @@ const albumActionData = (album) => buildActionData('play_music', 'play_album', {
 });
 
 /*
- * A card series: the album list of one source in one order. The screen leads
- * from its start area into the queue or into the numbered list that brings the
- * physical stack into the same order, and it offers the free mode for cards
- * that do not follow that order. What counts as open follows from the
- * inventory - an album is open while no card names it - so no progress of its
- * own has to be kept.
+ * A card series: the albums of one source in one order, narrowed to the albums
+ * chosen for it. The screen leads from its start area into the choice, the queue
+ * or the numbered list that brings the physical stack into the same order, and
+ * it offers the free mode for cards that do not follow that order. What counts
+ * as open follows from the inventory - an album is open while no card names it -
+ * so no progress of its own has to be kept.
  */
 const CardsSeries = () => {
   const { t } = useTranslation();
@@ -75,6 +77,9 @@ const CardsSeries = () => {
   const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState(VIEW_START);
   const [mode, setMode] = useState('guided');
+  // The albums this series runs over; without a selection it is the whole source.
+  const [selection, setSelection] = useState(() => memory?.selection ?? null);
+  const [lastAlbumKey, setLastAlbumKey] = useState(() => memory?.albumKey ?? '');
   const [sources, setSources] = useState([]);
   const [provider, setProvider] = useState(null);
   const [orderId, setOrderId] = useState(() => orderById(memory?.order).id);
@@ -186,6 +191,14 @@ const CardsSeries = () => {
     setProvider(known ? remembered : sources[0].id);
   }, [isLoadingSources, memory, provider, sources]);
 
+  // Source, order, start point and the chosen albums are one state and are
+  // written together, so a reload finds the same series again.
+  useEffect(() => {
+    if (provider === null) return;
+
+    writeSeriesMemory({ source: provider, order: orderId, albumKey: lastAlbumKey, selection });
+  }, [lastAlbumKey, orderId, provider, selection]);
+
   // The event stream carries the card placements. The broker repeats the cached
   // value on every subscription, and this screen subscribes once its data is
   // there: the value the app already holds at that moment comes back once more
@@ -213,10 +226,19 @@ const CardsSeries = () => {
   }, [events]);
 
   const order = orderById(orderId);
-  const queue = useMemo(
+  const queueOf = useCallback((cardsList) => buildQueue({
+    albums,
+    cards: cardsList,
+    compare: order.compare,
+    selection,
+  }), [albums, order, selection]);
+  // The whole source: the choice of the albums and the free mode work on it.
+  const allQueue = useMemo(
     () => buildQueue({ albums, cards: cards ?? {}, compare: order.compare }),
     [albums, cards, order],
   );
+  const queue = useMemo(() => queueOf(cards ?? {}), [cards, queueOf]);
+  const sourceKeys = useMemo(() => new Set(allQueue.map(({ key }) => key)), [allQueue]);
 
   const openAlbums = openCount(queue);
   const firstOpen = nextOpenIndex(queue, 0);
@@ -227,10 +249,11 @@ const CardsSeries = () => {
   const startPosition = startIndex >= 0 ? startIndex : firstOpen;
   const startNumber = startPosition >= 0 && queue[startPosition] ? queue[startPosition].position : 0;
   const canStart = openAlbums > 0;
-
-  const remember = useCallback((album) => {
-    writeSeriesMemory({ source: provider, order: orderId, albumKey: album.key });
-  }, [orderId, provider]);
+  // A chosen album the source no longer delivers would leave the series
+  // silently, so it is named instead.
+  const missingCount = selection === null
+    ? 0
+    : selection.albumKeys.filter(key => !sourceKeys.has(key)).length;
 
   const bindAlbum = useCallback(async (cardId, album) => {
     // Without the card list the conflict test would run into nothing.
@@ -282,14 +305,14 @@ const CardsSeries = () => {
 
     const entry = { from_alias: cmdAlias, action: { args } };
     const nextCards = withCard(cards, cardId, entry);
-    const nextQueue = buildQueue({ albums, cards: nextCards, compare: order.compare });
+    const nextQueue = queueOf(nextCards);
 
     setCards(nextCards);
     setSession(current => rememberBinding(current, { albumKey: album.key, cardId }));
     setBound({ album, cardId, number: album.position });
     setPosition(nextOpenIndex(nextQueue, position + 1));
-    remember(album);
-  }, [albums, cards, order, position, remember]);
+    setLastAlbumKey(album.key);
+  }, [cards, position, queueOf]);
 
   const bind = useCallback(async (cardId) => {
     await bindAlbum(cardId, queue[position]);
@@ -318,14 +341,14 @@ const CardsSeries = () => {
 
     const entry = { from_alias: cmdAlias, action: { args } };
     const nextCards = withCard(cards, cardId, entry);
-    const nextQueue = buildQueue({ albums, cards: nextCards, compare: order.compare });
+    const nextQueue = queueOf(nextCards);
 
     setCards(nextCards);
     setSession(current => rememberBinding(current, { albumKey: album.key, cardId, previous: existing }));
     setBound({ album, cardId, number: album.position });
     setPosition(nextOpenIndex(nextQueue, position + 1));
-    remember(album);
-  }, [albums, cards, conflict, order, position, remember]);
+    setLastAlbumKey(album.key);
+  }, [cards, conflict, position, queueOf]);
 
   const undo = useCallback(async () => {
     const binding = lastBinding(session);
@@ -355,7 +378,7 @@ const CardsSeries = () => {
       return;
     }
 
-    const nextQueue = buildQueue({ albums, cards: nextCards, compare: order.compare });
+    const nextQueue = queueOf(nextCards);
     const undoneIndex = indexOfAlbum(nextQueue, binding.albumKey);
 
     setCards(nextCards);
@@ -365,7 +388,7 @@ const CardsSeries = () => {
 
     // The queue returns to the album whose binding was undone while it is open.
     if (undoneIndex >= 0 && !nextQueue[undoneIndex].bound) setPosition(undoneIndex);
-  }, [albums, cards, order, position, queue, session]);
+  }, [cards, position, queue, queueOf, session]);
 
   const reload = () => {
     setLoadError(null);
@@ -375,6 +398,9 @@ const CardsSeries = () => {
   const changeProvider = (nextProvider) => {
     setProvider(nextProvider);
     setStartIndex(-1);
+    // The keys of a selection name albums of one source, so they do not carry
+    // over to another one.
+    setSelection(null);
   };
 
   const changeOrder = (nextOrderId) => {
@@ -497,6 +523,16 @@ const CardsSeries = () => {
       </Card>
     );
   }
+  else if (view === VIEW_CHOICE) {
+    body = (
+      <AlbumChoice
+        albums={allQueue}
+        onChange={setSelection}
+        onBack={backToStart}
+        selection={selection}
+      />
+    );
+  }
   else if (view === VIEW_LIST) {
     body = (
       <SeriesList
@@ -511,7 +547,7 @@ const CardsSeries = () => {
     body = (
       <>
         <AlbumPicker
-          albums={queue}
+          albums={allQueue}
           cardId={freeCardId}
           onBack={backToStart}
           onBind={(album) => bindAlbum(freeCardId, album)}
@@ -569,17 +605,24 @@ const CardsSeries = () => {
     body = (
       <StartPanel
         canStart={canStart}
-        emptySource={queue.length === 0}
+        emptySelection={selection !== null && queue.length === 0}
+        emptySource={allQueue.length === 0}
+        isSelected={selection !== null}
         memoryNumber={rememberedIndex >= 0 ? queue[rememberedIndex].position : 0}
+        missingCount={missingCount}
         mode={mode}
+        onChoose={() => setView(VIEW_CHOICE)}
+        onClearSelection={() => setSelection(null)}
         onContinue={() => setStartIndex(continuing >= 0 ? continuing : firstOpen)}
         onModeChange={setMode}
         onOpenList={() => setView(VIEW_LIST)}
         onOrderChange={changeOrder}
         onProviderChange={changeProvider}
         onStart={start}
+        openAlbums={openAlbums}
         orderId={orderId}
         provider={provider}
+        selectedCount={queue.length}
         sources={sources}
         startNumber={startNumber}
         total={queue.length}

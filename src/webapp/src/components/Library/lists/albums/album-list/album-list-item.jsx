@@ -7,10 +7,13 @@ import { useTranslation } from 'react-i18next';
 
 import {
   Avatar,
+  Checkbox,
   ListItem,
   ListItemAvatar,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
+  Typography,
 } from '@mui/material';
 
 import noCover from '../../../../../assets/noCover.jpg';
@@ -25,13 +28,23 @@ import {
 import AppSettingsContext from '../../../../../context/appsettings/context';
 import request from '../../../../../utils/request';
 
+/*
+ * One album as a row: a link into the album, a single choice or one entry of a
+ * multiple choice. The caller decides between them with 'onSelect', 'onToggle'
+ * and 'isSelectable'; 'note' carries what the row has to say about the album
+ * besides its name.
+ */
 const AlbumListItem = ({
   albumartist,
   album,
   content_uri,
   cover_url,
   isButton = true,
+  isSelectable = false,
+  isSelected = false,
+  note = null,
   onSelect,
+  onToggle,
   provider = 'mpd',
   view = 'albums',
 }) => {
@@ -90,6 +103,23 @@ const AlbumListItem = ({
 
   const content = (
     <>
+      {isSelectable &&
+        <ListItemIcon sx={{ minWidth: 44 }}>
+          <Checkbox
+            checked={isSelected}
+            edge="start"
+            readOnly
+            slotProps={{
+              input: {
+                'aria-label': t('library.albums.select-item', {
+                  album: album || t('library.albums.unknown-album'),
+                }),
+              },
+            }}
+            tabIndex={-1}
+          />
+        </ListItemIcon>
+      }
       {show_covers &&
         <ListItemAvatar sx={{ minWidth: 104 }}>
           <Avatar
@@ -108,17 +138,27 @@ const AlbumListItem = ({
           secondary: { sx: LIBRARY_SECONDARY_SX },
         }}
       />
+      {note &&
+        <Typography color="textSecondary" variant="contentBody" sx={{ whiteSpace: 'nowrap' }}>
+          {note}
+        </Typography>
+      }
     </>
   );
 
   return (
     <ListItem disablePadding={isButton} key={content_uri || album}>
-      {isButton && onSelect &&
+      {isButton && onToggle &&
+        <ListItemButton onClick={onToggle} selected={isSelected} sx={LIBRARY_ROW_SX}>
+          {content}
+        </ListItemButton>
+      }
+      {isButton && !onToggle && onSelect &&
         <ListItemButton onClick={onSelect} sx={LIBRARY_ROW_SX}>
           {content}
         </ListItemButton>
       }
-      {isButton && !onSelect &&
+      {isButton && !onToggle && !onSelect &&
         <ListItemButton component={AlbumLink} nativeButton={false} sx={LIBRARY_ROW_SX}>
           {content}
         </ListItemButton>
