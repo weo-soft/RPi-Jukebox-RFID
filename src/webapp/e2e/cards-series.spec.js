@@ -299,7 +299,7 @@ test('the choice is cleared and built up from one artist', async ({ page }) => {
   await openSeries(page, { albums: [discovery, memories, mezzanine], cards: {} });
 
   await page.getByRole('button', { name: 'Choose albums' }).click();
-  await page.getByRole('button', { name: 'Clear all' }).click();
+  await page.getByRole('button', { name: 'Deselect all' }).click();
   await expect(page.getByText('0 albums chosen, open: 0')).toBeVisible();
   // With nothing chosen the same control takes the whole source back.
   await expect(page.getByRole('button', { name: 'Select all' })).toBeVisible();
