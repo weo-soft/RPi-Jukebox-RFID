@@ -8,7 +8,7 @@ import Grid from '@mui/material/Grid';
 import CardsOverview from './overview';
 import CardsEdit from './edit';
 import CardsRegister from './register';
-import CardsSeries from './series';
+import CardsBulk from './bulk';
 
 const Cards = () => {
   return (
@@ -30,8 +30,8 @@ const Cards = () => {
           element={<CardsRegister/>}
         />
         <Route
-          path="series"
-          element={<CardsSeries/>}
+          path="bulk"
+          element={<CardsBulk/>}
         />
       </Routes>
     </Grid>

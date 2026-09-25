@@ -30,24 +30,24 @@ const ConflictPanel = ({
           `cards.controls.command-selector.commands.${existing.from_alias}`,
           { defaultValue: existing.from_alias },
         )
-      : t('cards.series.conflict-unknown'));
+      : t('cards.bulk.conflict-unknown'));
 
   return (
     <Card elevation={0}>
       <CardContent>
         <Typography>
-          {t('cards.series.conflict', { cardId, content })}
+          {t('cards.bulk.conflict', { cardId, content })}
         </Typography>
         <Grid
           container
           sx={{ gap: 'var(--space-2)', justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}
         >
           <Button onClick={onClose} variant="outlined">
-            {t('cards.series.dismiss')}
+            {t('cards.bulk.dismiss')}
           </Button>
           {canRebind
             ? <Button onClick={onRebind} variant="contained">
-                {t('cards.series.rebind')}
+                {t('cards.bulk.rebind')}
               </Button>
             : <Button
                 component={Link}
@@ -55,7 +55,7 @@ const ConflictPanel = ({
                 to={`/cards?search=${encodeURIComponent(cardId)}`}
                 variant="contained"
               >
-                {t('cards.series.conflict-list')}
+                {t('cards.bulk.conflict-list')}
               </Button>
           }
         </Grid>

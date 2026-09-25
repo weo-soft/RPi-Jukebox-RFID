@@ -128,13 +128,13 @@
       "cards": "Karten",
       "loading-error": "Während des Ladens der Karten ist ein Fehler aufgetreten",
       "register-card": "Registriere eine Karte",
-      "start-series": "Serie starten"
+      "start-bulk": "Sammelregistrierung starten"
     },
     "register": {
       "register-card": "Registriere eine Karte"
     },
-    "series": {
-      "title": "Serie",
+    "bulk": {
+      "title": "Sammelregistrierung",
       "source": "Quelle",
       "order": "Ordnung",
       "orders": {
@@ -143,8 +143,8 @@
         "source": "Reihenfolge der Quelle"
       },
       "start-at": "Beginnt bei Nr. {{number}} von {{total}}.",
-      "start": "Serie starten",
-      "open-list": "Serienliste",
+      "start": "Sammelregistrierung starten",
+      "open-list": "Sammelliste",
       "last-at": "Zuletzt bei Nr. {{number}}.",
       "continue": "Dort weitermachen",
       "bind": "Binden",
@@ -158,7 +158,7 @@
       "binding-failed": "Die Bindung ist fehlgeschlagen: {{error}}",
       "mode": "Betriebsart",
       "modes": {
-        "guided": "Serie",
+        "guided": "Sammelregistrierung",
         "free": "Wahl"
       },
       "selection": "Auswahl",
@@ -191,7 +191,7 @@
         "empty": "Die Auswahl enthält kein Album dieser Quelle.",
         "empty-hint": "Andere Alben wählen oder die Auswahl aufheben."
       },
-      "start-free": "Auswahl öffnen",
+      "start-free": "Album wählen",
       "picker-with-card": "Album wählen — Karte {{cardId}}",
       "picker-no-card": "Karte auflegen oder ID eintippen",
       "picker-continue": "Weiter",
@@ -206,9 +206,9 @@
       "to-library": "Zur Bibliothek",
       "empty-source": "Diese Quelle liefert kein Album.",
       "empty-source-hint": "In der Bibliothek Musik hinzufügen oder oben eine andere Quelle wählen.",
-      "exhausted": "Alle {{count}} Alben dieser Serie haben eine Karte.",
+      "exhausted": "Alle {{count}} Alben der Auswahl haben eine Karte.",
       "exhausted-hint": "Neue Karten entstehen über das bestehende Formular.",
-      "loading-error": "Die Serie konnte nicht geladen werden. Ohne Kartenliste wird nicht gebunden.",
+      "loading-error": "Die Sammelregistrierung konnte nicht geladen werden. Ohne Kartenliste wird nicht gebunden.",
       "retry": "Erneut laden",
       "list": {
         "search": "Album oder Interpret suchen",

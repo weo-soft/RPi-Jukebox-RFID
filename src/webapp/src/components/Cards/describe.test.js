@@ -5,7 +5,7 @@ import {
   describeText,
   unassignableCards,
 } from './describe';
-import { albumKey } from './series/keys';
+import { albumKey } from './bulk/keys';
 
 
 test('an album card is described by its album', () => {

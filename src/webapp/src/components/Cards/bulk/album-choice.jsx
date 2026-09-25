@@ -28,12 +28,12 @@ import AlbumListItem from '../../Library/lists/albums/album-list/album-list-item
 import { DEFAULT_GROUPING_ID, GROUPINGS, groupAlbums } from './groups';
 
 /*
- * The choice of the albums a series runs over. The albums of the source are
+ * The choice of the albums a bulk registration runs over. The albums of the source are
  * listed in groups, because a stack is sorted along one axis and a library of
  * hundreds is not read album by album: the group carries what a whole artist
  * costs in one click, it opens for the albums that have to be picked one by
  * one, and the whole choice is taken or dropped in one click. A ticked album
- * takes part in the series and keeps its place in the numbered list, whether it
+ * takes part in the registration and keeps its place in the numbered list, whether it
  * has a card already or not. The way out is a floating control that confirms the
  * choice, so a library of many groups never hides it behind a long scroll.
  */
@@ -45,7 +45,7 @@ const AlbumChoice = ({
 }) => {
   const { t } = useTranslation();
   const allKeys = useMemo(() => albums.map(({ key }) => key), [albums]);
-  // The ticks show the series as it stands: without a selection it runs over
+  // The ticks show the registration as it stands: without a selection it runs over
   // every album of the source.
   const chosen = useMemo(
     () => (selection === null ? new Set(allKeys) : new Set(selection.albumKeys)),
@@ -78,7 +78,7 @@ const AlbumChoice = ({
   const openChosen = albums.filter(({ bound, key }) => !bound && chosen.has(key)).length;
   const everyAlbum = chosen.size === allKeys.length;
 
-  // The whole source needs no list: it is the series without a choice.
+  // The whole source needs no list: it is the registration without a choice.
   const publish = (keys) => {
     const next = new Set(keys);
 
@@ -116,7 +116,7 @@ const AlbumChoice = ({
   };
 
   const renderGroup = (group) => {
-    const label = group.id || t('cards.series.choice.no-albumartist');
+    const label = group.id || t('cards.bulk.choice.no-albumartist');
     const whole = group.albums.every(({ key }) => chosen.has(key));
     const some = group.albums.some(({ key }) => chosen.has(key));
     const isOpened = Boolean(needle) || opened.has(group.id);
@@ -134,14 +134,14 @@ const AlbumChoice = ({
                 onClick={event => event.stopPropagation()}
                 slotProps={{
                   input: {
-                    'aria-label': t('cards.series.choice.select-group', { group: label }),
+                    'aria-label': t('cards.bulk.choice.select-group', { group: label }),
                   },
                 }}
               />
             </ListItemIcon>
             <ListItemText
               primary={label}
-              secondary={t('cards.series.choice.group-count', {
+              secondary={t('cards.bulk.choice.group-count', {
                 chosen: group.chosen,
                 open: group.open,
                 total: group.total,
@@ -159,7 +159,7 @@ const AlbumChoice = ({
             isSelected={chosen.has(entry.key)}
             isSelectable
             key={entry.key}
-            note={entry.bound ? t('cards.series.list.bound') : null}
+            note={entry.bound ? t('cards.bulk.list.bound') : null}
             onToggle={() => toggleAlbum(entry.key)}
             provider={entry.provider}
           />
@@ -178,15 +178,15 @@ const AlbumChoice = ({
         <CardContent>
           <Grid container spacing={2}>
             <Grid size={12}>
-              <Typography variant="displaySubtitle">{t('cards.series.choice.title')}</Typography>
+              <Typography variant="displaySubtitle">{t('cards.bulk.choice.title')}</Typography>
             </Grid>
             <Grid size={{ md: 6, xs: 12 }}>
               <FormControl fullWidth>
-                <InputLabel htmlFor="cards-series-grouping" shrink>
-                  {t('cards.series.choice.group-by')}
+                <InputLabel htmlFor="cards-bulk-grouping" shrink>
+                  {t('cards.bulk.choice.group-by')}
                 </InputLabel>
                 <NativeSelect
-                  inputProps={{ id: 'cards-series-grouping' }}
+                  inputProps={{ id: 'cards-bulk-grouping' }}
                   onChange={(event) => setGroupingId(event.target.value)}
                   sx={{ '& select': { height: 'var(--touch-min)' } }}
                   value={groupingId}
@@ -200,8 +200,8 @@ const AlbumChoice = ({
             <Grid size={{ md: 6, xs: 12 }}>
               <TextField
                 fullWidth
-                id="cards-series-choice-search"
-                label={t('cards.series.choice.search')}
+                id="cards-bulk-choice-search"
+                label={t('cards.bulk.choice.search')}
                 onChange={(event) => setSearch(event.target.value)}
                 value={search}
                 variant="outlined"
@@ -217,23 +217,23 @@ const AlbumChoice = ({
               }}
             >
               <Typography sx={{ flex: 1 }}>
-                {t('cards.series.choice.chosen', { count: chosen.size, open: openChosen })}
+                {t('cards.bulk.choice.chosen', { count: chosen.size, open: openChosen })}
               </Typography>
               <Button onClick={() => publish(openKeys)} variant="outlined">
-                {t('cards.series.choice.open-only')}
+                {t('cards.bulk.choice.open-only')}
               </Button>
             </Grid>
             <Grid container size={12} sx={{ justifyContent: 'flex-start' }}>
               <Button onClick={() => publish(everyAlbum ? [] : allKeys)} variant="outlined">
                 {everyAlbum
-                  ? t('cards.series.choice.deselect-all')
-                  : t('cards.series.choice.select-all')
+                  ? t('cards.bulk.choice.deselect-all')
+                  : t('cards.bulk.choice.select-all')
                 }
               </Button>
             </Grid>
             <Grid size={12}>
               {visibleGroups.length === 0
-                ? <Typography>{t('cards.series.choice.no-match')}</Typography>
+                ? <Typography>{t('cards.bulk.choice.no-match')}</Typography>
                 : visibleGroups.map(renderGroup)
               }
             </Grid>
@@ -255,7 +255,7 @@ const AlbumChoice = ({
         variant="extended"
       >
         <CheckIcon sx={{ marginRight: 'var(--space-2)' }} />
-        {t('cards.series.choice.confirm')}
+        {t('cards.bulk.choice.confirm')}
       </Fab>
     </>
   );

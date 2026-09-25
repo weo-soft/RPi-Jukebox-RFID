@@ -11,7 +11,7 @@ import {
  * The chip number as a source of its own. Without an action label the field
  * only carries the number: the form keeps it in its own state and a placement
  * fills it. With an action label the field holds what was typed until the
- * action carries it away - that is the mode of the series, where a placed card
+ * action carries it away - that is the mode of the registration, where a placed card
  * binds without touching the field.
  */
 const CardIdField = ({

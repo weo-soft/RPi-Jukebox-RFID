@@ -6,7 +6,7 @@ import { beforeEach, expect, test, vi } from 'vitest';
 import AppSettingsProvider from '../../../context/appsettings';
 import PubSubContext from '../../../context/pubsub/context';
 import request from '../../../utils/request';
-import CardsSeries from './index';
+import CardsBulk from './index';
 
 
 const socket = vi.hoisted(() => ({ publish: null }));
@@ -76,24 +76,24 @@ const openScreen = async ({ publishedCardId } = {}) => {
             : { 'rfid.card_id': publishedCardId },
         }}
       >
-        <MemoryRouter initialEntries={['/cards/series']}>
+        <MemoryRouter initialEntries={['/cards/bulk']}>
           <Routes>
-            <Route element={<CardsSeries />} path="/cards/series" />
+            <Route element={<CardsBulk />} path="/cards/bulk" />
           </Routes>
         </MemoryRouter>
       </PubSubContext.Provider>
     </AppSettingsProvider>,
   );
 
-  await screen.findByRole('button', { name: 'cards.series.start' });
+  await screen.findByRole('button', { name: 'cards.bulk.start' });
 };
 
 const placeCard = async (cardId) => {
   await act(async () => { socket.publish(cardId); });
 };
 
-const startSeries = async (user) => {
-  await user.click(screen.getByRole('button', { name: 'cards.series.start' }));
+const startBulk = async (user) => {
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.start' }));
 };
 
 test('a placed card binds the album that is offered', async () => {
@@ -101,7 +101,7 @@ test('a placed card binds the album that is offered', async () => {
   cards = {};
 
   await openScreen();
-  await startSeries(user);
+  await startBulk(user);
   await placeCard('0001');
 
   await waitFor(() => {
@@ -112,7 +112,7 @@ test('a placed card binds the album that is offered', async () => {
       overwrite: false,
     });
   });
-  expect(await screen.findByText('cards.series.bound-at')).toBeInTheDocument();
+  expect(await screen.findByText('cards.bulk.bound-at')).toBeInTheDocument();
 });
 
 test('the value of an earlier session binds nothing, the next placement does', async () => {
@@ -120,7 +120,7 @@ test('the value of an earlier session binds nothing, the next placement does', a
   cards = {};
 
   await openScreen({ publishedCardId: '0009' });
-  await startSeries(user);
+  await startBulk(user);
   await placeCard('0009');
 
   expect(request).not.toHaveBeenCalledWith('registerCard', expect.anything());
@@ -140,7 +140,7 @@ test('a repetition of the same card binds once', async () => {
   cards = {};
 
   await openScreen();
-  await startSeries(user);
+  await startBulk(user);
   await placeCard('0001');
   await placeCard('0001');
 
@@ -156,11 +156,11 @@ test('an occupied card opens the conflict and binds nothing', async () => {
   ]);
 
   await openScreen();
-  await startSeries(user);
+  await startBulk(user);
   await placeCard('0001');
 
-  expect(await screen.findByText('cards.series.conflict')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'cards.series.rebind' })).toBeInTheDocument();
+  expect(await screen.findByText('cards.bulk.conflict')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'cards.bulk.rebind' })).toBeInTheDocument();
   expect(request).not.toHaveBeenCalledWith('registerCard', expect.anything());
 });
 
@@ -169,12 +169,12 @@ test('a card of another kind is not offered for re-hanging', async () => {
   cards = Object.fromEntries([albumCard('0001', 'shutdown', null)]);
 
   await openScreen();
-  await startSeries(user);
+  await startBulk(user);
   await placeCard('0001');
 
-  expect(await screen.findByText('cards.series.conflict')).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'cards.series.rebind' })).not.toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'cards.series.conflict-list' }))
+  expect(await screen.findByText('cards.bulk.conflict')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'cards.bulk.rebind' })).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'cards.bulk.conflict-list' }))
     .toHaveAttribute('href', '/cards?search=0001');
 });
 
@@ -183,11 +183,11 @@ test('the undo removes the binding of the last card', async () => {
   cards = {};
 
   await openScreen();
-  await startSeries(user);
+  await startBulk(user);
   await placeCard('0001');
-  await screen.findByText('cards.series.bound-at');
+  await screen.findByText('cards.bulk.bound-at');
 
-  await user.click(screen.getByRole('button', { name: 'cards.series.undo' }));
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.undo' }));
 
   await waitFor(() => {
     expect(request).toHaveBeenCalledWith('deleteCard', { card_id: '0001' });
@@ -199,11 +199,11 @@ test('the free mode binds the album that is chosen for the placed card', async (
   cards = {};
 
   await openScreen();
-  await user.selectOptions(screen.getByLabelText('cards.series.mode'), 'free');
-  await user.click(screen.getByRole('button', { name: 'cards.series.start-free' }));
+  await user.selectOptions(screen.getByLabelText('cards.bulk.mode'), 'free');
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.start-free' }));
   await placeCard('0001');
 
-  expect(await screen.findByText('cards.series.picker-with-card')).toBeInTheDocument();
+  expect(await screen.findByText('cards.bulk.picker-with-card')).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: /Folge 10/ }));
 
@@ -224,31 +224,31 @@ test('an album another card holds is not bound a second time', async () => {
   ]);
 
   await openScreen();
-  await user.selectOptions(screen.getByLabelText('cards.series.mode'), 'free');
-  await user.click(screen.getByRole('button', { name: 'cards.series.start-free' }));
+  await user.selectOptions(screen.getByLabelText('cards.bulk.mode'), 'free');
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.start-free' }));
   await placeCard('0001');
-  await screen.findByText('cards.series.picker-with-card');
+  await screen.findByText('cards.bulk.picker-with-card');
 
-  await user.click(screen.getByLabelText('cards.series.picker-only-open'));
+  await user.click(screen.getByLabelText('cards.bulk.picker-only-open'));
   await user.click(screen.getByRole('button', { name: /Folge 2/ }));
 
-  expect(await screen.findByText('cards.series.album-conflict')).toBeInTheDocument();
+  expect(await screen.findByText('cards.bulk.album-conflict')).toBeInTheDocument();
   expect(request).not.toHaveBeenCalledWith('registerCard', expect.anything());
 });
 
-test('the albums that were unticked stay out of the series', async () => {
+test('the albums that were unticked stay out of the registration', async () => {
   const user = userEvent.setup();
   cards = {};
 
   await openScreen();
-  await user.click(screen.getByRole('button', { name: 'cards.series.choice.title' }));
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.choice.title' }));
 
   // The group is opened for its albums, and the first of them is taken out.
   await user.click(screen.getByRole('button', { name: /Benjamin/ }));
   await user.click(screen.getAllByRole('checkbox')[1]);
-  await user.click(screen.getByRole('button', { name: 'cards.series.choice.confirm' }));
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.choice.confirm' }));
 
-  await startSeries(user);
+  await startBulk(user);
   await placeCard('0001');
 
   await waitFor(() => {
@@ -261,17 +261,17 @@ test('the albums that were unticked stay out of the series', async () => {
   });
 });
 
-test('a series without a chosen album names the state and cannot start', async () => {
+test('a bulk registration without a chosen album names the state and cannot start', async () => {
   const user = userEvent.setup();
   cards = {};
 
   await openScreen();
-  await user.click(screen.getByRole('button', { name: 'cards.series.choice.title' }));
-  await user.click(screen.getByRole('button', { name: 'cards.series.choice.deselect-all' }));
-  await user.click(screen.getByRole('button', { name: 'cards.series.choice.confirm' }));
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.choice.title' }));
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.choice.deselect-all' }));
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.choice.confirm' }));
 
-  expect(await screen.findByText('cards.series.choice.empty')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'cards.series.start' })).toBeDisabled();
+  expect(await screen.findByText('cards.bulk.choice.empty')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'cards.bulk.start' })).toBeDisabled();
 });
 
 test('a cleared choice is built up again from a group', async () => {
@@ -279,12 +279,12 @@ test('a cleared choice is built up again from a group', async () => {
   cards = {};
 
   await openScreen();
-  await user.click(screen.getByRole('button', { name: 'cards.series.choice.title' }));
-  await user.click(screen.getByRole('button', { name: 'cards.series.choice.deselect-all' }));
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.choice.title' }));
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.choice.deselect-all' }));
   await user.click(screen.getAllByRole('checkbox')[0]);
-  await user.click(screen.getByRole('button', { name: 'cards.series.choice.confirm' }));
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.choice.confirm' }));
 
-  await startSeries(user);
+  await startBulk(user);
   await placeCard('0002');
 
   await waitFor(() => {
@@ -302,9 +302,9 @@ test('a typed card id binds without a reader', async () => {
   cards = {};
 
   await openScreen();
-  await startSeries(user);
+  await startBulk(user);
   await user.type(screen.getByLabelText('cards.card-id.label'), '0002');
-  await user.click(screen.getByRole('button', { name: 'cards.series.bind' }));
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.bind' }));
 
   await waitFor(() => {
     expect(request).toHaveBeenCalledWith('registerCard', {

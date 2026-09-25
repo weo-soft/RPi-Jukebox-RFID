@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 
 import CardsDeleteDialog from '../dialogs/delete';
-import ConflictPanel from '../series/conflict-panel';
+import ConflictPanel from '../bulk/conflict-panel';
 import request from '../../../utils/request';
 import { loadRegisteredCards, registeredEntry } from '../registered-cards';
 import {

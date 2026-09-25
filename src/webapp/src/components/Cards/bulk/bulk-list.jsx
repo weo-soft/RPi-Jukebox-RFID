@@ -23,10 +23,10 @@ const matchesSearch = (search) => {
 };
 
 /*
- * The numbered album list of a series. It is how the physical stack is brought
+ * The numbered album list of a bulk registration. It is how the physical stack is brought
  * into the order of the session and how a session is entered at a chosen album.
  */
-const SeriesList = ({
+const BulkList = ({
   onBack,
   onStartHere,
   position,
@@ -43,8 +43,8 @@ const SeriesList = ({
           <Grid size={12}>
             <TextField
               fullWidth
-              id="cards-series-search"
-              label={t('cards.series.list.search')}
+              id="cards-bulk-search"
+              label={t('cards.bulk.list.search')}
               onChange={(event) => setSearch(event.target.value)}
               value={search}
               variant="outlined"
@@ -52,7 +52,7 @@ const SeriesList = ({
           </Grid>
           <Grid size={12}>
             {entries.length === 0
-              ? <Typography>{t('cards.series.list.no-match')}</Typography>
+              ? <Typography>{t('cards.bulk.list.no-match')}</Typography>
               : <List sx={{ width: '100%' }}>
                   {entries.map((entry, index) => (
                     <ListItem
@@ -62,7 +62,7 @@ const SeriesList = ({
                       sx={{ gap: 'var(--space-2)' }}
                     >
                       <ListItemText
-                        primary={t('cards.series.list.row', {
+                        primary={t('cards.bulk.list.row', {
                           number: entry.position,
                           album: entry.album || t('library.albums.unknown-album'),
                         })}
@@ -70,13 +70,13 @@ const SeriesList = ({
                       />
                       {entry.bound
                         ? <Typography color="textSecondary">
-                            {t('cards.series.list.bound')}
+                            {t('cards.bulk.list.bound')}
                           </Typography>
                         : <Button
                             onClick={() => onStartHere(index)}
                             variant="outlined"
                           >
-                            {t('cards.series.list.start-here')}
+                            {t('cards.bulk.list.start-here')}
                           </Button>
                       }
                     </ListItem>
@@ -90,7 +90,7 @@ const SeriesList = ({
             sx={{ gap: 'var(--space-2)', justifyContent: 'flex-end' }}
           >
             <Button onClick={onBack} variant="outlined">
-              {t('cards.series.back')}
+              {t('cards.bulk.back')}
             </Button>
           </Grid>
         </Grid>
@@ -99,4 +99,4 @@ const SeriesList = ({
   );
 };
 
-export default SeriesList;
+export default BulkList;

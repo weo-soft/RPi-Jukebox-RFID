@@ -5,7 +5,7 @@ import { albumKey, boundKeys } from './keys';
  * to the albums the selection names. Every entry knows whether a card already
  * holds it; bound albums stay in the list, they are simply not offered any more.
  * The positions count within the queue, so the numbered list numbers exactly the
- * stack a series works through.
+ * stack a bulk registration works through.
  */
 const buildQueue = ({ albums = [], cards = {}, compare, selection } = {}) => {
   const held = boundKeys(cards);
@@ -25,7 +25,7 @@ const buildQueue = ({ albums = [], cards = {}, compare, selection } = {}) => {
 
 const openCount = (queue = []) => queue.filter(({ bound }) => !bound).length;
 
-// First open entry from 'from' onwards, or -1 when the series is exhausted.
+// First open entry from 'from' onwards, or -1 when the registration is exhausted.
 const nextOpenIndex = (queue = [], from = 0) => {
   const start = Math.max(0, from);
 

@@ -20,17 +20,17 @@ const sourceOrder = () => 0;
 const ORDERS = [
   {
     id: 'album-natural',
-    labelKey: 'cards.series.orders.album-natural',
+    labelKey: 'cards.bulk.orders.album-natural',
     compare: naturalAlbums,
   },
   {
     id: 'artist-album',
-    labelKey: 'cards.series.orders.artist-album',
+    labelKey: 'cards.bulk.orders.artist-album',
     compare: artistThenAlbum,
   },
   {
     id: 'source',
-    labelKey: 'cards.series.orders.source',
+    labelKey: 'cards.bulk.orders.source',
     compare: sourceOrder,
   },
 ];

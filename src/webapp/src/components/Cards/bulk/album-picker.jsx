@@ -41,15 +41,15 @@ const AlbumPicker = ({
           <Grid size={12}>
             <Typography variant="displaySubtitle">
               {cardId
-                ? t('cards.series.picker-with-card', { cardId })
-                : t('cards.series.picker-no-card')
+                ? t('cards.bulk.picker-with-card', { cardId })
+                : t('cards.bulk.picker-no-card')
               }
             </Typography>
           </Grid>
           {!cardId &&
             <Grid size={12}>
               <CardIdField
-                actionLabel={t('cards.series.picker-continue')}
+                actionLabel={t('cards.bulk.picker-continue')}
                 onActivate={onCardId}
               />
             </Grid>
@@ -57,8 +57,8 @@ const AlbumPicker = ({
           {cardId && <Grid size={12}>
             <TextField
               fullWidth
-              id="cards-series-picker-search"
-              label={t('cards.series.list.search')}
+              id="cards-bulk-picker-search"
+              label={t('cards.bulk.list.search')}
               onChange={(event) => setSearch(event.target.value)}
               value={search}
               variant="outlined"
@@ -72,12 +72,12 @@ const AlbumPicker = ({
                   onChange={(event) => setOnlyOpen(event.target.checked)}
                 />
               }
-              label={t('cards.series.picker-only-open')}
+              label={t('cards.bulk.picker-only-open')}
             />
           </Grid>}
           {cardId && <Grid size={12}>
             {visible.length === 0
-              ? <Typography>{t('cards.series.picker-no-match')}</Typography>
+              ? <Typography>{t('cards.bulk.picker-no-match')}</Typography>
               : <List sx={{ width: '100%' }}>
                   {visible.map((album) => (
                     <AlbumListItem
@@ -99,7 +99,7 @@ const AlbumPicker = ({
             sx={{ justifyContent: 'flex-end' }}
           >
             <Button onClick={onBack} variant="outlined">
-              {t('cards.series.back')}
+              {t('cards.bulk.back')}
             </Button>
           </Grid>
         </Grid>
