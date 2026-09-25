@@ -43,6 +43,9 @@ let cards = {};
 beforeEach(() => {
   request.mockClear();
   cards = {};
+  // The screen remembers source, order and the chosen albums: a leftover of an
+  // earlier case would decide the start of the next one.
+  window.localStorage.clear();
 });
 
 const answer = (command) => {
@@ -231,6 +234,44 @@ test('an album another card holds is not bound a second time', async () => {
 
   expect(await screen.findByText('cards.series.album-conflict')).toBeInTheDocument();
   expect(request).not.toHaveBeenCalledWith('registerCard', expect.anything());
+});
+
+test('the albums that were unticked stay out of the series', async () => {
+  const user = userEvent.setup();
+  cards = {};
+
+  await openScreen();
+  await user.click(screen.getByRole('button', { name: 'cards.series.choice.title' }));
+
+  // The group is opened for its albums, and the first of them is taken out.
+  await user.click(screen.getByRole('button', { name: /Benjamin/ }));
+  await user.click(screen.getAllByRole('checkbox')[1]);
+  await user.click(screen.getByRole('button', { name: 'cards.series.back' }));
+
+  await startSeries(user);
+  await placeCard('0001');
+
+  await waitFor(() => {
+    expect(request).toHaveBeenCalledWith('registerCard', {
+      card_id: '0001',
+      cmd_alias: 'play_album',
+      args: ['Benjamin Blümchen', 'Folge 10', null, 'mpd'],
+      overwrite: false,
+    });
+  });
+});
+
+test('a series without a chosen album names the state and cannot start', async () => {
+  const user = userEvent.setup();
+  cards = {};
+
+  await openScreen();
+  await user.click(screen.getByRole('button', { name: 'cards.series.choice.title' }));
+  await user.click(screen.getAllByRole('checkbox')[0]);
+  await user.click(screen.getByRole('button', { name: 'cards.series.back' }));
+
+  expect(await screen.findByText('cards.series.choice.empty')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'cards.series.start' })).toBeDisabled();
 });
 
 test('a typed card id binds without a reader', async () => {
