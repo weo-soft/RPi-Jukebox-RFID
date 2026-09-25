@@ -112,6 +112,53 @@ test('a card of another source does not close the local album of the same name',
   }))).toBe(-1);
 });
 
+test('a selection narrows the queue and numbers what is left', () => {
+  const selection = {
+    albumKeys: [albumKeyOf(localAlbums[1]), albumKeyOf(localAlbums[2])],
+    groupingId: 'albumartist',
+  };
+  const queue = buildQueue({
+    albums: localAlbums,
+    compare: orderById('album-natural').compare,
+    selection,
+  });
+
+  expect(queue.map(({ album }) => album)).toEqual(['Folge 2', 'Jazz ist anders']);
+  expect(queue.map(({ position }) => position)).toEqual([1, 2]);
+});
+
+test('a selection keeps a bound album in the numbered list', () => {
+  const cards = Object.fromEntries([
+    albumCard('0001', 'Benjamin Blümchen', 'Folge 2'),
+  ]);
+  const selection = {
+    albumKeys: [albumKeyOf(localAlbums[0]), albumKeyOf(localAlbums[1])],
+    groupingId: 'albumartist',
+  };
+  const queue = buildQueue({
+    albums: localAlbums,
+    cards,
+    compare: orderById('album-natural').compare,
+    selection,
+  });
+
+  expect(queue).toHaveLength(2);
+  expect(openCount(queue)).toBe(1);
+  expect(nextOpenIndex(queue, 0)).toBe(1);
+});
+
+test('a selection the source no longer knows leaves the queue empty', () => {
+  const selection = { albumKeys: ['["mpd","Nobody","Nothing",null]'], groupingId: 'albumartist' };
+  const queue = buildQueue({
+    albums: localAlbums,
+    compare: orderById('album-natural').compare,
+    selection,
+  });
+
+  expect(queue).toEqual([]);
+  expect(openCount(queue)).toBe(0);
+});
+
 test('an unknown album key has no position', () => {
   const queue = buildQueue({ albums: localAlbums, compare: orderById('album-natural').compare });
 

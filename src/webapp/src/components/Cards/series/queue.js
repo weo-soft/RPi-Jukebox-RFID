@@ -1,23 +1,26 @@
 import { albumKey, boundKeys } from './keys';
 
-// The queue is the album list of the chosen source in the chosen order. Every
-// entry knows whether a card already holds it; bound albums stay in the list,
-// they are simply not offered any more.
-const buildQueue = ({ albums = [], cards = {}, compare } = {}) => {
+/*
+ * The queue is the album list of the chosen source in the chosen order, narrowed
+ * to the albums the selection names. Every entry knows whether a card already
+ * holds it; bound albums stay in the list, they are simply not offered any more.
+ * The positions count within the queue, so the numbered list numbers exactly the
+ * stack a series works through.
+ */
+const buildQueue = ({ albums = [], cards = {}, compare, selection } = {}) => {
   const held = boundKeys(cards);
+  const chosen = selection ? new Set(selection.albumKeys) : null;
   const ordered = [...albums];
   if (compare) ordered.sort(compare);
 
-  return ordered.map((album, index) => {
-    const key = albumKey(album);
-
-    return {
-      ...album,
-      key,
+  return ordered
+    .map(album => ({ ...album, key: albumKey(album) }))
+    .filter(({ key }) => chosen === null || chosen.has(key))
+    .map((entry, index) => ({
+      ...entry,
       position: index + 1,
-      bound: held.has(key),
-    };
-  });
+      bound: held.has(entry.key),
+    }));
 };
 
 const openCount = (queue = []) => queue.filter(({ bound }) => !bound).length;
