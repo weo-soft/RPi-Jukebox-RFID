@@ -246,7 +246,7 @@ test('the albums that were unticked stay out of the series', async () => {
   // The group is opened for its albums, and the first of them is taken out.
   await user.click(screen.getByRole('button', { name: /Benjamin/ }));
   await user.click(screen.getAllByRole('checkbox')[1]);
-  await user.click(screen.getByRole('button', { name: 'cards.series.back' }));
+  await user.click(screen.getByRole('button', { name: 'cards.series.choice.confirm' }));
 
   await startSeries(user);
   await placeCard('0001');
@@ -268,7 +268,7 @@ test('a series without a chosen album names the state and cannot start', async (
   await openScreen();
   await user.click(screen.getByRole('button', { name: 'cards.series.choice.title' }));
   await user.click(screen.getByRole('button', { name: 'cards.series.choice.deselect-all' }));
-  await user.click(screen.getByRole('button', { name: 'cards.series.back' }));
+  await user.click(screen.getByRole('button', { name: 'cards.series.choice.confirm' }));
 
   expect(await screen.findByText('cards.series.choice.empty')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'cards.series.start' })).toBeDisabled();
@@ -282,7 +282,7 @@ test('a cleared choice is built up again from a group', async () => {
   await user.click(screen.getByRole('button', { name: 'cards.series.choice.title' }));
   await user.click(screen.getByRole('button', { name: 'cards.series.choice.deselect-all' }));
   await user.click(screen.getAllByRole('checkbox')[0]);
-  await user.click(screen.getByRole('button', { name: 'cards.series.back' }));
+  await user.click(screen.getByRole('button', { name: 'cards.series.choice.confirm' }));
 
   await startSeries(user);
   await placeCard('0002');

@@ -6,6 +6,7 @@ import {
   Card,
   CardContent,
   Checkbox,
+  Fab,
   FormControl,
   Grid,
   InputLabel,
@@ -19,6 +20,7 @@ import {
   Typography,
 } from '@mui/material';
 
+import CheckIcon from '@mui/icons-material/Check';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
@@ -32,7 +34,8 @@ import { DEFAULT_GROUPING_ID, GROUPINGS, groupAlbums } from './groups';
  * costs in one click, it opens for the albums that have to be picked one by
  * one, and the whole choice is taken or dropped in one click. A ticked album
  * takes part in the series and keeps its place in the numbered list, whether it
- * has a card already or not.
+ * has a card already or not. The way out is a floating control that confirms the
+ * choice, so a library of many groups never hides it behind a long scroll.
  */
 const AlbumChoice = ({
   albums,
@@ -165,77 +168,95 @@ const AlbumChoice = ({
   };
 
   return (
-    <Card elevation={0}>
-      <CardContent>
-        <Grid container spacing={2}>
-          <Grid size={12}>
-            <Typography variant="displaySubtitle">{t('cards.series.choice.title')}</Typography>
-          </Grid>
-          <Grid size={{ md: 6, xs: 12 }}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="cards-series-grouping" shrink>
-                {t('cards.series.choice.group-by')}
-              </InputLabel>
-              <NativeSelect
-                inputProps={{ id: 'cards-series-grouping' }}
-                onChange={(event) => setGroupingId(event.target.value)}
-                sx={{ '& select': { height: 'var(--touch-min)' } }}
-                value={groupingId}
-              >
-                {GROUPINGS.map(({ id, labelKey }) => (
-                  <option key={id} value={id}>{t(labelKey)}</option>
-                ))}
-              </NativeSelect>
-            </FormControl>
-          </Grid>
-          <Grid size={{ md: 6, xs: 12 }}>
-            <TextField
-              fullWidth
-              id="cards-series-choice-search"
-              label={t('cards.series.choice.search')}
-              onChange={(event) => setSearch(event.target.value)}
-              value={search}
-              variant="outlined"
-            />
-          </Grid>
-          <Grid
-            container
-            size={12}
-            sx={{
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-              justifyContent: 'flex-end',
-            }}
-          >
-            <Typography sx={{ flex: 1 }}>
-              {t('cards.series.choice.chosen', { count: chosen.size, open: openChosen })}
-            </Typography>
-            <Button onClick={() => publish(openKeys)} variant="outlined">
-              {t('cards.series.choice.open-only')}
-            </Button>
-          </Grid>
-          <Grid container size={12} sx={{ justifyContent: 'flex-start' }}>
-            <Button onClick={() => publish(everyAlbum ? [] : allKeys)} variant="outlined">
-              {everyAlbum
-                ? t('cards.series.choice.deselect-all')
-                : t('cards.series.choice.select-all')
+    <>
+      <Card
+        elevation={0}
+        // The list ends above the floating control instead of under it.
+        sx={{ marginBottom: 'calc(var(--touch-secondary) + var(--space-4))' }}
+      >
+        <CardContent>
+          <Grid container spacing={2}>
+            <Grid size={12}>
+              <Typography variant="displaySubtitle">{t('cards.series.choice.title')}</Typography>
+            </Grid>
+            <Grid size={{ md: 6, xs: 12 }}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="cards-series-grouping" shrink>
+                  {t('cards.series.choice.group-by')}
+                </InputLabel>
+                <NativeSelect
+                  inputProps={{ id: 'cards-series-grouping' }}
+                  onChange={(event) => setGroupingId(event.target.value)}
+                  sx={{ '& select': { height: 'var(--touch-min)' } }}
+                  value={groupingId}
+                >
+                  {GROUPINGS.map(({ id, labelKey }) => (
+                    <option key={id} value={id}>{t(labelKey)}</option>
+                  ))}
+                </NativeSelect>
+              </FormControl>
+            </Grid>
+            <Grid size={{ md: 6, xs: 12 }}>
+              <TextField
+                fullWidth
+                id="cards-series-choice-search"
+                label={t('cards.series.choice.search')}
+                onChange={(event) => setSearch(event.target.value)}
+                value={search}
+                variant="outlined"
+              />
+            </Grid>
+            <Grid
+              container
+              size={12}
+              sx={{
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <Typography sx={{ flex: 1 }}>
+                {t('cards.series.choice.chosen', { count: chosen.size, open: openChosen })}
+              </Typography>
+              <Button onClick={() => publish(openKeys)} variant="outlined">
+                {t('cards.series.choice.open-only')}
+              </Button>
+            </Grid>
+            <Grid container size={12} sx={{ justifyContent: 'flex-start' }}>
+              <Button onClick={() => publish(everyAlbum ? [] : allKeys)} variant="outlined">
+                {everyAlbum
+                  ? t('cards.series.choice.deselect-all')
+                  : t('cards.series.choice.select-all')
+                }
+              </Button>
+            </Grid>
+            <Grid size={12}>
+              {visibleGroups.length === 0
+                ? <Typography>{t('cards.series.choice.no-match')}</Typography>
+                : visibleGroups.map(renderGroup)
               }
-            </Button>
+            </Grid>
           </Grid>
-          <Grid size={12}>
-            {visibleGroups.length === 0
-              ? <Typography>{t('cards.series.choice.no-match')}</Typography>
-              : visibleGroups.map(renderGroup)
-            }
-          </Grid>
-          <Grid container size={12} sx={{ justifyContent: 'flex-end' }}>
-            <Button onClick={onBack} variant="outlined">
-              {t('cards.series.back')}
-            </Button>
-          </Grid>
-        </Grid>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      {/* The way out applies what is ticked and leads to the start area: it
+          confirms the choice instead of leaving it behind. It floats, because a
+          library of many groups must not hide it behind a long scroll. */}
+      <Fab
+        color="primary"
+        onClick={onBack}
+        sx={{
+          bottom: 'calc(var(--nav-height) + var(--space-4))',
+          minHeight: 'var(--touch-secondary)',
+          position: 'fixed',
+          right: 'var(--gutter)',
+        }}
+        variant="extended"
+      >
+        <CheckIcon sx={{ marginRight: 'var(--space-2)' }} />
+        {t('cards.series.choice.confirm')}
+      </Fab>
+    </>
   );
 };
 
