@@ -267,7 +267,7 @@ test('a series without a chosen album names the state and cannot start', async (
 
   await openScreen();
   await user.click(screen.getByRole('button', { name: 'cards.series.choice.title' }));
-  await user.click(screen.getByRole('button', { name: 'cards.series.choice.clear-all' }));
+  await user.click(screen.getByRole('button', { name: 'cards.series.choice.deselect-all' }));
   await user.click(screen.getByRole('button', { name: 'cards.series.back' }));
 
   expect(await screen.findByText('cards.series.choice.empty')).toBeInTheDocument();
@@ -280,7 +280,7 @@ test('a cleared choice is built up again from a group', async () => {
 
   await openScreen();
   await user.click(screen.getByRole('button', { name: 'cards.series.choice.title' }));
-  await user.click(screen.getByRole('button', { name: 'cards.series.choice.clear-all' }));
+  await user.click(screen.getByRole('button', { name: 'cards.series.choice.deselect-all' }));
   await user.click(screen.getAllByRole('checkbox')[0]);
   await user.click(screen.getByRole('button', { name: 'cards.series.back' }));
 

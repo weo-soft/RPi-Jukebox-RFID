@@ -213,9 +213,11 @@ const AlbumChoice = ({
             <Button onClick={() => publish(openKeys)} variant="outlined">
               {t('cards.series.choice.open-only')}
             </Button>
+          </Grid>
+          <Grid container size={12} sx={{ justifyContent: 'flex-end' }}>
             <Button onClick={() => publish(everyAlbum ? [] : allKeys)} variant="outlined">
               {everyAlbum
-                ? t('cards.series.choice.clear-all')
+                ? t('cards.series.choice.deselect-all')
                 : t('cards.series.choice.select-all')
               }
             </Button>

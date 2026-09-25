@@ -179,7 +179,7 @@
         "chosen_one": "{{count}} album chosen, open: {{open}}",
         "chosen_other": "{{count}} albums chosen, open: {{open}}",
         "select-all": "Select all",
-        "clear-all": "Clear all",
+        "deselect-all": "Deselect all",
         "open-only": "Only open ones",
         "no-match": "No album matches the search.",
         "selected-all": "all albums of the source",
