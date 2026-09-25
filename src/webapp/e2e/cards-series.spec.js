@@ -330,6 +330,26 @@ test('the choice names the albums that already have a card', async ({ page }) =>
   await expect(page.getByText('bound', { exact: true })).toBeVisible();
 });
 
+test('the choice is cleared and built up from one artist', async ({ page }) => {
+  await openSeries(page, { albums: [discovery, memories, mezzanine], cards: {} });
+
+  await page.getByRole('button', { name: 'Choose albums' }).click();
+  await page.getByRole('button', { name: 'Clear all' }).click();
+  await expect(page.getByText('0 albums chosen, open: 0')).toBeVisible();
+  // With nothing chosen the same control takes the whole source back.
+  await expect(page.getByRole('button', { name: 'Select all' })).toBeVisible();
+
+  await page.getByRole('checkbox', { name: 'Select Daft Punk' }).check();
+  await expect(page.getByText('2 albums chosen, open: 2')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Back to start' }).click();
+  await expect(page.getByText('2 albums, open: 2')).toBeVisible();
+
+  await startSeries(page);
+  await expect(page.getByText('No. 1 of 2')).toBeVisible();
+  await expect(page.getByText('Discovery')).toBeVisible();
+});
+
 test('the chosen albums survive a reload', async ({ page }) => {
   await openSeries(page, { albums: [discovery, memories, mezzanine], cards: {} });
 

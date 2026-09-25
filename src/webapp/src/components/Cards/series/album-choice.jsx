@@ -29,9 +29,10 @@ import { DEFAULT_GROUPING_ID, GROUPINGS, groupAlbums } from './groups';
  * The choice of the albums a series runs over. The albums of the source are
  * listed in groups, because a stack is sorted along one axis and a library of
  * hundreds is not read album by album: the group carries what a whole artist
- * costs in one click, and it opens for the albums that have to be picked one by
- * one. A ticked album takes part in the series and keeps its place in the
- * numbered list, whether it has a card already or not.
+ * costs in one click, it opens for the albums that have to be picked one by
+ * one, and the whole choice is taken or dropped in one click. A ticked album
+ * takes part in the series and keeps its place in the numbered list, whether it
+ * has a card already or not.
  */
 const AlbumChoice = ({
   albums,
@@ -72,6 +73,7 @@ const AlbumChoice = ({
 
   const openKeys = albums.filter(({ bound }) => !bound).map(({ key }) => key);
   const openChosen = albums.filter(({ bound, key }) => !bound && chosen.has(key)).length;
+  const everyAlbum = chosen.size === allKeys.length;
 
   // The whole source needs no list: it is the series without a choice.
   const publish = (keys) => {
@@ -211,8 +213,11 @@ const AlbumChoice = ({
             <Button onClick={() => publish(openKeys)} variant="outlined">
               {t('cards.series.choice.open-only')}
             </Button>
-            <Button onClick={() => publish(allKeys)} variant="outlined">
-              {t('cards.series.choice.all')}
+            <Button onClick={() => publish(everyAlbum ? [] : allKeys)} variant="outlined">
+              {everyAlbum
+                ? t('cards.series.choice.clear-all')
+                : t('cards.series.choice.select-all')
+              }
             </Button>
           </Grid>
           <Grid size={12}>
