@@ -56,6 +56,22 @@ for (const route of routes) {
   });
 }
 
+// The choice of the albums is the widest list of the series screen: groups and
+// their albums have to stay inside the viewport and within reach of a finger.
+test('the album choice of the series fits the viewport', async ({ page }) => {
+  await openRoute(page, routeByName('cards-series'));
+
+  await page.getByRole('button', { name: 'Choose albums' }).click();
+  await expect(page.getByLabel('Group by')).toBeVisible();
+
+  await page.getByRole('button', { name: /Daft Punk/ }).click();
+  await expect(page.getByRole('button', { name: /Discovery/ })).toBeVisible();
+
+  await expectNoHorizontalOverflow(page);
+  await expectNoDeadColumns(page);
+  await expectTouchTargets(page, { min: 48 });
+});
+
 test('the design tokens are applied to the document', async ({ page }) => {
   await openRoute(page, routeByName('player'));
 

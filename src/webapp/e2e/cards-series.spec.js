@@ -280,6 +280,21 @@ test('the albums chosen by their group are the series', async ({ page }) => {
   await expect(page.getByText('Mezzanine')).toBeVisible();
 });
 
+test('the choice names the albums that already have a card', async ({ page }) => {
+  await openSeries(page, {
+    albums: [discovery, memories],
+    cards: Object.fromEntries([
+      cardOf('0001', 'play_album', ['Daft Punk', 'Discovery', null, 'mpd']),
+    ]),
+  });
+
+  await page.getByRole('button', { name: 'Choose albums' }).click();
+  await page.getByRole('button', { name: /Daft Punk/ }).click();
+
+  await expect(page.getByText('2 of 2 chosen, open: 1')).toBeVisible();
+  await expect(page.getByText('bound', { exact: true })).toBeVisible();
+});
+
 test('the chosen albums survive a reload', async ({ page }) => {
   await openSeries(page, { albums: [discovery, memories, mezzanine], cards: {} });
 
