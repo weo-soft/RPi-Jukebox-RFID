@@ -15,8 +15,12 @@ const routes = [
   { name: 'player', path: '/', ready: '#player' },
   { name: 'library', path: '/#/library', ready: '#library' },
   { name: 'cards', path: '/#/cards', ready: '#cards' },
+  { name: 'cards-series', path: '/#/cards/series', ready: '#cards-series' },
   { name: 'settings', path: '/#/settings', ready: '#settings' },
 ];
+
+// Routes are looked up by name: adding one must not shift another test.
+const routeByName = (name) => routes.find(route => route.name === name);
 
 // The narrow tier is limited by the column width, so its square stays smaller.
 const coverSize = {
@@ -53,7 +57,7 @@ for (const route of routes) {
 }
 
 test('the design tokens are applied to the document', async ({ page }) => {
-  await openRoute(page, routes[0]);
+  await openRoute(page, routeByName('player'));
 
   const touchMin = await page.evaluate(() => (
     getComputedStyle(document.documentElement).getPropertyValue('--touch-min').trim()
@@ -77,7 +81,7 @@ const MAX_SETTINGS_FILLS = 3.5;
 test('settings route keeps its length within its bound', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'kiosk');
 
-  await openRoute(page, routes[3]);
+  await openRoute(page, routeByName('settings'));
 
   const { content, viewport } = await page.evaluate(() => ({
     content: document.querySelector('main').getBoundingClientRect().height,
@@ -91,7 +95,7 @@ test('settings route keeps its length within its bound', async ({ page }, testIn
 // and the background are both dark, so a rearrangement stays below the colour
 // distance a pixel comparison counts. The geometry carries it instead.
 test('settings sections are stacked in one column', async ({ page }) => {
-  await openRoute(page, routes[3]);
+  await openRoute(page, routeByName('settings'));
 
   const sections = await page.locator('#settings > .MuiCard-root').evaluateAll(
     cards => cards.map(card => {
@@ -117,8 +121,8 @@ test('library route centres its loading state', async ({ page }) => {
   });
 
   await mockBackend(page, { rpcGate });
-  await page.goto(routes[1].path);
-  await expect(page.locator(routes[1].ready)).toBeVisible();
+  await page.goto(routeByName('library').path);
+  await expect(page.locator(routeByName('library').ready)).toBeVisible();
   await expectTokensLoaded(page);
 
   const loading = page.getByTestId('view-loading');
@@ -140,7 +144,7 @@ test('library route centres its loading state', async ({ page }) => {
 });
 
 test('player route fits the viewport without scrolling', async ({ page }) => {
-  await openRoute(page, routes[0]);
+  await openRoute(page, routeByName('player'));
   await expectNoScroll(page);
 });
 
@@ -153,8 +157,8 @@ test('player route keeps the cover place while the cover art loads', async ({ pa
   });
 
   await mockBackend(page, { coverGate, showCovers: true });
-  await page.goto(routes[0].path);
-  await expect(page.locator(routes[0].ready)).toBeVisible();
+  await page.goto(routeByName('player').path);
+  await expect(page.locator(routeByName('player').ready)).toBeVisible();
   await expectTokensLoaded(page);
 
   const skeleton = page.getByTestId('cover-skeleton');
@@ -201,8 +205,8 @@ test('player route offers a way to the library without a song', async ({ page })
       },
     },
   });
-  await page.goto(routes[0].path);
-  await expect(page.locator(routes[0].ready)).toBeVisible();
+  await page.goto(routeByName('player').path);
+  await expect(page.locator(routeByName('player').ready)).toBeVisible();
   await expectTokensLoaded(page);
 
   await expect(page.getByText('No playback')).toBeVisible();
@@ -231,8 +235,8 @@ test('library header keeps its place while the entries load', async ({ page }) =
   });
 
   await mockBackend(page, { rpcGate });
-  await page.goto(routes[1].path);
-  await expect(page.locator(routes[1].ready)).toBeVisible();
+  await page.goto(routeByName('library').path);
+  await expect(page.locator(routeByName('library').ready)).toBeVisible();
   await expectTokensLoaded(page);
 
   const header = page.getByRole('tab', { exact: true, name: 'Overview' });
@@ -247,7 +251,7 @@ test('library header keeps its place while the entries load', async ({ page }) =
 });
 
 test('player route ends right above the navigation bar', async ({ page }) => {
-  await openRoute(page, routes[0]);
+  await openRoute(page, routeByName('player'));
   await expectNoDeadRows(page, {
     and: '.MuiBottomNavigation-root',
     between: '[data-testid="volume-row"]',
@@ -256,7 +260,7 @@ test('player route ends right above the navigation bar', async ({ page }) => {
 });
 
 test('player route shows title and cover in display size', async ({ page }, testInfo) => {
-  await openRoute(page, routes[0]);
+  await openRoute(page, routeByName('player'));
 
   const size = await page
     .locator('#player h5')

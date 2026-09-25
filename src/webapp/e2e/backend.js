@@ -79,6 +79,9 @@ export const socketEvents = {
 export async function mockBackend(
   page,
   {
+    albums,
+    cards,
+    cachedCardId,
     coverGate,
     failRpc = false,
     rpcGate,
@@ -94,6 +97,12 @@ export async function mockBackend(
   const rpcCalls = [];
   let spotifyLibraryState = { mode: 'account', items: [] };
   const subscribedTopics = new Set();
+  // The card database of the mock follows registrations and deletions, and the
+  // event cache keeps the last value of every published topic - the broker of
+  // the core repeats it on every subscription.
+  const cardEntries = { ...(cards ?? rpcResults.list_cards) };
+  const lastEvents = {};
+  if (cachedCardId !== undefined) lastEvents['rfid.card_id'] = cachedCardId;
 
   await page.addInitScript(() => {
     window.localStorage.setItem('i18nextLng', 'en');
@@ -210,6 +219,24 @@ export async function mockBackend(
 
     const key = payload.method || payload.plugin;
     let result = rpcResults[key] ?? null;
+    if (key === 'list_cards') {
+      result = cardEntries;
+    }
+    if (key === 'register_card') {
+      // The shape of the decoded entry, as list_cards delivers it.
+      cardEntries[payload.kwargs.card_id] = {
+        from_alias: payload.kwargs.cmd_alias,
+        action: { args: payload.kwargs.args },
+        ...(payload.kwargs.ignore_same_id_delay !== undefined && {
+          ignore_same_id_delay: payload.kwargs.ignore_same_id_delay,
+        }),
+      };
+      result = null;
+    }
+    if (key === 'delete_card') {
+      delete cardEntries[payload.kwargs.card_id];
+      result = null;
+    }
     if (key === 'get_app_settings') {
       result = { show_covers: showCovers };
     }
@@ -282,7 +309,7 @@ export async function mockBackend(
       ];
     }
     if (key === 'list_library_items') {
-      const localItems = rpcResults.list_albums.flatMap(entry => (
+      const localItems = (albums ?? rpcResults.list_albums).flatMap(entry => (
         (Array.isArray(entry.album) ? entry.album : [entry.album]).map(album => ({
           ...entry,
           album,
@@ -340,7 +367,7 @@ export async function mockBackend(
 
       payload.topics.forEach(topic => {
         subscribedTopics.add(topic);
-        const events = { ...socketEvents, ...timerEvents };
+        const events = { ...socketEvents, ...timerEvents, ...lastEvents };
         if (topic in events) {
           socket.send(JSON.stringify({
             type: 'event',
@@ -353,6 +380,7 @@ export async function mockBackend(
   });
 
   const publishEvent = (topic, data) => {
+    lastEvents[topic] = data;
     eventSockets.forEach(socket => {
       socket.send(JSON.stringify({
         type: 'event',

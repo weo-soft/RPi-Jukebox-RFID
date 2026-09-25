@@ -12,7 +12,7 @@
     "controls": {
       "command-selector": {
         "title": "Befehl",
-        "label": "{{title}} Befehle",
+        "label": "Befehl",
         "placeholder": "Wähle einen Befehl aus",
         "commands": {
           "change_volume": "Lautstärke anpassen",
@@ -35,10 +35,10 @@
         }
       },
       "controls-selector": {
-        "label": "Jukebox Aktion"
+        "label": "Aktion"
       },
       "select-command-aliases": {
-        "label": "Aktionen",
+        "label": "Aktion",
         "placeholder": "Wähle eine Aktion aus",
         "actions": {
           "play_music": "Musik abspielen",
@@ -98,6 +98,9 @@
         }
       }
     },
+    "card-id": {
+      "label": "Karten-ID"
+    },
     "dialogs": {
       "delete": {
         "title": "Karte löschen '{{cardId}}'",
@@ -110,18 +113,80 @@
     "form": {
       "no-card-swiped": "Bitte scanne eine Karte um einen ID zu erhalten. Diese wird dann zur Registrierung einer neuen Aktion verwendet.",
       "no-card-id": "Keine Karten-ID vorhanden",
-      "card-id-hint": "Eine aufgelegte Karte füllt die ID."
+      "card-id-hint": "Eine aufgelegte Karte füllt die ID.",
+      "save-failed": "Speichern fehlgeschlagen: {{error}}"
     },
     "list": {
-      "no-cards-registered": "Es wurden noch keine Karten registriert!"
+      "no-cards-registered": "Es wurden noch keine Karten registriert!",
+      "search": "Nach Inhalt oder ID suchen",
+      "group-by-source": "Nach Quelle gruppieren",
+      "unassignable": "Nicht zuordenbar",
+      "unknown-content": "Ohne Inhalt",
+      "no-match": "Keine Karte passt zur Suche."
     },
     "overview": {
       "cards": "Karten",
       "loading-error": "Während des Ladens der Karten ist ein Fehler aufgetreten",
-      "register-card": "Registriere eine Karte"
+      "register-card": "Registriere eine Karte",
+      "start-series": "Serie starten"
     },
     "register": {
       "register-card": "Registriere eine Karte"
+    },
+    "series": {
+      "title": "Serie",
+      "source": "Quelle",
+      "order": "Ordnung",
+      "orders": {
+        "album-natural": "Alben A→Z",
+        "artist-album": "Interpret, dann Album",
+        "source": "Reihenfolge der Quelle"
+      },
+      "start-at": "Beginnt bei Nr. {{number}} von {{total}}.",
+      "start": "Serie starten",
+      "open-list": "Serienliste",
+      "last-at": "Zuletzt bei Nr. {{number}}.",
+      "continue": "Dort weitermachen",
+      "bind": "Binden",
+      "bound-at": "Gerade gebunden: Nr. {{number}}",
+      "undo": "Zurücknehmen",
+      "conflict": "Karte {{cardId}} ist bereits belegt mit {{content}}.",
+      "conflict-unknown": "einem handgeschriebenen Eintrag",
+      "conflict-list": "In der Kartenliste prüfen",
+      "rebind": "Umhängen",
+      "dismiss": "Schließen",
+      "binding-failed": "Die Bindung ist fehlgeschlagen: {{error}}",
+      "mode": "Betriebsart",
+      "modes": {
+        "guided": "Serie",
+        "free": "Wahl"
+      },
+      "start-free": "Auswahl öffnen",
+      "picker-with-card": "Album wählen — Karte {{cardId}}",
+      "picker-no-card": "Karte auflegen oder ID eintippen",
+      "picker-continue": "Weiter",
+      "picker-only-open": "Nur offene Alben",
+      "picker-no-match": "Kein Album passt zur Suche.",
+      "album-conflict": "Album {{album}} ist bereits mit Karte {{cardId}} belegt.",
+      "position": "Nr. {{number}} von {{total}}",
+      "open-count": "offen: {{count}}",
+      "place-card": "Karte auflegen",
+      "back": "Zurück zum Start",
+      "to-cards": "Zur Kartenliste",
+      "to-library": "Zur Bibliothek",
+      "empty-source": "Diese Quelle liefert kein Album.",
+      "empty-source-hint": "In der Bibliothek Musik hinzufügen oder oben eine andere Quelle wählen.",
+      "exhausted": "Alle {{count}} Alben dieser Quelle haben eine Karte.",
+      "exhausted-hint": "Neue Karten entstehen über das bestehende Formular.",
+      "loading-error": "Die Serie konnte nicht geladen werden. Ohne Kartenliste wird nicht gebunden.",
+      "retry": "Erneut laden",
+      "list": {
+        "search": "Album oder Interpret suchen",
+        "row": "{{number}}. {{album}}",
+        "start-here": "Hier starten",
+        "bound": "gebunden",
+        "no-match": "Kein Album passt zur Suche."
+      }
     }
   },
   "header": {

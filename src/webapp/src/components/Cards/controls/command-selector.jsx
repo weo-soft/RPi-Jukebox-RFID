@@ -38,10 +38,7 @@ const CommandSelector = ({
             onChange={onChange}
             name="commands"
             inputProps={{
-              'aria-label': t(
-                'cards.controls.command-selector.label',
-                { title: JUKEBOX_ACTIONS_MAP[action]?.title }
-              )
+              'aria-label': t('cards.controls.command-selector.label'),
             }}
           >
             {commandList.length &&

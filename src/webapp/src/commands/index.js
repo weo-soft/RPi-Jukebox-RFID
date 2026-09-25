@@ -79,7 +79,8 @@ const commands = {
     _package: 'player',
     plugin: 'ctrl',
     method: 'play_folder',
-    argKeys: ['folder']
+    argKeys: ['folder', 'recursive'],
+    argDefaults: { recursive: false },
   },
   play_album: {
     _package: 'player',

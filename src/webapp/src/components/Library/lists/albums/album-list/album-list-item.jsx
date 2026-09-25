@@ -43,6 +43,7 @@ const AlbumListItem = ({
   isButton = true,
   isManagementSelecting = false,
   isSelected = false,
+  onSelect,
   onToggleSelected,
   provider = 'mpd',
   view = 'albums',
@@ -177,6 +178,12 @@ const AlbumListItem = ({
                 tabIndex={-1}
               />
             </ListItemIcon>
+            {content}
+          </ListItemButton>
+        )
+        : isButton && onSelect
+        ? (
+          <ListItemButton onClick={onSelect} sx={LIBRARY_ROW_SX}>
             {content}
           </ListItemButton>
         )

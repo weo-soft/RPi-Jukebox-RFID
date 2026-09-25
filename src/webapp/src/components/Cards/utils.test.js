@@ -32,6 +32,19 @@ test('timer commands map and default the restart argument', () => {
   expect(getArgsValues(explicit)).toEqual([300, false]);
 });
 
+test('a folder card keeps the recursion it was registered with', () => {
+  expect(commands.play_folder.argKeys).toEqual(['folder', 'recursive']);
+
+  const fromLibrary = buildActionData('play_music', 'play_folder', {
+    folder: 'Music/Rock',
+    recursive: true,
+  });
+  expect(getArgsValues(fromLibrary)).toEqual(['Music/Rock', true]);
+
+  const legacy = buildActionData('play_music', 'play_folder', ['Music/Rock']);
+  expect(getArgsValues(legacy)).toEqual(['Music/Rock', false]);
+});
+
 test('player card contracts preserve provider-qualified content', () => {
   expect(commands.play_single.argKeys).toEqual(['song_url', 'provider']);
   expect(commands.play_album.argKeys).toEqual([
