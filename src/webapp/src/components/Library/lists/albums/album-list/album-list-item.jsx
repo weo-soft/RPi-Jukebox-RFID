@@ -13,6 +13,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Typography,
 } from '@mui/material';
 
 import noCover from '../../../../../assets/noCover.jpg';
@@ -34,6 +35,12 @@ import request from '../../../../../utils/request';
 const COVER_RETRY_ATTEMPTS = 4;
 const COVER_RETRY_DELAY_MS = 1000;
 
+/*
+ * One album as a row: a link into the album, a single choice or one entry of a
+ * multiple choice. The caller decides between them with 'onSelect', 'onToggle'
+ * and 'isManagementSelecting'; 'note' carries what the row has to say about the
+ * album besides its name.
+ */
 const AlbumListItem = ({
   albumartist,
   album,
@@ -43,7 +50,9 @@ const AlbumListItem = ({
   isButton = true,
   isManagementSelecting = false,
   isSelected = false,
+  note = null,
   onSelect,
+  onToggle,
   onToggleSelected,
   provider = 'mpd',
   view = 'albums',
@@ -119,6 +128,23 @@ const AlbumListItem = ({
 
   const content = (
     <>
+      {onToggle &&
+        <ListItemIcon sx={{ minWidth: 44 }}>
+          <Checkbox
+            checked={isSelected}
+            edge="start"
+            readOnly
+            slotProps={{
+              input: {
+                'aria-label': t('library.albums.select-item', {
+                  album: album || t('library.albums.unknown-album'),
+                }),
+              },
+            }}
+            tabIndex={-1}
+          />
+        </ListItemIcon>
+      }
       {show_covers &&
         <ListItemAvatar sx={{ minWidth: 104 }}>
           <Avatar
@@ -142,6 +168,11 @@ const AlbumListItem = ({
           secondary: { sx: LIBRARY_SECONDARY_SX },
         }}
       />
+      {note &&
+        <Typography color="textSecondary" variant="contentBody" sx={{ whiteSpace: 'nowrap' }}>
+          {note}
+        </Typography>
+      }
     </>
   );
 
@@ -178,6 +209,12 @@ const AlbumListItem = ({
                 tabIndex={-1}
               />
             </ListItemIcon>
+            {content}
+          </ListItemButton>
+        )
+        : isButton && onToggle
+        ? (
+          <ListItemButton onClick={onToggle} selected={isSelected} sx={LIBRARY_ROW_SX}>
             {content}
           </ListItemButton>
         )

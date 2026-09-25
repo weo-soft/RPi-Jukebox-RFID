@@ -1,18 +1,36 @@
 import { indexOfAlbum } from './queue';
 
 /*
- * The start point of a card series lives in the browser: the source, the order
- * and the album key of the last bound album. A stored position number would
- * point somewhere else after every added or removed album, so only the album
- * key is kept and the number is computed from the current order.
+ * The start point of a card series lives in the browser: the source, the order,
+ * the album key of the last bound album and the albums the series runs over. A
+ * stored position number would point somewhere else after every added or removed
+ * album, so only the album key is kept and the number is computed from the
+ * current order.
  */
 const SERIES_MEMORY_KEY = 'cardsSeriesMemory';
 
 const isMemory = value => (
   value !== null
   && typeof value === 'object'
-  && ['source', 'order', 'albumKey'].every(key => typeof value[key] === 'string')
+  && typeof value.source === 'string'
+  && typeof value.order === 'string'
 );
+
+// A key arrives with the first binding: a series whose albums were only chosen
+// has a selection and still no last album.
+const albumKeyOf = value => (typeof value.albumKey === 'string' ? value.albumKey : '');
+
+// A selection the reader cannot use counts as no selection: the series then runs
+// over the whole source.
+const selectionOf = value => {
+  const usable = value !== null
+    && typeof value === 'object'
+    && typeof value.groupingId === 'string'
+    && Array.isArray(value.albumKeys)
+    && value.albumKeys.every(key => typeof key === 'string');
+
+  return usable ? value : null;
+};
 
 const writeSeriesMemory = (memory, storage = window.localStorage) => {
   try {
@@ -28,7 +46,14 @@ const readSeriesMemory = (storage = window.localStorage) => {
     const stored = storage.getItem(SERIES_MEMORY_KEY);
     if (stored !== null) {
       const parsed = JSON.parse(stored);
-      if (isMemory(parsed)) return parsed;
+      if (isMemory(parsed)) {
+        return {
+          source: parsed.source,
+          order: parsed.order,
+          albumKey: albumKeyOf(parsed),
+          selection: selectionOf(parsed.selection),
+        };
+      }
     }
   } catch {
     // An unreadable entry counts as no entry.

@@ -42,5 +42,6 @@ const orderById = (id) => ORDERS.find(({ id: orderId }) => orderId === id) || OR
 export {
   DEFAULT_ORDER_ID,
   ORDERS,
+  collator,
   orderById,
 };

@@ -7,6 +7,7 @@ import {
   vi,
 } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import AppSettingsContext from '../../../../../context/appsettings/context';
 import request from '../../../../../utils/request';
@@ -138,5 +139,39 @@ describe('AlbumListItem cover resolution', () => {
       vi.advanceTimersByTime(10000);
     });
     expect(request).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe('AlbumListItem as a row of a multiple choice', () => {
+  beforeEach(() => {
+    request.mockReset();
+    request.mockResolvedValue({ result: null, error: null });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test('a row with onToggle carries a checkbox and reports the click once', async () => {
+    const onToggle = vi.fn();
+    const user = userEvent.setup();
+    renderItem({ onToggle });
+
+    await user.click(screen.getByRole('checkbox', { name: 'library.albums.select-item' }));
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  test('a row without onToggle is a link and carries no checkbox', () => {
+    renderItem();
+
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('link')).toBeInTheDocument();
+  });
+
+  test('a note stands beside the album', () => {
+    renderItem({ note: 'bound', onToggle: () => {} });
+
+    expect(screen.getByText('bound')).toBeInTheDocument();
   });
 });
