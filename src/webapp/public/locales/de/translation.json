@@ -199,6 +199,7 @@
       "open-count": "offen: {{count}}",
       "place-card": "Karte auflegen",
       "back": "Zurück zum Start",
+      "interrupt": "Unterbrechen",
       "to-cards": "Zur Kartenliste",
       "to-library": "Zur Bibliothek",
       "empty-source": "Diese Quelle liefert kein Album.",

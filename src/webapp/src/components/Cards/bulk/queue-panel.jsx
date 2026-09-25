@@ -73,7 +73,7 @@ const QueuePanel = ({
               {t('cards.bulk.open-list')}
             </Button>
             <Button onClick={onBack} variant="outlined">
-              {t('cards.bulk.back')}
+              {t('cards.bulk.interrupt')}
             </Button>
           </Grid>
         </Grid>

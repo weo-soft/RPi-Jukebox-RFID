@@ -83,6 +83,24 @@ test('a provider source runs the same bulk registration over the same screen', a
   ]);
 });
 
+test('the running registration and the picker offer to break off', async ({ page }) => {
+  const mock = await openBulk(page, { albums: [discovery, memories], cards: {} });
+  await startBulk(page);
+
+  // Breaking off returns to the start area; the sort aid keeps its way back.
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  await page.getByRole('button', { name: 'Bulk list' }).click();
+  await expect(page.getByRole('button', { name: 'Back to start' })).toBeVisible();
+  await page.getByRole('button', { name: 'Back to start' }).click();
+
+  // The free mode breaks off with the same word.
+  await page.goto('/#/cards/bulk?mode=free');
+  await page.getByRole('button', { name: 'Choose an album' }).click();
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  mock.publishEvent('rfid.card_id', '0001');
+  await expect(page.getByText('Choose an album — card 0001')).toBeVisible();
+});
+
 test('the value the broker repeats on subscription binds nothing', async ({ page }) => {
   const mock = await openBulk(page, {
     albums: [discovery, memories],

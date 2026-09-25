@@ -99,7 +99,7 @@ const AlbumPicker = ({
             sx={{ justifyContent: 'flex-end' }}
           >
             <Button onClick={onBack} variant="outlined">
-              {t('cards.bulk.back')}
+              {t('cards.bulk.interrupt')}
             </Button>
           </Grid>
         </Grid>
