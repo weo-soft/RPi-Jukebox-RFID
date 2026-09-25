@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import {
   Button,
@@ -73,11 +73,15 @@ const albumActionData = (album) => buildActionData('play_music', 'play_album', {
 const CardsBulk = () => {
   const { t } = useTranslation();
   const { state: published } = useContext(PubSubContext);
+  const [searchParams] = useSearchParams();
 
   const [memory] = useState(() => readBulkMemory());
   const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState(VIEW_START);
-  const [mode, setMode] = useState('guided');
+  // The card list leads into a mode; without one the run is the regular case.
+  const [mode, setMode] = useState(() => (
+    searchParams.get('mode') === 'free' ? 'free' : 'guided'
+  ));
   // The albums this registration runs over; without a selection it is the whole source.
   const [selection, setSelection] = useState(() => memory?.selection ?? null);
   const [lastAlbumKey, setLastAlbumKey] = useState(() => memory?.albumKey ?? '');

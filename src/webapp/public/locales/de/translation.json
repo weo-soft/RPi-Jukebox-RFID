@@ -127,8 +127,10 @@
     "overview": {
       "cards": "Karten",
       "loading-error": "Während des Ladens der Karten ist ein Fehler aufgetreten",
-      "register-card": "Registriere eine Karte",
-      "start-bulk": "Sammelregistrierung starten"
+      "register-bulk": "Sammelregistrierung",
+      "register-card": "Karte registrieren",
+      "register-pick": "Wahl",
+      "register-single": "Einzelregistrierung"
     },
     "register": {
       "register-card": "Registriere eine Karte"
