@@ -263,6 +263,23 @@ test('a source with hundreds of albums stays usable', async ({ page }) => {
   expect(overflow).toBe(false);
 });
 
+test('the header arrow steps back into the start area first', async ({ page }) => {
+  await openBulk(page, { albums: [discovery, memories], cards: {} });
+
+  // The start area itself leaves the screen.
+  await expect(page.getByRole('link', { name: 'Back', exact: true }))
+    .toHaveAttribute('href', '#/cards');
+
+  await page.getByRole('button', { name: 'Bulk list' }).click();
+  await expect(page.getByLabel('Search album or artist')).toBeVisible();
+
+  // A sub view returns to the start area, not to the card list.
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
+
+  await expect(page.getByLabel('Source')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('#/cards/bulk');
+});
+
 test('the albums chosen by their group are the registration', async ({ page }) => {
   await openBulk(page, { albums: [discovery, memories, mezzanine], cards: {} });
 

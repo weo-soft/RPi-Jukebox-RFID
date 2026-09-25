@@ -6,8 +6,17 @@ import IconButton from '@mui/material/IconButton';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 
-const Header = ({ title, backLink }) => {
+/*
+ * A screen header: a title and, where the screen has somewhere to go back to,
+ * an arrow. A screen that keeps its states inside itself steps back through
+ * 'onBack'; a screen that is a route of its own leaves through 'backLink'.
+ */
+const Header = ({ title, backLink, onBack }) => {
   const { t } = useTranslation();
+
+  const backProps = onBack
+    ? { onClick: onBack }
+    : { component: Link, nativeButton: false, to: backLink };
 
   return (
     <Grid
@@ -23,11 +32,10 @@ const Header = ({ title, backLink }) => {
         zIndex: 2,
       }}
     >
-      {backLink &&
+      {(backLink || onBack) &&
         <IconButton
           aria-label={t('header.back')}
-          component={Link}
-          nativeButton={false}
+          {...backProps}
           sx={{
             height: 'var(--touch-comfort)',
             minHeight: 'var(--touch-comfort)',
@@ -35,7 +43,6 @@ const Header = ({ title, backLink }) => {
             width: 'var(--touch-comfort)',
           }}
           title={t('header.back')}
-          to={backLink}
         >
           <ArrowBackIcon />
         </IconButton>

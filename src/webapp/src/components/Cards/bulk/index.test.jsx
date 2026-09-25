@@ -236,6 +236,24 @@ test('an album another card holds is not bound a second time', async () => {
   expect(request).not.toHaveBeenCalledWith('registerCard', expect.anything());
 });
 
+test('the header steps back into the start area before it leaves the screen', async () => {
+  const user = userEvent.setup();
+  cards = {};
+
+  await openScreen();
+
+  // The start area itself leaves the screen for the card list.
+  expect(screen.getByRole('link', { name: 'header.back' }))
+    .toHaveAttribute('href', '/cards');
+
+  await user.click(screen.getByRole('button', { name: 'cards.bulk.open-list' }));
+  expect(await screen.findByLabelText('cards.bulk.list.search')).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: 'header.back' }));
+
+  expect(screen.getByLabelText('cards.bulk.source')).toBeInTheDocument();
+});
+
 test('the albums that were unticked stay out of the registration', async () => {
   const user = userEvent.setup();
   cards = {};

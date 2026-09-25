@@ -632,9 +632,17 @@ const CardsBulk = () => {
     );
   }
 
+  // The way out: from a sub view the header steps back into the start area, and
+  // only the start area leaves the screen for the card list.
+  const atStart = view === VIEW_START;
+
   return (
     <Grid container id="cards-bulk" size={12} spacing={2} sx={{ alignContent: 'flex-start' }}>
-      <Header backLink="/cards" title={t('cards.bulk.title')} />
+      <Header
+        backLink={atStart ? '/cards' : undefined}
+        onBack={atStart ? undefined : backToStart}
+        title={t('cards.bulk.title')}
+      />
       <Grid size={12} sx={{ display: 'grid', gap: 'var(--space-4)' }}>
         {body}
       </Grid>
