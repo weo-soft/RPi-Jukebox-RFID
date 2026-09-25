@@ -215,7 +215,7 @@ const AlbumChoice = ({
               {t('cards.series.choice.open-only')}
             </Button>
           </Grid>
-          <Grid container size={12} sx={{ justifyContent: 'flex-end' }}>
+          <Grid container size={12} sx={{ justifyContent: 'flex-start' }}>
             <Button onClick={() => publish(everyAlbum ? [] : allKeys)} variant="outlined">
               {everyAlbum
                 ? t('cards.series.choice.deselect-all')
