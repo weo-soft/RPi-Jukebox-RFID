@@ -272,7 +272,7 @@ test('the albums chosen by their group are the series', async ({ page }) => {
   await page.getByRole('checkbox', { name: 'Select Daft Punk' }).uncheck();
   await expect(page.getByText('1 album chosen, open: 1')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Back to start' }).click();
+  await page.getByRole('button', { name: 'Confirm the selection' }).click();
   await expect(page.getByText('1 album, open: 1')).toBeVisible();
 
   await startSeries(page);
@@ -307,7 +307,7 @@ test('the choice is cleared and built up from one artist', async ({ page }) => {
   await page.getByRole('checkbox', { name: 'Select Daft Punk' }).check();
   await expect(page.getByText('2 albums chosen, open: 2')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Back to start' }).click();
+  await page.getByRole('button', { name: 'Confirm the selection' }).click();
   await expect(page.getByText('2 albums, open: 2')).toBeVisible();
 
   await startSeries(page);
@@ -320,7 +320,7 @@ test('the chosen albums survive a reload', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Choose albums' }).click();
   await page.getByRole('checkbox', { name: 'Select Daft Punk' }).uncheck();
-  await page.getByRole('button', { name: 'Back to start' }).click();
+  await page.getByRole('button', { name: 'Confirm the selection' }).click();
 
   await page.reload();
 
@@ -335,7 +335,7 @@ test('a source without a chosen album points at the choice', async ({ page }) =>
 
   await page.getByRole('button', { name: 'Choose albums' }).click();
   await page.getByRole('checkbox', { name: 'Select Daft Punk' }).uncheck();
-  await page.getByRole('button', { name: 'Back to start' }).click();
+  await page.getByRole('button', { name: 'Confirm the selection' }).click();
 
   await expect(page.getByText('The selection holds no album of this source.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start series' })).toBeDisabled();

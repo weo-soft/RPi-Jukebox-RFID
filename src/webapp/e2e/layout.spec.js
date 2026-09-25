@@ -80,6 +80,34 @@ test('the album choice of the series fits the viewport', async ({ page }) => {
   await expectTouchTargets(page, { min: 48 });
 });
 
+// The control for the whole choice hangs over the list instead of ending it:
+// with a library of many artists the list is long, and the way out has to stay
+// in reach while it scrolls.
+test('the choice keeps its way out in reach over a long list', async ({ page }) => {
+  const manyArtists = Array.from({ length: 60 }, (unused, index) => ({
+    album: `Album ${index + 1}`,
+    albumartist: `Artist ${index + 1}`,
+  }));
+
+  await mockBackend(page, { albums: manyArtists });
+  await page.goto(routeByName('cards-series').path);
+  await expect(page.locator(routeByName('cards-series').ready)).toBeVisible();
+  await expectTokensLoaded(page);
+
+  await page.getByRole('button', { name: 'Choose albums' }).click();
+
+  const wayOut = page.getByRole('button', { name: 'Confirm the selection' });
+  await expect(wayOut).toBeVisible();
+  const before = await wayOut.boundingBox();
+
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+
+  await expect(wayOut).toBeVisible();
+  const after = await wayOut.boundingBox();
+  expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1);
+});
+
 test('the design tokens are applied to the document', async ({ page }) => {
   await openRoute(page, routeByName('player'));
 

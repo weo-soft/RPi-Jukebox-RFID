@@ -164,6 +164,7 @@
       "selection": "Selection",
       "choice": {
         "title": "Choose albums",
+        "confirm": "Confirm the selection",
         "change": "Change the selection",
         "clear": "Clear the selection",
         "group-by": "Group by",

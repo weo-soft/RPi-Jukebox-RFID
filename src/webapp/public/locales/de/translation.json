@@ -164,6 +164,7 @@
       "selection": "Auswahl",
       "choice": {
         "title": "Alben auswählen",
+        "confirm": "Auswahl bestätigen",
         "change": "Auswahl ändern",
         "clear": "Auswahl aufheben",
         "group-by": "Gruppieren nach",
