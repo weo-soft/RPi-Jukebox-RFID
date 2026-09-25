@@ -158,11 +158,6 @@
       "rebind": "Reassign",
       "dismiss": "Close",
       "binding-failed": "The binding failed: {{error}}",
-      "mode": "Mode",
-      "modes": {
-        "guided": "Bulk registration",
-        "free": "Pick"
-      },
       "selection": "Selection",
       "choice": {
         "title": "Choose albums",

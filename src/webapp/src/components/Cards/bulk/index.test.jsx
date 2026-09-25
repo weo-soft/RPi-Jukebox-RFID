@@ -85,7 +85,7 @@ const openScreen = async ({ entry = '/cards/bulk', publishedCardId } = {}) => {
     </AppSettingsProvider>,
   );
 
-  await screen.findByLabelText('cards.bulk.mode');
+  await screen.findByLabelText('cards.bulk.source');
 };
 
 const placeCard = async (cardId) => {
@@ -101,8 +101,9 @@ test('the entry from the card list leads into the pick mode', async () => {
 
   await openScreen({ entry: '/cards/bulk?mode=free' });
 
-  expect(screen.getByLabelText('cards.bulk.mode')).toHaveValue('free');
+  // The start area offers the picker; the run is not on offer here.
   expect(screen.getByRole('button', { name: 'cards.bulk.start-free' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'cards.bulk.start' })).not.toBeInTheDocument();
 });
 
 test('a placed card binds the album that is offered', async () => {
@@ -207,8 +208,7 @@ test('the free mode binds the album that is chosen for the placed card', async (
   const user = userEvent.setup();
   cards = {};
 
-  await openScreen();
-  await user.selectOptions(screen.getByLabelText('cards.bulk.mode'), 'free');
+  await openScreen({ entry: '/cards/bulk?mode=free' });
   await user.click(screen.getByRole('button', { name: 'cards.bulk.start-free' }));
   await placeCard('0001');
 
@@ -232,8 +232,7 @@ test('an album another card holds is not bound a second time', async () => {
     albumCard('0002', 'play_album', ['Benjamin Blümchen', 'Folge 2', null, 'mpd']),
   ]);
 
-  await openScreen();
-  await user.selectOptions(screen.getByLabelText('cards.bulk.mode'), 'free');
+  await openScreen({ entry: '/cards/bulk?mode=free' });
   await user.click(screen.getByRole('button', { name: 'cards.bulk.start-free' }));
   await placeCard('0001');
   await screen.findByText('cards.bulk.picker-with-card');

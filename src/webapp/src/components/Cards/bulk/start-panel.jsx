@@ -31,7 +31,6 @@ const StartPanel = ({
   onChoose,
   onClearSelection,
   onContinue,
-  onModeChange,
   onOpenList,
   onOrderChange,
   onProviderChange,
@@ -81,22 +80,6 @@ const StartPanel = ({
                 {ORDERS.map(({ id, labelKey }) => (
                   <option key={id} value={id}>{t(labelKey)}</option>
                 ))}
-              </NativeSelect>
-            </FormControl>
-          </Grid>
-          <Grid size={{ md: 6, xs: 12 }}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="cards-bulk-mode" shrink>
-                {t('cards.bulk.mode')}
-              </InputLabel>
-              <NativeSelect
-                inputProps={{ id: 'cards-bulk-mode' }}
-                onChange={(event) => onModeChange(event.target.value)}
-                sx={{ '& select': { height: 'var(--touch-min)' } }}
-                value={mode}
-              >
-                <option value="guided">{t('cards.bulk.modes.guided')}</option>
-                <option value="free">{t('cards.bulk.modes.free')}</option>
               </NativeSelect>
             </FormControl>
           </Grid>

@@ -158,11 +158,6 @@
       "rebind": "Umhängen",
       "dismiss": "Schließen",
       "binding-failed": "Die Bindung ist fehlgeschlagen: {{error}}",
-      "mode": "Betriebsart",
-      "modes": {
-        "guided": "Sammelregistrierung",
-        "free": "Wahl"
-      },
       "selection": "Auswahl",
       "choice": {
         "title": "Alben auswählen",
