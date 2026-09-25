@@ -17,9 +17,9 @@ const rpcCallsOf = (mock, key) => (
   mock.rpcCalls.filter(({ method, plugin }) => (method || plugin) === key)
 );
 
-const openBulk = async (page, options = {}) => {
+const openBulk = async (page, { mode, ...options } = {}) => {
   const mock = await mockBackend(page, options);
-  await page.goto('/#/cards/bulk');
+  await page.goto(mode ? `/#/cards/bulk?mode=${mode}` : '/#/cards/bulk');
   await expect(page.getByRole('heading', { name: 'Bulk registration' })).toBeVisible();
   return mock;
 };
@@ -200,8 +200,7 @@ test('a typed card id binds without a reader', async ({ page }) => {
 });
 
 test('the free mode binds the album that is chosen for the card', async ({ page }) => {
-  const mock = await openBulk(page, { albums: [discovery, mezzanine], cards: {} });
-  await page.getByLabel('Mode').selectOption('free');
+  const mock = await openBulk(page, { albums: [discovery, mezzanine], cards: {}, mode: 'free' });
   await page.getByRole('button', { name: 'Choose an album' }).click();
   await expect(page.getByText('Place a card or type an id')).toBeVisible();
 
@@ -445,6 +444,7 @@ test('the card list leads into the pick mode', async ({ page }) => {
   await page.getByRole('button', { name: 'Register a card' }).click();
   await page.getByRole('menuitem', { name: 'Pick' }).click();
 
-  await expect(page.getByLabel('Mode')).toHaveValue('free');
+  // The start area offers the picker; the run is not on offer here.
   await expect(page.getByRole('button', { name: 'Choose an album' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start bulk registration' })).toHaveCount(0);
 });

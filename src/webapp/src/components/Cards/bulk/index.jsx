@@ -78,10 +78,9 @@ const CardsBulk = () => {
   const [memory] = useState(() => readBulkMemory());
   const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState(VIEW_START);
-  // The card list leads into a mode; without one the run is the regular case.
-  const [mode, setMode] = useState(() => (
-    searchParams.get('mode') === 'free' ? 'free' : 'guided'
-  ));
+  // The way in decides the mode - the card list hands it over as a parameter and
+  // the start area does not switch it again. Without one the run is the rule.
+  const mode = searchParams.get('mode') === 'free' ? 'free' : 'guided';
   // The albums this registration runs over; without a selection it is the whole source.
   const [selection, setSelection] = useState(() => memory?.selection ?? null);
   const [lastAlbumKey, setLastAlbumKey] = useState(() => memory?.albumKey ?? '');
@@ -620,7 +619,6 @@ const CardsBulk = () => {
         onChoose={() => setView(VIEW_CHOICE)}
         onClearSelection={() => setSelection(null)}
         onContinue={() => setStartIndex(continuing >= 0 ? continuing : firstOpen)}
-        onModeChange={setMode}
         onOpenList={() => setView(VIEW_LIST)}
         onOrderChange={changeOrder}
         onProviderChange={changeProvider}
