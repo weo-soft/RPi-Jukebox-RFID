@@ -127,8 +127,10 @@
     "overview": {
       "cards": "Cards",
       "loading-error": "An error occurred while loading cards list.",
+      "register-bulk": "Bulk registration",
       "register-card": "Register a card",
-      "start-bulk": "Start bulk registration"
+      "register-pick": "Pick",
+      "register-single": "Single registration"
     },
     "register": {
       "register-card": "Register a card"

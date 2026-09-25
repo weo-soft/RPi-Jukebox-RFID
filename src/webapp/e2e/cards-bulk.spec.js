@@ -412,12 +412,39 @@ test('the card list is searched by content and marks cards without an album', as
   await expect(page.getByText('Discovery')).toHaveCount(0);
 });
 
+test('the card list offers the three ways to register', async ({ page }) => {
+  await mockBackend(page, { albums: [discovery], cards: {} });
+  await page.goto('/#/cards');
+
+  await page.getByRole('button', { name: 'Register a card' }).click();
+
+  await expect(page.getByRole('menuitem', { name: 'Single registration' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Bulk registration' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Pick' })).toBeVisible();
+
+  // The single card leads into the existing form.
+  await page.getByRole('menuitem', { name: 'Single registration' }).click();
+  await expect(page.getByRole('heading', { name: 'Register a card' })).toBeVisible();
+});
+
 test('the card list leads into the registration', async ({ page }) => {
   await mockBackend(page, { albums: [discovery], cards: {} });
   await page.goto('/#/cards');
 
-  await page.getByRole('button', { name: 'Start bulk registration' }).click();
+  await page.getByRole('button', { name: 'Register a card' }).click();
+  await page.getByRole('menuitem', { name: 'Bulk registration' }).click();
 
   await expect(page.getByRole('heading', { name: 'Bulk registration' })).toBeVisible();
   await expect(page.getByText('Starts at no. 1 of 1.')).toBeVisible();
+});
+
+test('the card list leads into the pick mode', async ({ page }) => {
+  await mockBackend(page, { albums: [discovery], cards: {} });
+  await page.goto('/#/cards');
+
+  await page.getByRole('button', { name: 'Register a card' }).click();
+  await page.getByRole('menuitem', { name: 'Pick' }).click();
+
+  await expect(page.getByLabel('Mode')).toHaveValue('free');
+  await expect(page.getByRole('button', { name: 'Choose an album' })).toBeVisible();
 });

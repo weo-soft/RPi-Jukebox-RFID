@@ -63,7 +63,7 @@ const answer = (command) => {
   }
 };
 
-const openScreen = async ({ publishedCardId } = {}) => {
+const openScreen = async ({ entry = '/cards/bulk', publishedCardId } = {}) => {
   request.mockImplementation(async (command) => answer(command));
 
   render(
@@ -76,7 +76,7 @@ const openScreen = async ({ publishedCardId } = {}) => {
             : { 'rfid.card_id': publishedCardId },
         }}
       >
-        <MemoryRouter initialEntries={['/cards/bulk']}>
+        <MemoryRouter initialEntries={[entry]}>
           <Routes>
             <Route element={<CardsBulk />} path="/cards/bulk" />
           </Routes>
@@ -85,7 +85,7 @@ const openScreen = async ({ publishedCardId } = {}) => {
     </AppSettingsProvider>,
   );
 
-  await screen.findByRole('button', { name: 'cards.bulk.start' });
+  await screen.findByLabelText('cards.bulk.mode');
 };
 
 const placeCard = async (cardId) => {
@@ -95,6 +95,15 @@ const placeCard = async (cardId) => {
 const startBulk = async (user) => {
   await user.click(screen.getByRole('button', { name: 'cards.bulk.start' }));
 };
+
+test('the entry from the card list leads into the pick mode', async () => {
+  cards = {};
+
+  await openScreen({ entry: '/cards/bulk?mode=free' });
+
+  expect(screen.getByLabelText('cards.bulk.mode')).toHaveValue('free');
+  expect(screen.getByRole('button', { name: 'cards.bulk.start-free' })).toBeInTheDocument();
+});
 
 test('a placed card binds the album that is offered', async () => {
   const user = userEvent.setup();

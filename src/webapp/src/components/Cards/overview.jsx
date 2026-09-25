@@ -3,12 +3,17 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import AddIcon from '@mui/icons-material/Add';
+import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
+import PlaylistPlayIcon from '@mui/icons-material/PlaylistPlay';
 import CardsList from './list';
-import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Fab from '@mui/material/Fab';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Grid from '@mui/material/Grid';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -25,15 +30,17 @@ const CardsOverview = () => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGrouped, setIsGrouped] = useState(true);
+  const [registerMenuAnchor, setRegisterMenuAnchor] = useState(null);
   // The search term arrives from a conflict, which leads here with the card id.
   const [search, setSearch] = useState(() => searchParams.get('search') || '');
 
-  const openRegisterCard = () => {
-    navigate('register');
-  };
+  const closeRegisterMenu = () => setRegisterMenuAnchor(null);
 
-  const openBulk = () => {
-    navigate('bulk');
+  // One entry, three ways: this one card, a run over many cards, or one card
+  // whose album is picked from the library.
+  const register = (to) => {
+    closeRegisterMenu();
+    navigate(to);
   };
 
   useEffect(() => {
@@ -61,15 +68,6 @@ const CardsOverview = () => {
           justifyContent: 'center',
         }}
       >
-        <Grid container size={12} sx={{ justifyContent: 'flex-end' }}>
-          <Button
-            onClick={openBulk}
-            sx={{ width: { md: 'auto', xs: '100%' } }}
-            variant="outlined"
-          >
-            {t('cards.overview.start-bulk')}
-          </Button>
-        </Grid>
         <Grid size={12}>
           <TextField
             fullWidth
@@ -100,9 +98,12 @@ const CardsOverview = () => {
         }
       </Grid>
       <Fab
+        aria-controls={registerMenuAnchor ? 'cards-register-menu' : undefined}
+        aria-expanded={Boolean(registerMenuAnchor)}
+        aria-haspopup="menu"
         aria-label={t('cards.overview.register-card')}
         color="primary"
-        onClick={openRegisterCard}
+        onClick={(event) => setRegisterMenuAnchor(event.currentTarget)}
         sx={{
           bottom: 'calc(var(--nav-height) + var(--space-4))',
           height: 'var(--touch-secondary)',
@@ -114,6 +115,25 @@ const CardsOverview = () => {
       >
         <AddIcon />
       </Fab>
+      <Menu
+        anchorEl={registerMenuAnchor}
+        id="cards-register-menu"
+        onClose={closeRegisterMenu}
+        open={Boolean(registerMenuAnchor)}
+      >
+        <MenuItem onClick={() => register('register')}>
+          <ListItemIcon><AddIcon /></ListItemIcon>
+          <ListItemText>{t('cards.overview.register-single')}</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => register('bulk')}>
+          <ListItemIcon><PlaylistPlayIcon /></ListItemIcon>
+          <ListItemText>{t('cards.overview.register-bulk')}</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => register('bulk?mode=free')}>
+          <ListItemIcon><LibraryMusicIcon /></ListItemIcon>
+          <ListItemText>{t('cards.overview.register-pick')}</ListItemText>
+        </MenuItem>
+      </Menu>
     </Grid>
   );
 };
