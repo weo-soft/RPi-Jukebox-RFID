@@ -316,6 +316,9 @@ const CardsBulk = () => {
     setBound({ album, cardId, number: album.position });
     setPosition(nextOpenIndex(nextQueue, position + 1));
     setLastAlbumKey(album.key);
+    // The card is done: the picker waits for the next one instead of offering
+    // the list again for a card that is already bound.
+    setFreeCardId(null);
   }, [cards, position, queueOf]);
 
   const bind = useCallback(async (cardId) => {
@@ -352,6 +355,8 @@ const CardsBulk = () => {
     setBound({ album, cardId, number: album.position });
     setPosition(nextOpenIndex(nextQueue, position + 1));
     setLastAlbumKey(album.key);
+    // A re-hang also finishes the card.
+    setFreeCardId(null);
   }, [cards, conflict, position, queueOf]);
 
   const undo = useCallback(async () => {
@@ -551,6 +556,9 @@ const CardsBulk = () => {
   else if (view === VIEW_PICKER) {
     body = (
       <>
+        {/* The picker lists the whole source: a notice under that list would be
+            out of sight exactly when it matters. */}
+        {notices}
         <AlbumPicker
           albums={allQueue}
           cardId={freeCardId}
@@ -558,7 +566,6 @@ const CardsBulk = () => {
           onBind={(album) => bindAlbum(freeCardId, album)}
           onCardId={setFreeCardId}
         />
-        {notices}
       </>
     );
   }

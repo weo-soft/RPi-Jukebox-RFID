@@ -224,6 +224,10 @@ test('the free mode binds the album that is chosen for the placed card', async (
       overwrite: false,
     });
   });
+
+  // The card is done: the picker asks for the next one and reports the binding.
+  expect(await screen.findByText('cards.bulk.picker-no-card')).toBeInTheDocument();
+  expect(screen.getByText('cards.bulk.bound-at')).toBeInTheDocument();
 });
 
 test('an album another card holds is not bound a second time', async () => {

@@ -183,6 +183,40 @@ test('the free mode binds the album that is chosen for the card', async ({ page 
       }),
     }),
   ]);
+
+  // The card is done; the next card starts the same picker over.
+  await expect(page.getByText('Place a card or type an id')).toBeVisible();
+  mock.publishEvent('rfid.card_id', '0002');
+  await expect(page.getByText('Choose an album — card 0002')).toBeVisible();
+  await page.getByRole('button', { name: /Discovery/ }).click();
+  await expect(page.getByText('Just bound: no. 1')).toBeVisible();
+});
+
+test('the pick mode reports the binding where the eye is', async ({ page }) => {
+  const many = Array.from({ length: 30 }, (unused, index) => ({
+    album: `Album ${index + 1}`,
+    albumartist: `Artist ${index + 1}`,
+  }));
+
+  const mock = await openBulk(page, { albums: many, cards: {}, mode: 'free' });
+  await page.getByRole('button', { name: 'Choose an album' }).click();
+  mock.publishEvent('rfid.card_id', '0001');
+
+  // An album far down the list: the report has to reach the eye without a scroll.
+  const target = page.getByRole('button', { name: /Album 25/ });
+  await target.scrollIntoViewIfNeeded();
+  await target.click();
+
+  const feedback = page.getByText('Just bound: no. 25');
+  await expect(feedback).toBeVisible();
+  await expect(page.getByText('Place a card or type an id')).toBeVisible();
+
+  const [box, viewportHeight] = await Promise.all([
+    feedback.boundingBox(),
+    page.evaluate(() => window.innerHeight),
+  ]);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeLessThan(viewportHeight);
 });
 
 test('the source and the last album survive a reload', async ({ page }) => {
