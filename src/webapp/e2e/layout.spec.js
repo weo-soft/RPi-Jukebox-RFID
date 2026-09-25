@@ -67,6 +67,14 @@ test('the album choice of the series fits the viewport', async ({ page }) => {
   await page.getByRole('button', { name: /Daft Punk/ }).click();
   await expect(page.getByRole('button', { name: /Discovery/ })).toBeVisible();
 
+  // The control for the whole choice stands in the column of the boxes it
+  // governs: right aligned it reads as a caption of the row above it.
+  const [control, groupBox] = await Promise.all([
+    page.getByRole('button', { name: 'Deselect all' }).boundingBox(),
+    page.getByRole('checkbox', { name: 'Select Daft Punk' }).boundingBox(),
+  ]);
+  expect(Math.abs(control.x - groupBox.x)).toBeLessThanOrEqual(16);
+
   await expectNoHorizontalOverflow(page);
   await expectNoDeadColumns(page);
   await expectTouchTargets(page, { min: 48 });
