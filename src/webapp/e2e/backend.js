@@ -84,6 +84,7 @@ export async function mockBackend(
     cachedCardId,
     coverGate,
     failRpc = false,
+    providerAlbums,
     rpcGate,
     showCovers = false,
     streamingLibrary = false,
@@ -317,6 +318,12 @@ export async function mockBackend(
           provider: 'mpd',
         }))
       ));
+      // Albums of a provider source arrive flat, each with its provider and the
+      // stable content URI of the album.
+      const providerAlbumItems = (providerAlbums ?? []).map(entry => ({
+        ...entry,
+        content_type: 'album',
+      }));
       const streamingItems = streamingLibrary ? [{
         albumartist: 'Family',
         album: 'Bedtime Stories',
@@ -333,7 +340,12 @@ export async function mockBackend(
           content_uri: 'spotify:playlist:bedtime',
           provider: 'spotify',
         }] : []);
-      result = [...localItems, ...streamingItems, ...spotifyItems].filter(item => (
+      result = [
+        ...localItems,
+        ...providerAlbumItems,
+        ...streamingItems,
+        ...spotifyItems,
+      ].filter(item => (
         (!payload.kwargs.provider || item.provider === payload.kwargs.provider) &&
         (
           !payload.kwargs.content_types ||

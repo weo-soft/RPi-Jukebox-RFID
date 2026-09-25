@@ -48,6 +48,41 @@ test('a placed card binds the offered album without a click in between', async (
   ]);
 });
 
+// The source is a parameter and not a special case: the same screen, the same
+// steps, one code path. A card on the local album of the same name does not
+// close the provider album, and the binding carries the source with it.
+test('a provider source runs the same series over the same screen', async ({ page }) => {
+  const mock = await openSeries(page, {
+    cards: Object.fromEntries([
+      cardOf('0001', 'play_album', ['Daft Punk', 'Discovery', null, 'mpd']),
+    ]),
+    providerAlbums: [{
+      albumartist: 'Daft Punk',
+      album: 'Discovery',
+      content_uri: 'spotify:album:discovery',
+      provider: 'spotify',
+    }],
+  });
+
+  await page.getByLabel('Source').selectOption('spotify');
+  await expect(page.getByText('Starts at no. 1 of 1.')).toBeVisible();
+
+  await startSeries(page);
+  mock.publishEvent('rfid.card_id', '0002');
+
+  await expect(page.getByText('Just bound: no. 1')).toBeVisible();
+  expect(rpcCallsOf(mock, 'register_card')).toEqual([
+    expect.objectContaining({
+      kwargs: {
+        card_id: '0002',
+        cmd_alias: 'play_album',
+        args: ['Daft Punk', 'Discovery', 'spotify:album:discovery', 'spotify'],
+        overwrite: false,
+      },
+    }),
+  ]);
+});
+
 test('the value the broker repeats on subscription binds nothing', async ({ page }) => {
   const mock = await openSeries(page, {
     albums: [discovery, memories],
