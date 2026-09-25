@@ -199,6 +199,7 @@
       "open-count": "open: {{count}}",
       "place-card": "Place a card",
       "back": "Back to start",
+      "interrupt": "Pause",
       "to-cards": "To the card list",
       "to-library": "To the library",
       "empty-source": "This source delivers no album.",
