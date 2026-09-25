@@ -15,7 +15,7 @@ import {
 import { ORDERS } from './orders';
 
 /*
- * The start area of a series: the source of the albums, the order the physical
+ * The start area of a bulk registration: the source of the albums, the order the physical
  * stack is sorted in, the album the session begins with and the way into the
  * numbered list. It is the first state of the screen; the running session
  * leaves it behind and returns to it through its own control.
@@ -52,11 +52,11 @@ const StartPanel = ({
         <Grid container spacing={2}>
           <Grid size={{ md: 6, xs: 12 }}>
             <FormControl fullWidth>
-              <InputLabel htmlFor="cards-series-source" shrink>
-                {t('cards.series.source')}
+              <InputLabel htmlFor="cards-bulk-source" shrink>
+                {t('cards.bulk.source')}
               </InputLabel>
               <NativeSelect
-                inputProps={{ id: 'cards-series-source' }}
+                inputProps={{ id: 'cards-bulk-source' }}
                 onChange={(event) => onProviderChange(event.target.value)}
                 sx={{ '& select': { height: 'var(--touch-min)' } }}
                 value={provider || ''}
@@ -69,11 +69,11 @@ const StartPanel = ({
           </Grid>
           <Grid size={{ md: 6, xs: 12 }}>
             <FormControl fullWidth>
-              <InputLabel htmlFor="cards-series-order" shrink>
-                {t('cards.series.order')}
+              <InputLabel htmlFor="cards-bulk-order" shrink>
+                {t('cards.bulk.order')}
               </InputLabel>
               <NativeSelect
-                inputProps={{ id: 'cards-series-order' }}
+                inputProps={{ id: 'cards-bulk-order' }}
                 onChange={(event) => onOrderChange(event.target.value)}
                 sx={{ '& select': { height: 'var(--touch-min)' } }}
                 value={orderId}
@@ -86,41 +86,41 @@ const StartPanel = ({
           </Grid>
           <Grid size={{ md: 6, xs: 12 }}>
             <FormControl fullWidth>
-              <InputLabel htmlFor="cards-series-mode" shrink>
-                {t('cards.series.mode')}
+              <InputLabel htmlFor="cards-bulk-mode" shrink>
+                {t('cards.bulk.mode')}
               </InputLabel>
               <NativeSelect
-                inputProps={{ id: 'cards-series-mode' }}
+                inputProps={{ id: 'cards-bulk-mode' }}
                 onChange={(event) => onModeChange(event.target.value)}
                 sx={{ '& select': { height: 'var(--touch-min)' } }}
                 value={mode}
               >
-                <option value="guided">{t('cards.series.modes.guided')}</option>
-                <option value="free">{t('cards.series.modes.free')}</option>
+                <option value="guided">{t('cards.bulk.modes.guided')}</option>
+                <option value="free">{t('cards.bulk.modes.free')}</option>
               </NativeSelect>
             </FormControl>
           </Grid>
           {mode === 'guided' && !emptySource &&
             <Grid size={{ md: 6, xs: 12 }}>
-              <Typography variant="contentBody">{t('cards.series.selection')}</Typography>
+              <Typography variant="contentBody">{t('cards.bulk.selection')}</Typography>
               <Typography color="textSecondary" variant="contentBody">
                 {isSelected
-                  ? t('cards.series.choice.selected', { count: selectedCount, open: openAlbums })
-                  : t('cards.series.choice.selected-all')
+                  ? t('cards.bulk.choice.selected', { count: selectedCount, open: openAlbums })
+                  : t('cards.bulk.choice.selected-all')
                 }
               </Typography>
               {missingCount > 0 &&
                 <Typography color="textSecondary" variant="contentBody">
-                  {t('cards.series.choice.missing', { count: missingCount })}
+                  {t('cards.bulk.choice.missing', { count: missingCount })}
                 </Typography>
               }
               <Grid container sx={{ gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
                 <Button onClick={onChoose} variant="outlined">
-                  {isSelected ? t('cards.series.choice.change') : t('cards.series.choice.title')}
+                  {isSelected ? t('cards.bulk.choice.change') : t('cards.bulk.choice.title')}
                 </Button>
                 {isSelected &&
                   <Button onClick={onClearSelection} variant="outlined">
-                    {t('cards.series.choice.clear')}
+                    {t('cards.bulk.choice.clear')}
                   </Button>
                 }
               </Grid>
@@ -129,9 +129,9 @@ const StartPanel = ({
           <Grid size={12}>
             {emptySource &&
               <>
-                <Typography>{t('cards.series.empty-source')}</Typography>
+                <Typography>{t('cards.bulk.empty-source')}</Typography>
                 <Typography color="textSecondary" variant="contentBody">
-                  {t('cards.series.empty-source-hint')}
+                  {t('cards.bulk.empty-source-hint')}
                 </Typography>
                 <Button
                   component={Link}
@@ -140,25 +140,25 @@ const StartPanel = ({
                   to="/library"
                   variant="outlined"
                 >
-                  {t('cards.series.to-library')}
+                  {t('cards.bulk.to-library')}
                 </Button>
               </>
             }
             {!emptySource && emptySelection &&
               <>
-                <Typography>{t('cards.series.choice.empty')}</Typography>
+                <Typography>{t('cards.bulk.choice.empty')}</Typography>
                 <Typography color="textSecondary" variant="contentBody">
-                  {t('cards.series.choice.empty-hint')}
+                  {t('cards.bulk.choice.empty-hint')}
                 </Typography>
               </>
             }
             {!emptySource && !emptySelection && canStart &&
               <Typography>
-                {t('cards.series.start-at', { number: startNumber, total })}
+                {t('cards.bulk.start-at', { number: startNumber, total })}
               </Typography>
             }
             {!emptySource && !emptySelection && !canStart &&
-              <Typography>{t('cards.series.exhausted', { count: total })}</Typography>
+              <Typography>{t('cards.bulk.exhausted', { count: total })}</Typography>
             }
           </Grid>
           {memoryNumber > 0 &&
@@ -168,10 +168,10 @@ const StartPanel = ({
               sx={{ alignItems: 'center', gap: 'var(--space-2)' }}
             >
               <Typography>
-                {t('cards.series.last-at', { number: memoryNumber })}
+                {t('cards.bulk.last-at', { number: memoryNumber })}
               </Typography>
               <Button onClick={onContinue} variant="outlined">
-                {t('cards.series.continue')}
+                {t('cards.bulk.continue')}
               </Button>
             </Grid>
           }
@@ -181,10 +181,10 @@ const StartPanel = ({
             sx={{ gap: 'var(--space-2)', justifyContent: 'flex-end' }}
           >
             <Button onClick={onOpenList} variant="outlined">
-              {t('cards.series.open-list')}
+              {t('cards.bulk.open-list')}
             </Button>
             <Button disabled={!canStart} onClick={onStart} variant="contained">
-              {mode === 'free' ? t('cards.series.start-free') : t('cards.series.start')}
+              {mode === 'free' ? t('cards.bulk.start-free') : t('cards.bulk.start')}
             </Button>
           </Grid>
         </Grid>

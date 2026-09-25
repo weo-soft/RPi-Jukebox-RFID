@@ -15,7 +15,7 @@ const routes = [
   { name: 'player', path: '/', ready: '#player' },
   { name: 'library', path: '/#/library', ready: '#library' },
   { name: 'cards', path: '/#/cards', ready: '#cards' },
-  { name: 'cards-series', path: '/#/cards/series', ready: '#cards-series' },
+  { name: 'cards-bulk', path: '/#/cards/bulk', ready: '#cards-bulk' },
   { name: 'settings', path: '/#/settings', ready: '#settings' },
 ];
 
@@ -56,10 +56,10 @@ for (const route of routes) {
   });
 }
 
-// The choice of the albums is the widest list of the series screen: groups and
+// The choice of the albums is the widest list of the bulk screen: groups and
 // their albums have to stay inside the viewport and within reach of a finger.
-test('the album choice of the series fits the viewport', async ({ page }) => {
-  await openRoute(page, routeByName('cards-series'));
+test('the album choice of the registration fits the viewport', async ({ page }) => {
+  await openRoute(page, routeByName('cards-bulk'));
 
   await page.getByRole('button', { name: 'Choose albums' }).click();
   await expect(page.getByLabel('Group by')).toBeVisible();
@@ -90,8 +90,8 @@ test('the choice keeps its way out in reach over a long list', async ({ page }) 
   }));
 
   await mockBackend(page, { albums: manyArtists });
-  await page.goto(routeByName('cards-series').path);
-  await expect(page.locator(routeByName('cards-series').ready)).toBeVisible();
+  await page.goto(routeByName('cards-bulk').path);
+  await expect(page.locator(routeByName('cards-bulk').ready)).toBeVisible();
   await expectTokensLoaded(page);
 
   await page.getByRole('button', { name: 'Choose albums' }).click();

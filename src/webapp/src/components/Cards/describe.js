@@ -1,11 +1,11 @@
-import { ALBUM_ALIAS, albumFromArgs, albumKey } from './series/keys';
+import { ALBUM_ALIAS, albumFromArgs, albumKey } from './bulk/keys';
 
 const FOLDER_ALIAS = 'play_folder';
 const SONG_ALIAS = 'play_single';
 
 /*
  * One card, described by what it holds: an album, a folder, a single song or
- * nothing a series can work with - system, timer, volume and hand-written
+ * nothing a bulk registration can work with - system, timer, volume and hand-written
  * entries.
  */
 const describeCard = (card = {}) => {

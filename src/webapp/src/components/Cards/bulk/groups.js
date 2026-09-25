@@ -1,8 +1,9 @@
 import { collator } from './orders';
 
 /*
- * The groupings the albums of a source are listed in while the albums of a
- * series are chosen. Their groups are an axis a physical stack is sorted by:
+ * The groupings the albums of a source are listed in while the albums of a bulk
+ * registration are chosen. Their groups are an axis a physical stack is sorted
+ * by:
  * the album artist carries a mixed stock, the initials carry a large one.
  */
 
@@ -21,17 +22,17 @@ const byAlbumInitial = ({ album }) => initialOf(album);
 const GROUPINGS = [
   {
     id: 'albumartist',
-    labelKey: 'cards.series.choice.groupings.albumartist',
+    labelKey: 'cards.bulk.choice.groupings.albumartist',
     groupOf: byAlbumArtist,
   },
   {
     id: 'albumartist-initial',
-    labelKey: 'cards.series.choice.groupings.albumartist-initial',
+    labelKey: 'cards.bulk.choice.groupings.albumartist-initial',
     groupOf: byAlbumArtistInitial,
   },
   {
     id: 'album-initial',
-    labelKey: 'cards.series.choice.groupings.album-initial',
+    labelKey: 'cards.bulk.choice.groupings.album-initial',
     groupOf: byAlbumInitial,
   },
 ];
@@ -62,7 +63,7 @@ const byGroupId = (left, right) => {
 
 /*
  * The groups of an album list in the order of the grouping. 'isChosen' counts
- * the albums that take part in the series and 'open' the ones without a card,
+ * the albums that take part in the registration and 'open' the ones without a card,
  * so a group states both the selection and the work left in it.
  */
 const groupAlbums = (albums = [], groupingId, isChosen = () => false) => {

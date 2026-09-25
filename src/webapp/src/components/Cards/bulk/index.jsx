@@ -28,9 +28,9 @@ import {
 } from './queue';
 import {
   memoryPosition,
-  readSeriesMemory,
-  writeSeriesMemory,
-} from './series-memory';
+  readBulkMemory,
+  writeBulkMemory,
+} from './bulk-memory';
 import { createPlacementCounter } from './events';
 import {
   EMPTY_SESSION,
@@ -45,7 +45,7 @@ import AlbumPicker from './album-picker';
 import BoundFeedback from './bound-feedback';
 import ConflictPanel from './conflict-panel';
 import QueuePanel from './queue-panel';
-import SeriesList from './series-list';
+import BulkList from './bulk-list';
 import StartPanel from './start-panel';
 
 const VIEW_START = 'start';
@@ -62,22 +62,23 @@ const albumActionData = (album) => buildActionData('play_music', 'play_album', {
 });
 
 /*
- * A card series: the albums of one source in one order, narrowed to the albums
- * chosen for it. The screen leads from its start area into the choice, the queue
+ * A bulk registration of cards: the albums of one source in one order, narrowed
+ * to the albums chosen for it. The screen leads from its start area into the
+ * choice, the queue
  * or the numbered list that brings the physical stack into the same order, and
  * it offers the free mode for cards that do not follow that order. What counts
  * as open follows from the inventory - an album is open while no card names it -
  * so no progress of its own has to be kept.
  */
-const CardsSeries = () => {
+const CardsBulk = () => {
   const { t } = useTranslation();
   const { state: published } = useContext(PubSubContext);
 
-  const [memory] = useState(() => readSeriesMemory());
+  const [memory] = useState(() => readBulkMemory());
   const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState(VIEW_START);
   const [mode, setMode] = useState('guided');
-  // The albums this series runs over; without a selection it is the whole source.
+  // The albums this registration runs over; without a selection it is the whole source.
   const [selection, setSelection] = useState(() => memory?.selection ?? null);
   const [lastAlbumKey, setLastAlbumKey] = useState(() => memory?.albumKey ?? '');
   const [sources, setSources] = useState([]);
@@ -192,11 +193,11 @@ const CardsSeries = () => {
   }, [isLoadingSources, memory, provider, sources]);
 
   // Source, order, start point and the chosen albums are one state and are
-  // written together, so a reload finds the same series again.
+  // written together, so a reload finds the same registration again.
   useEffect(() => {
     if (provider === null) return;
 
-    writeSeriesMemory({ source: provider, order: orderId, albumKey: lastAlbumKey, selection });
+    writeBulkMemory({ source: provider, order: orderId, albumKey: lastAlbumKey, selection });
   }, [lastAlbumKey, orderId, provider, selection]);
 
   // The event stream carries the card placements. The broker repeats the cached
@@ -249,7 +250,7 @@ const CardsSeries = () => {
   const startPosition = startIndex >= 0 ? startIndex : firstOpen;
   const startNumber = startPosition >= 0 && queue[startPosition] ? queue[startPosition].position : 0;
   const canStart = openAlbums > 0;
-  // A chosen album the source no longer delivers would leave the series
+  // A chosen album the source no longer delivers would leave the registration
   // silently, so it is named instead.
   const missingCount = selection === null
     ? 0
@@ -289,7 +290,7 @@ const CardsSeries = () => {
 
     if (error) {
       // A card that appeared in the database in the meantime is a conflict and
-      // not a failure of the series.
+      // not a failure of the registration.
       const { cards: reRead } = await loadRegisteredCards();
       const meanwhile = registeredEntry(reRead || {}, cardId);
 
@@ -455,7 +456,7 @@ const CardsSeries = () => {
         <Card elevation={0}>
           <CardContent>
             <Typography>
-              {t('cards.series.album-conflict', {
+              {t('cards.bulk.album-conflict', {
                 album: albumConflict.album.album || albumConflict.album.albumartist,
                 cardId: albumConflict.holderId,
               })}
@@ -465,7 +466,7 @@ const CardsSeries = () => {
               sx={{ gap: 'var(--space-2)', justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}
             >
               <Button onClick={() => setAlbumConflict(null)} variant="outlined">
-                {t('cards.series.dismiss')}
+                {t('cards.bulk.dismiss')}
               </Button>
               <Button
                 component={Link}
@@ -473,7 +474,7 @@ const CardsSeries = () => {
                 to={`/cards?search=${encodeURIComponent(albumConflict.holderId)}`}
                 variant="contained"
               >
-                {t('cards.series.conflict-list')}
+                {t('cards.bulk.conflict-list')}
               </Button>
             </Grid>
           </CardContent>
@@ -483,14 +484,14 @@ const CardsSeries = () => {
         <Card elevation={0}>
           <CardContent>
             <Typography>
-              {t('cards.series.binding-failed', { error: failure.error })}
+              {t('cards.bulk.binding-failed', { error: failure.error })}
             </Typography>
             <Grid
               container
               sx={{ justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}
             >
               <Button onClick={() => setFailure(null)} variant="outlined">
-                {t('cards.series.dismiss')}
+                {t('cards.bulk.dismiss')}
               </Button>
             </Grid>
           </CardContent>
@@ -516,9 +517,9 @@ const CardsSeries = () => {
     body = (
       <Card elevation={0}>
         <CardContent>
-          <Typography>{t('cards.series.loading-error')}</Typography>
+          <Typography>{t('cards.bulk.loading-error')}</Typography>
           <Button onClick={reload} sx={{ marginTop: 'var(--space-4)' }} variant="contained">
-            {t('cards.series.retry')}
+            {t('cards.bulk.retry')}
           </Button>
         </CardContent>
       </Card>
@@ -536,7 +537,7 @@ const CardsSeries = () => {
   }
   else if (view === VIEW_LIST) {
     body = (
-      <SeriesList
+      <BulkList
         onBack={backToStart}
         onStartHere={startHere}
         position={position}
@@ -574,17 +575,17 @@ const CardsSeries = () => {
           : <Card elevation={0}>
               <CardContent>
           <Typography variant="contentBody">
-            {t('cards.series.exhausted', { count: queue.length })}
+            {t('cards.bulk.exhausted', { count: queue.length })}
           </Typography>
           <Typography color="textSecondary" variant="contentBody">
-            {t('cards.series.exhausted-hint')}
+            {t('cards.bulk.exhausted-hint')}
           </Typography>
           <Grid
             container
             sx={{ gap: 'var(--space-2)', justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}
           >
             <Button onClick={() => setView(VIEW_LIST)} variant="outlined">
-              {t('cards.series.open-list')}
+              {t('cards.bulk.open-list')}
             </Button>
             <Button
               component={Link}
@@ -592,7 +593,7 @@ const CardsSeries = () => {
               to="/cards"
               variant="contained"
             >
-              {t('cards.series.to-cards')}
+              {t('cards.bulk.to-cards')}
             </Button>
           </Grid>
               </CardContent>
@@ -632,8 +633,8 @@ const CardsSeries = () => {
   }
 
   return (
-    <Grid container id="cards-series" size={12} spacing={2} sx={{ alignContent: 'flex-start' }}>
-      <Header backLink="/cards" title={t('cards.series.title')} />
+    <Grid container id="cards-bulk" size={12} spacing={2} sx={{ alignContent: 'flex-start' }}>
+      <Header backLink="/cards" title={t('cards.bulk.title')} />
       <Grid size={12} sx={{ display: 'grid', gap: 'var(--space-4)' }}>
         {body}
       </Grid>
@@ -641,4 +642,4 @@ const CardsSeries = () => {
   );
 };
 
-export default CardsSeries;
+export default CardsBulk;

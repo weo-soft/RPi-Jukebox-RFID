@@ -1,13 +1,13 @@
 import { indexOfAlbum } from './queue';
 
 /*
- * The start point of a card series lives in the browser: the source, the order,
- * the album key of the last bound album and the albums the series runs over. A
+ * The start point of a bulk registration lives in the browser: the source, the order,
+ * the album key of the last bound album and the albums the registration runs over. A
  * stored position number would point somewhere else after every added or removed
  * album, so only the album key is kept and the number is computed from the
  * current order.
  */
-const SERIES_MEMORY_KEY = 'cardsSeriesMemory';
+const BULK_MEMORY_KEY = 'cardsBulkMemory';
 
 const isMemory = value => (
   value !== null
@@ -16,11 +16,11 @@ const isMemory = value => (
   && typeof value.order === 'string'
 );
 
-// A key arrives with the first binding: a series whose albums were only chosen
+// A key arrives with the first binding: a bulk registration whose albums were only chosen
 // has a selection and still no last album.
 const albumKeyOf = value => (typeof value.albumKey === 'string' ? value.albumKey : '');
 
-// A selection the reader cannot use counts as no selection: the series then runs
+// A selection the reader cannot use counts as no selection: the registration then runs
 // over the whole source.
 const selectionOf = value => {
   const usable = value !== null
@@ -32,18 +32,18 @@ const selectionOf = value => {
   return usable ? value : null;
 };
 
-const writeSeriesMemory = (memory, storage = window.localStorage) => {
+const writeBulkMemory = (memory, storage = window.localStorage) => {
   try {
-    storage.setItem(SERIES_MEMORY_KEY, JSON.stringify(memory));
+    storage.setItem(BULK_MEMORY_KEY, JSON.stringify(memory));
   } catch {
-    // Storage can be unavailable; the series then starts at the first open
+    // Storage can be unavailable; the registration then starts at the first open
     // album without a remembered start point.
   }
 };
 
-const readSeriesMemory = (storage = window.localStorage) => {
+const readBulkMemory = (storage = window.localStorage) => {
   try {
-    const stored = storage.getItem(SERIES_MEMORY_KEY);
+    const stored = storage.getItem(BULK_MEMORY_KEY);
     if (stored !== null) {
       const parsed = JSON.parse(stored);
       if (isMemory(parsed)) {
@@ -63,14 +63,14 @@ const readSeriesMemory = (storage = window.localStorage) => {
 };
 
 // An album the current order does not know is dropped: the returned position is
-// -1 and the series starts at the first open album.
+// -1 and the registration starts at the first open album.
 const memoryPosition = (queue, memory) => (
   memory ? indexOfAlbum(queue, memory.albumKey) : -1
 );
 
 export {
-  SERIES_MEMORY_KEY,
+  BULK_MEMORY_KEY,
   memoryPosition,
-  readSeriesMemory,
-  writeSeriesMemory,
+  readBulkMemory,
+  writeBulkMemory,
 };

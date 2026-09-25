@@ -29,7 +29,7 @@ const BoundFeedback = ({
         <Grid container spacing={2}>
           <Grid size={12}>
             <Typography>
-              {t('cards.series.bound-at', { number })}
+              {t('cards.bulk.bound-at', { number })}
             </Typography>
           </Grid>
           <Grid size={12}>
@@ -55,7 +55,7 @@ const BoundFeedback = ({
             sx={{ gap: 'var(--space-2)', justifyContent: 'flex-end' }}
           >
             <Button onClick={onUndo} variant="outlined">
-              {t('cards.series.undo')}
+              {t('cards.bulk.undo')}
             </Button>
           </Grid>
         </Grid>

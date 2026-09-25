@@ -32,8 +32,8 @@ const CardsOverview = () => {
     navigate('register');
   };
 
-  const openSeries = () => {
-    navigate('series');
+  const openBulk = () => {
+    navigate('bulk');
   };
 
   useEffect(() => {
@@ -63,11 +63,11 @@ const CardsOverview = () => {
       >
         <Grid container size={12} sx={{ justifyContent: 'flex-end' }}>
           <Button
-            onClick={openSeries}
+            onClick={openBulk}
             sx={{ width: { md: 'auto', xs: '100%' } }}
             variant="outlined"
           >
-            {t('cards.overview.start-series')}
+            {t('cards.overview.start-bulk')}
           </Button>
         </Grid>
         <Grid size={12}>

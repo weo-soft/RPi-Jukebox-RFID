@@ -13,7 +13,7 @@ import AlbumListItem from '../../Library/lists/albums/album-list/album-list-item
 import CardIdField from '../card-id-field';
 
 /*
- * The running series: the album whose card is put on the reader next, the
+ * The running registration: the album whose card is put on the reader next, the
  * position in the numbered list and the number of albums still open.
  */
 const QueuePanel = ({
@@ -33,12 +33,12 @@ const QueuePanel = ({
         <Grid container spacing={2}>
           <Grid size={{ md: 6, xs: 12 }}>
             <Typography variant="contentBody">
-              {t('cards.series.position', { number: position, total })}
+              {t('cards.bulk.position', { number: position, total })}
             </Typography>
           </Grid>
           <Grid size={{ md: 6, xs: 12 }}>
             <Typography color="textSecondary" variant="contentBody">
-              {t('cards.series.open-count', { count: openAlbums })}
+              {t('cards.bulk.open-count', { count: openAlbums })}
             </Typography>
           </Grid>
           <Grid size={12}>
@@ -55,12 +55,12 @@ const QueuePanel = ({
           </Grid>
           <Grid size={12}>
             <Typography variant="displaySubtitle">
-              {t('cards.series.place-card')}
+              {t('cards.bulk.place-card')}
             </Typography>
           </Grid>
           <Grid size={12}>
             <CardIdField
-              actionLabel={t('cards.series.bind')}
+              actionLabel={t('cards.bulk.bind')}
               onActivate={onBind}
             />
           </Grid>
@@ -70,10 +70,10 @@ const QueuePanel = ({
             sx={{ gap: 'var(--space-2)', justifyContent: 'flex-end' }}
           >
             <Button onClick={onOpenList} variant="outlined">
-              {t('cards.series.open-list')}
+              {t('cards.bulk.open-list')}
             </Button>
             <Button onClick={onBack} variant="outlined">
-              {t('cards.series.back')}
+              {t('cards.bulk.back')}
             </Button>
           </Grid>
         </Grid>

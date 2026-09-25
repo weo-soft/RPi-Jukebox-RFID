@@ -9,10 +9,10 @@ import ActionsControls from './actions-controls';
 
 const translations = {
   'cards.form.save-failed': 'Saving failed: {{error}}',
-  'cards.series.conflict': 'Card {{cardId}} is already registered with {{content}}',
-  'cards.series.conflict-list': 'Check in the card list',
-  'cards.series.dismiss': 'Close',
-  'cards.series.rebind': 'Reassign',
+  'cards.bulk.conflict': 'Card {{cardId}} is already registered with {{content}}',
+  'cards.bulk.conflict-list': 'Check in the card list',
+  'cards.bulk.dismiss': 'Close',
+  'cards.bulk.rebind': 'Reassign',
   'general.buttons.delete': 'Delete',
   'general.buttons.save': 'Save',
 };
