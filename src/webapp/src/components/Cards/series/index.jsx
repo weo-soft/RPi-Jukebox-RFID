@@ -398,9 +398,10 @@ const CardsSeries = () => {
   const changeProvider = (nextProvider) => {
     setProvider(nextProvider);
     setStartIndex(-1);
-    // The keys of a selection name albums of one source, so they do not carry
-    // over to another one.
+    // Selection and start point both name albums of one source, so neither
+    // carries over to another one.
     setSelection(null);
+    setLastAlbumKey('');
   };
 
   const changeOrder = (nextOrderId) => {
