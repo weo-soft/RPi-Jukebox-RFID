@@ -40,6 +40,7 @@
 * [Troubleshooting](./troubleshooting.md)
 * [Concepts](./concepts.md)
 * [System](./system.md)
+* [Boot time](./boot-time.md)
 * [RPC Commands](./rpc-commands.md)
 * [CLI Client for RPC](./cli-client.md)
 * [Feature Status](../developers/status.md)
