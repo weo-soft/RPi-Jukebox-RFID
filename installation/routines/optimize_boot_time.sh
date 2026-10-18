@@ -7,6 +7,18 @@ OPTIMIZE_BOOT_CMDLINE_OPTIONS="consoleblank=1 logo.nologo quiet loglevel=0 plymo
 OPTIMIZE_BOOT_CMDLINE_OPTIONS_IPV6="ipv6.disable=1"
 OPTIMIZE_DHCP_CONF_HEADER="## Jukebox DHCP Config"
 OPTIMIZE_BOOT_CONF_HEADER="## Jukebox Boot Config"
+OPTIMIZE_NGINX_OVERRIDE_DIR="/etc/systemd/system/nginx.service.d"
+OPTIMIZE_NGINX_OVERRIDE_FILE="${OPTIMIZE_NGINX_OVERRIDE_DIR}/override.conf"
+
+# cloud-init provisions cloud images. A finished Jukebox is not provisioned at
+# boot, but cloud-init-main still runs and delays sysinit.target.
+OPTIMIZE_CLOUD_INIT_SERVICES=(
+  cloud-init
+  cloud-init-local
+  cloud-init-network
+  cloud-config
+  cloud-final
+)
 
 _optimize_disable_irrelevant_services() {
   log "  Disable keyboard-setup.service"
@@ -24,6 +36,44 @@ _optimize_disable_irrelevant_services() {
   sudo systemctl disable apt-daily-upgrade.service
   sudo systemctl disable apt-daily.timer
   sudo systemctl disable apt-daily-upgrade.timer
+
+  log "  Disable cloud-init services"
+  for service in "${OPTIMIZE_CLOUD_INIT_SERVICES[@]}"
+  do
+    sudo systemctl disable "${service}.service"
+  done
+
+  # The Jukebox does not need a configured network to start: the core binds
+  # the local loopback and nginx serves the Web App on the local port.
+  # Waiting for the network only delays every unit ordered behind
+  # network-online.target.
+  log "  Disable NetworkManager-wait-online.service"
+  sudo systemctl disable NetworkManager-wait-online.service
+}
+
+_optimize_has_system_unit() {
+  systemctl cat "$1" >/dev/null 2>&1
+}
+
+_optimize_nginx_network_ordering() {
+  if ! _optimize_has_system_unit nginx.service; then
+    log "  Skip nginx ordering. nginx.service is not installed."
+    return
+  fi
+
+  log "  Remove the network ordering from nginx.service"
+  sudo mkdir -p "${OPTIMIZE_NGINX_OVERRIDE_DIR}"
+  # Empty assignments reset the dependency lists that the distribution unit
+  # declares. nginx only binds a local port, so neither the waiting nor the
+  # ordering is required.
+  sudo tee "${OPTIMIZE_NGINX_OVERRIDE_FILE}" >/dev/null <<EOF
+# Written by the Jukebox installer: serve the Web App without waiting for
+# a configured network.
+[Unit]
+After=
+Wants=
+EOF
+  sudo systemctl daemon-reload
 }
 
 _add_options_to_cmdline() {
@@ -158,6 +208,18 @@ _optimize_check() {
     verify_optional_service_enablement apt-daily.timer disabled
     verify_optional_service_enablement apt-daily-upgrade.timer disabled
 
+    for service in "${OPTIMIZE_CLOUD_INIT_SERVICES[@]}"
+    do
+        verify_optional_service_enablement "${service}.service" disabled
+    done
+    verify_optional_service_enablement NetworkManager-wait-online.service disabled
+
+    if _optimize_has_system_unit nginx.service; then
+        verify_files_exists "${OPTIMIZE_NGINX_OVERRIDE_FILE}"
+        verify_file_contains_string "After=" "${OPTIMIZE_NGINX_OVERRIDE_FILE}"
+        verify_file_contains_string "Wants=" "${OPTIMIZE_NGINX_OVERRIDE_FILE}"
+    fi
+
     if [ "$DISABLE_BLUETOOTH" = true ] ; then
         verify_optional_service_enablement hciuart.service disabled
         verify_optional_service_enablement bluetooth.service disabled
@@ -204,6 +266,7 @@ _optimize_check() {
 
 _run_optimize_boot_time() {
     _optimize_disable_irrelevant_services
+    _optimize_nginx_network_ordering
     _optimize_handle_boot_screen
     _optimize_handle_boot_logs
     _optimize_handle_bluetooth
