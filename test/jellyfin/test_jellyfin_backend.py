@@ -302,6 +302,38 @@ def test_start_warmup_populates_catalog_in_background():
         limit=ALBUM_PAGE_SIZE, start_index=0)
 
 
+def test_first_fill_wait_is_bounded(monkeypatch):
+    monkeypatch.setattr(jellyfin_backend, 'CATALOG_FIRST_FILL_WAIT', 0.2)
+    api = make_api()
+    fill_started = threading.Event()
+    release_fill = threading.Event()
+
+    def slow_catalog(limit, start_index):
+        fill_started.set()
+        release_fill.wait(5.0)
+        return [album_item()]
+
+    api.get_albums.side_effect = slow_catalog
+    backend = make_backend(api)
+
+    backend.start_warmup()
+    assert fill_started.wait(2.0)
+
+    started = time.monotonic()
+    items = backend.list_library_items(['album'])
+    elapsed = time.monotonic() - started
+
+    # The request is served instead of waiting for the whole library.
+    assert elapsed < 1.0
+    assert items == []
+
+    release_fill.set()
+    deadline = time.monotonic() + 2.0
+    while backend._catalog_cache is None and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert backend._catalog_cache == [album_item()]
+
+
 def test_start_warmup_is_idempotent():
     api = make_api()
     api.get_albums.return_value = [album_item()]

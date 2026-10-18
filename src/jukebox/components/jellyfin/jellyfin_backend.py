@@ -50,6 +50,12 @@ RESTORE_TIMEOUT = 300.0
 #: server that just proved unreachable.
 CATALOG_RETRY_DELAY = 30.0
 
+#: Longest a caller waits for the very first catalog fill. That fill covers the
+#: whole library and takes far longer than a library request should wait on a
+#: cold start, so a request that arrives earlier receives the catalog that is
+#: available and the fill finishes in the background.
+CATALOG_FIRST_FILL_WAIT = 3.0
+
 #: Matches the item id inside a Jellyfin stream URL, e.g.
 #: ``http://host/Audio/<id>/stream?static=true&ApiKey=...``. Used to recover
 #: track metadata when MPD reports a normalized variant of the stream URL.
@@ -195,14 +201,16 @@ class JellyfinBackend:
         At most one thread fetches the catalog at a time. An expired catalog
         is refreshed in the background and the stale data is served meanwhile,
         so the WebApp/RPC path is never blocked for the full fetch duration.
-        Callers arriving during the very first fill (start-up warm-up) wait
-        for it to complete.
+        A caller that arrives during the very first fill waits at most
+        :data:`CATALOG_FIRST_FILL_WAIT` seconds and then receives the catalog
+        that is available, because that fill covers the whole library.
 
         A failed fill is negative-cached for :data:`CATALOG_RETRY_DELAY`
         seconds: during that window the stale catalog (or an empty list on the
         very first fill) is served instead of every caller starting a new full
         fetch against a server that just proved unreachable.
         """
+        first_fill_deadline = time.monotonic() + CATALOG_FIRST_FILL_WAIT
         with self._catalog_cond:
             while True:
                 now = time.monotonic()
@@ -231,8 +239,15 @@ class JellyfinBackend:
                     # server with another full catalog fetch.
                     return []
                 if self._catalog_fetching:
-                    # First fill (start-up warm-up) still in progress; wait.
-                    self._catalog_cond.wait()
+                    # First fill (start-up warm-up) still in progress. Waiting
+                    # for it would hold the request for the whole library.
+                    remaining = first_fill_deadline - now
+                    if remaining <= 0:
+                        logger.warning(
+                            "Jellyfin catalog is still being fetched; serving "
+                            "an empty catalog for this request")
+                        return []
+                    self._catalog_cond.wait(remaining)
                     continue
                 self._catalog_fetching = True
                 break
@@ -331,10 +346,10 @@ class JellyfinBackend:
         """Prefetch the album catalog in the background at startup.
 
         With 1000+ albums the initial catalog fetch takes ~18 s on a local
-        network, which exceeds the WebApp's request timeout. Warm-up runs only
-        once and never on the RPC/plugin-call thread, so the first WebApp
-        ``libraryItems`` request is served from a warm cache instead of
-        blocking the player and RPC paths.
+        network. Warm-up runs only once and never on the RPC/plugin-call
+        thread, so a WebApp ``libraryItems`` request that arrives while the
+        fill is still running waits at most :data:`CATALOG_FIRST_FILL_WAIT`
+        seconds and otherwise is served from the warm cache.
         """
         with self._catalog_cond:
             if self._warmup_started:
