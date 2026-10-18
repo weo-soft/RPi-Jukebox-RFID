@@ -115,9 +115,10 @@ rfid_card_02:
   attempt, and the cover itself is then served from the local cache.
 - **Large library (1000+ albums) times out on first open** — building the
   initial album catalog takes several seconds per page (500 albums). The daemon
-  warms the catalog in the background at start-up and the WebApp waits up
-  to 60 s for catalog requests, so a freshly installed/restarted daemon serves
-  the first library view from the warm cache. If you still see a timeout,
+  warms the catalog in the background at start-up and a library request waits
+  at most three seconds for that first fill, so the WebApp is never held for the
+  whole catalog. A request that arrives earlier receives an empty list and the
+  next request is served from the warm cache. If you still see a timeout,
   check `players.jellyfin.request_timeout` (each page request must finish
   within it) and that the Jellyfin server is not busy scanning.
 
