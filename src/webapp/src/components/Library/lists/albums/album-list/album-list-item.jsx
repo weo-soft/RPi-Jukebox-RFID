@@ -29,10 +29,9 @@ import AppSettingsContext from '../../../../../context/appsettings/context';
 import request from '../../../../../utils/request';
 
 /*
- * One album as a row: a link into the album, a single choice or one entry of a
- * multiple choice. The caller decides between them with 'onSelect', 'onToggle'
- * and 'isSelectable'; 'note' carries what the row has to say about the album
- * besides its name.
+ * One album as a row: a link into the album or one entry of a multiple choice.
+ * The caller decides between them with 'onToggle' and 'isSelectable'; 'note'
+ * carries what the row has to say about the album besides its name.
  */
 const AlbumListItem = ({
   albumartist,
@@ -43,7 +42,6 @@ const AlbumListItem = ({
   isSelectable = false,
   isSelected = false,
   note = null,
-  onSelect,
   onToggle,
   provider = 'mpd',
   view = 'albums',
@@ -153,12 +151,7 @@ const AlbumListItem = ({
           {content}
         </ListItemButton>
       }
-      {isButton && !onToggle && onSelect &&
-        <ListItemButton onClick={onSelect} sx={LIBRARY_ROW_SX}>
-          {content}
-        </ListItemButton>
-      }
-      {isButton && !onToggle && !onSelect &&
+      {isButton && !onToggle &&
         <ListItemButton component={AlbumLink} nativeButton={false} sx={LIBRARY_ROW_SX}>
           {content}
         </ListItemButton>

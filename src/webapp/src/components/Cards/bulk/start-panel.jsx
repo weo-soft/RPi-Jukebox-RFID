@@ -27,7 +27,6 @@ const StartPanel = ({
   isSelected,
   memoryNumber,
   missingCount,
-  mode,
   onChoose,
   onClearSelection,
   onContinue,
@@ -83,7 +82,7 @@ const StartPanel = ({
               </NativeSelect>
             </FormControl>
           </Grid>
-          {mode === 'guided' && !emptySource &&
+          {!emptySource &&
             <Grid size={{ md: 6, xs: 12 }}>
               <Typography variant="contentBody">{t('cards.bulk.selection')}</Typography>
               <Typography color="textSecondary" variant="contentBody">
@@ -167,7 +166,7 @@ const StartPanel = ({
               {t('cards.bulk.open-list')}
             </Button>
             <Button disabled={!canStart} onClick={onStart} variant="contained">
-              {mode === 'free' ? t('cards.bulk.start-free') : t('cards.bulk.start')}
+              {t('cards.bulk.start')}
             </Button>
           </Grid>
         </Grid>

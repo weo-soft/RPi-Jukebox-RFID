@@ -129,7 +129,6 @@
       "loading-error": "Während des Ladens der Karten ist ein Fehler aufgetreten",
       "register-bulk": "Sammelregistrierung",
       "register-card": "Karte registrieren",
-      "register-pick": "Wahl",
       "register-single": "Einzelregistrierung"
     },
     "register": {
@@ -188,13 +187,6 @@
         "empty": "Die Auswahl enthält kein Album dieser Quelle.",
         "empty-hint": "Andere Alben wählen oder die Auswahl aufheben."
       },
-      "start-free": "Album wählen",
-      "picker-with-card": "Album wählen — Karte {{cardId}}",
-      "picker-no-card": "Karte auflegen oder ID eintippen",
-      "picker-continue": "Weiter",
-      "picker-only-open": "Nur offene Alben",
-      "picker-no-match": "Kein Album passt zur Suche.",
-      "album-conflict": "Album {{album}} ist bereits mit Karte {{cardId}} belegt.",
       "position": "Nr. {{number}} von {{total}}",
       "open-count": "offen: {{count}}",
       "place-card": "Karte auflegen",

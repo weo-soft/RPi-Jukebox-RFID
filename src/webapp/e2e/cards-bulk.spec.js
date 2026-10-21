@@ -17,9 +17,9 @@ const rpcCallsOf = (mock, key) => (
   mock.rpcCalls.filter(({ method, plugin }) => (method || plugin) === key)
 );
 
-const openBulk = async (page, { mode, ...options } = {}) => {
+const openBulk = async (page, options = {}) => {
   const mock = await mockBackend(page, options);
-  await page.goto(mode ? `/#/cards/bulk?mode=${mode}` : '/#/cards/bulk');
+  await page.goto('/#/cards/bulk');
   await expect(page.getByRole('heading', { name: 'Bulk registration' })).toBeVisible();
   return mock;
 };
@@ -48,8 +48,8 @@ test('a placed card binds the offered album without a click in between', async (
   ]);
 });
 
-test('the running registration and the picker offer to break off', async ({ page }) => {
-  const mock = await openBulk(page, { albums: [discovery, memories], cards: {} });
+test('the running registration offers to break off', async ({ page }) => {
+  await openBulk(page, { albums: [discovery, memories], cards: {} });
   await startBulk(page);
 
   // Breaking off returns to the start area; the sort aid keeps its way back.
@@ -57,13 +57,7 @@ test('the running registration and the picker offer to break off', async ({ page
   await page.getByRole('button', { name: 'Bulk list' }).click();
   await expect(page.getByRole('button', { name: 'Back to start' })).toBeVisible();
   await page.getByRole('button', { name: 'Back to start' }).click();
-
-  // The free mode breaks off with the same word.
-  await page.goto('/#/cards/bulk?mode=free');
-  await page.getByRole('button', { name: 'Choose an album' }).click();
-  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
-  mock.publishEvent('rfid.card_id', '0001');
-  await expect(page.getByText('Choose an album — card 0001')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start bulk registration' })).toBeVisible();
 });
 
 test('the value the broker repeats on subscription binds nothing', async ({ page }) => {
@@ -180,61 +174,6 @@ test('a typed card id binds without a reader', async ({ page }) => {
       kwargs: expect.objectContaining({ card_id: '0002', overwrite: false }),
     }),
   ]);
-});
-
-test('the free mode binds the album that is chosen for the card', async ({ page }) => {
-  const mock = await openBulk(page, { albums: [discovery, mezzanine], cards: {}, mode: 'free' });
-  await page.getByRole('button', { name: 'Choose an album' }).click();
-  await expect(page.getByText('Place a card or type an id')).toBeVisible();
-
-  mock.publishEvent('rfid.card_id', '0001');
-  await expect(page.getByText('Choose an album — card 0001')).toBeVisible();
-
-  await page.getByRole('button', { name: /Mezzanine/ }).click();
-
-  await expect(page.getByText('Just bound: no. 2')).toBeVisible();
-  expect(rpcCallsOf(mock, 'register_card')).toEqual([
-    expect.objectContaining({
-      kwargs: expect.objectContaining({
-        card_id: '0001',
-        args: ['Massive Attack', 'Mezzanine', null, 'mpd'],
-      }),
-    }),
-  ]);
-
-  // The card is done; the next card starts the same picker over.
-  await expect(page.getByText('Place a card or type an id')).toBeVisible();
-  mock.publishEvent('rfid.card_id', '0002');
-  await expect(page.getByText('Choose an album — card 0002')).toBeVisible();
-  await page.getByRole('button', { name: /Discovery/ }).click();
-  await expect(page.getByText('Just bound: no. 1')).toBeVisible();
-});
-
-test('the pick mode reports the binding where the eye is', async ({ page }) => {
-  const many = Array.from({ length: 30 }, (unused, index) => ({
-    album: `Album ${index + 1}`,
-    albumartist: `Artist ${index + 1}`,
-  }));
-
-  const mock = await openBulk(page, { albums: many, cards: {}, mode: 'free' });
-  await page.getByRole('button', { name: 'Choose an album' }).click();
-  mock.publishEvent('rfid.card_id', '0001');
-
-  // An album far down the list: the report has to reach the eye without a scroll.
-  const target = page.getByRole('button', { name: /Album 25/ });
-  await target.scrollIntoViewIfNeeded();
-  await target.click();
-
-  const feedback = page.getByText('Just bound: no. 25');
-  await expect(feedback).toBeVisible();
-  await expect(page.getByText('Place a card or type an id')).toBeVisible();
-
-  const [box, viewportHeight] = await Promise.all([
-    feedback.boundingBox(),
-    page.evaluate(() => window.innerHeight),
-  ]);
-  expect(box.y).toBeGreaterThanOrEqual(0);
-  expect(box.y).toBeLessThan(viewportHeight);
 });
 
 test('the source and the last album survive a reload', async ({ page }) => {
@@ -428,7 +367,7 @@ test('the card list is searched by content and marks cards without an album', as
   await expect(page.getByText('Discovery')).toHaveCount(0);
 });
 
-test('the card list offers the three ways to register', async ({ page }) => {
+test('the card list offers the two ways to register', async ({ page }) => {
   await mockBackend(page, { albums: [discovery], cards: {} });
   await page.goto('/#/cards');
 
@@ -436,7 +375,7 @@ test('the card list offers the three ways to register', async ({ page }) => {
 
   await expect(page.getByRole('menuitem', { name: 'Single registration' })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: 'Bulk registration' })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: 'Pick' })).toBeVisible();
+  await expect(page.getByRole('menuitem')).toHaveCount(2);
 
   // The single card leads into the existing form.
   await page.getByRole('menuitem', { name: 'Single registration' }).click();
@@ -452,16 +391,4 @@ test('the card list leads into the registration', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Bulk registration' })).toBeVisible();
   await expect(page.getByText('Starts at no. 1 of 1.')).toBeVisible();
-});
-
-test('the card list leads into the pick mode', async ({ page }) => {
-  await mockBackend(page, { albums: [discovery], cards: {} });
-  await page.goto('/#/cards');
-
-  await page.getByRole('button', { name: 'Register a card' }).click();
-  await page.getByRole('menuitem', { name: 'Pick' }).click();
-
-  // The start area offers the picker; the run is not on offer here.
-  await expect(page.getByRole('button', { name: 'Choose an album' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Start bulk registration' })).toHaveCount(0);
 });

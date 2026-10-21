@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import {
   Button,
@@ -18,7 +18,7 @@ import { initSockets } from '../../../sockets';
 import { flatByAlbum } from '../../../utils/utils';
 import { buildActionData, getActionAndCommand, getArgsValues } from '../utils';
 import { loadRegisteredCards, registeredEntry } from '../registered-cards';
-import { holdingCard, isAlbumCard } from './keys';
+import { isAlbumCard } from './keys';
 import { orderById } from './orders';
 import {
   buildQueue,
@@ -41,7 +41,6 @@ import {
   withoutCard,
 } from './session';
 import AlbumChoice from './album-choice';
-import AlbumPicker from './album-picker';
 import BoundFeedback from './bound-feedback';
 import ConflictPanel from './conflict-panel';
 import QueuePanel from './queue-panel';
@@ -51,7 +50,6 @@ import StartPanel from './start-panel';
 const VIEW_START = 'start';
 const VIEW_QUEUE = 'queue';
 const VIEW_LIST = 'list';
-const VIEW_PICKER = 'picker';
 const VIEW_CHOICE = 'choice';
 
 const albumActionData = (album) => buildActionData('play_music', 'play_album', {
@@ -65,22 +63,17 @@ const albumActionData = (album) => buildActionData('play_music', 'play_album', {
  * A bulk registration of cards: the albums of one source in one order, narrowed
  * to the albums chosen for it. The screen leads from its start area into the
  * choice, the queue
- * or the numbered list that brings the physical stack into the same order, and
- * it offers the free mode for cards that do not follow that order. What counts
- * as open follows from the inventory - an album is open while no card names it -
- * so no progress of its own has to be kept.
+ * or the numbered list that brings the physical stack into the same order. What
+ * counts as open follows from the inventory - an album is open while no card
+ * names it - so no progress of its own has to be kept.
  */
 const CardsBulk = () => {
   const { t } = useTranslation();
   const { state: published } = useContext(PubSubContext);
-  const [searchParams] = useSearchParams();
 
   const [memory] = useState(() => readBulkMemory());
   const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState(VIEW_START);
-  // The way in decides the mode - the card list hands it over as a parameter and
-  // the start area does not switch it again. Without one the run is the rule.
-  const mode = searchParams.get('mode') === 'free' ? 'free' : 'guided';
   // The albums this registration runs over; without a selection it is the whole source.
   const [selection, setSelection] = useState(() => memory?.selection ?? null);
   const [lastAlbumKey, setLastAlbumKey] = useState(() => memory?.albumKey ?? '');
@@ -100,9 +93,7 @@ const CardsBulk = () => {
   const [session, setSession] = useState(EMPTY_SESSION);
   const [bound, setBound] = useState(null);
   const [conflict, setConflict] = useState(null);
-  const [albumConflict, setAlbumConflict] = useState(null);
   const [failure, setFailure] = useState(null);
-  const [freeCardId, setFreeCardId] = useState(null);
 
   const publishedCardId = useRef(published);
   publishedCardId.current = published;
@@ -236,7 +227,7 @@ const CardsBulk = () => {
     compare: order.compare,
     selection,
   }), [albums, order, selection]);
-  // The whole source: the choice of the albums and the free mode work on it.
+  // The whole source that the choice of albums works on.
   const allQueue = useMemo(
     () => buildQueue({ albums, cards: cards ?? {}, compare: order.compare }),
     [albums, cards, order],
@@ -259,12 +250,12 @@ const CardsBulk = () => {
     ? 0
     : selection.albumKeys.filter(key => !sourceKeys.has(key)).length;
 
-  const bindAlbum = useCallback(async (cardId, album) => {
+  const bind = useCallback(async (cardId) => {
+    const album = queue[position];
     // Without the card list the conflict test would run into nothing.
-    if (cards === null || !cardId || !album) return;
+    if (cards === null || !cardId || !album || album.bound) return;
 
     setFailure(null);
-    setAlbumConflict(null);
 
     const existing = registeredEntry(cards, cardId);
     if (existing) {
@@ -273,12 +264,6 @@ const CardsBulk = () => {
     }
 
     setConflict(null);
-
-    const holder = album.bound ? holdingCard(cards, album.key) : undefined;
-    if (holder) {
-      setAlbumConflict({ album, cardId, holderId: holder[0] });
-      return;
-    }
 
     const actionData = albumActionData(album);
     const { command: cmdAlias } = getActionAndCommand(actionData);
@@ -316,14 +301,7 @@ const CardsBulk = () => {
     setBound({ album, cardId, number: album.position });
     setPosition(nextOpenIndex(nextQueue, position + 1));
     setLastAlbumKey(album.key);
-    // The card is done: the picker waits for the next one instead of offering
-    // the list again for a card that is already bound.
-    setFreeCardId(null);
-  }, [cards, position, queueOf]);
-
-  const bind = useCallback(async (cardId) => {
-    await bindAlbum(cardId, queue[position]);
-  }, [bindAlbum, position, queue]);
+  }, [cards, position, queue, queueOf]);
 
   const rebind = useCallback(async () => {
     if (!conflict) return;
@@ -355,8 +333,6 @@ const CardsBulk = () => {
     setBound({ album, cardId, number: album.position });
     setPosition(nextOpenIndex(nextQueue, position + 1));
     setLastAlbumKey(album.key);
-    // A re-hang also finishes the card.
-    setFreeCardId(null);
   }, [cards, conflict, position, queueOf]);
 
   const undo = useCallback(async () => {
@@ -420,8 +396,7 @@ const CardsBulk = () => {
 
   const start = () => {
     setPosition(startPosition >= 0 ? startPosition : 0);
-    setFreeCardId(null);
-    setView(mode === 'free' ? VIEW_PICKER : VIEW_QUEUE);
+    setView(VIEW_QUEUE);
   };
 
   const startHere = (index) => {
@@ -431,22 +406,17 @@ const CardsBulk = () => {
   };
 
   const backToStart = () => {
-    setFreeCardId(null);
     setView(VIEW_START);
   };
 
-  // A placement binds in the queue and names the card in the free mode: there
-  // the album is chosen afterwards.
+  // A placement only binds while the queue is on screen: there the album that
+  // is offered is the one the card belongs to.
   useEffect(() => {
     if (!placement || placement.serial <= handledPlacement.current) return;
     handledPlacement.current = placement.serial;
+    if (view !== VIEW_QUEUE) return;
 
-    if (view === VIEW_QUEUE) {
-      bind(placement.cardId);
-      return;
-    }
-
-    if (view === VIEW_PICKER) setFreeCardId(placement.cardId);
+    bind(placement.cardId);
   }, [bind, placement, view]);
 
   const notices = (
@@ -459,34 +429,6 @@ const CardsBulk = () => {
           onClose={() => setConflict(null)}
           onRebind={rebind}
         />
-      }
-      {albumConflict &&
-        <Card elevation={0}>
-          <CardContent>
-            <Typography>
-              {t('cards.bulk.album-conflict', {
-                album: albumConflict.album.album || albumConflict.album.albumartist,
-                cardId: albumConflict.holderId,
-              })}
-            </Typography>
-            <Grid
-              container
-              sx={{ gap: 'var(--space-2)', justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}
-            >
-              <Button onClick={() => setAlbumConflict(null)} variant="outlined">
-                {t('cards.bulk.dismiss')}
-              </Button>
-              <Button
-                component={Link}
-                nativeButton={false}
-                to={`/cards?search=${encodeURIComponent(albumConflict.holderId)}`}
-                variant="contained"
-              >
-                {t('cards.bulk.conflict-list')}
-              </Button>
-            </Grid>
-          </CardContent>
-        </Card>
       }
       {failure &&
         <Card elevation={0}>
@@ -553,22 +495,6 @@ const CardsBulk = () => {
       />
     );
   }
-  else if (view === VIEW_PICKER) {
-    body = (
-      <>
-        {/* The picker lists the whole source: a notice under that list would be
-            out of sight exactly when it matters. */}
-        {notices}
-        <AlbumPicker
-          albums={allQueue}
-          cardId={freeCardId}
-          onBack={backToStart}
-          onBind={(album) => bindAlbum(freeCardId, album)}
-          onCardId={setFreeCardId}
-        />
-      </>
-    );
-  }
   else if (view === VIEW_QUEUE) {
     body = (
       <>
@@ -622,7 +548,6 @@ const CardsBulk = () => {
         isSelected={selection !== null}
         memoryNumber={rememberedIndex >= 0 ? queue[rememberedIndex].position : 0}
         missingCount={missingCount}
-        mode={mode}
         onChoose={() => setView(VIEW_CHOICE)}
         onClearSelection={() => setSelection(null)}
         onContinue={() => setStartIndex(continuing >= 0 ? continuing : firstOpen)}
