@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 
 import SettingsSection from '../section';
+import NavigationVisibility from './navigation-visibility';
 import ShowCovers from './show-covers';
 
 const SettingsGeneral = () => {
@@ -24,6 +25,7 @@ const SettingsGeneral = () => {
         }}
       >
         <ShowCovers />
+        <NavigationVisibility />
       </Grid>
     </SettingsSection>
   );

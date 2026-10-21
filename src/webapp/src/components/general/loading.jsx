@@ -22,7 +22,7 @@ const Loading = () => {
         flexDirection: 'column',
         gap: 'var(--space-4)',
         justifyContent: 'center',
-        minHeight: 'calc(100dvh - var(--nav-height) - 2 * var(--gutter) - 7rem)',
+        minHeight: 'calc(100dvh - var(--nav-space, var(--nav-height)) - 2 * var(--gutter) - 7rem)',
         width: '100%',
       }}
     >

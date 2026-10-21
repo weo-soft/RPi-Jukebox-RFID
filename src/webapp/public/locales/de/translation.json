@@ -385,6 +385,14 @@
       "title": "Allgmeine Einstellungen",
       "show_covers": {
         "title": "Cover anzeigen"
+      },
+      "navigation_local": {
+        "title": "Anzeige der Navigation (Local)",
+        "description": "Gilt für dieses Gerät. Im Kiosk ist die Navigation auf der Startansicht standardmäßig ausgeblendet; siebenmal auf das Cover tippen zeigt sie wieder an."
+      },
+      "navigation_global": {
+        "title": "Anzeige der Navigation (Global)",
+        "description": "Übersteuert die lokale Einstellung und zeigt die Navigation auf allen Geräten."
       }
     },
     "timers": {

@@ -385,6 +385,14 @@
       "title": "General Settings",
       "show_covers": {
         "title": "Show Cover Art"
+      },
+      "navigation_local": {
+        "title": "Show navigation (local)",
+        "description": "Applies to this device. In the kiosk the navigation is hidden on the start view by default; tap the cover seven times to show it again."
+      },
+      "navigation_global": {
+        "title": "Show navigation (global)",
+        "description": "Overrides the local setting and shows the navigation on all devices."
       }
     },
     "timers": {

@@ -95,6 +95,14 @@ The Web App runs on small touch panels in kiosk mode as well. The reference
 device is a 7 inch panel with 1024 x 600 CSS pixels, where one CSS pixel
 measures 0.15 mm.
 
+The navigation on the start view is device-local. The Web App stores
+`navigationVisible` in `localStorage` and seeds it on the first load: a loopback
+origin (`http://localhost`, the kiosk) takes
+`webapp.navigation_visible_kiosk_seed` (default `false`), every other origin
+starts visible. `webapp.navigation_visible_global` (default `false`) overrides
+the local value on every device. Seven taps on the player cover reveal the
+navigation again.
+
 The sizes are CSS custom properties in `src/webapp/src/index.css`, which
 `src/webapp/src/index.jsx` imports. The MUI theme in `src/webapp/src/theme.js`
 reads them through `var(...)` and defines no sizes of its own.

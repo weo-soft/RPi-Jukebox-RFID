@@ -10,6 +10,7 @@ import SeekBar from './seekbar';
 import Volume from './volume';
 
 import AppSettingsContext from '../../context/appsettings/context';
+import { useNavigationVisibility } from '../../context/navigation';
 import PlayerContext from '../../context/player/context';
 import request from '../../utils/request';
 
@@ -19,6 +20,7 @@ const BACKDROP_GRADIENT =
 const Player = () => {
   const theme = useTheme();
   const { state: { playerstatus } } = useContext(PlayerContext);
+  const { revealNavigation } = useNavigationVisibility();
   const { cover_url, file, provider } = playerstatus || {};
   const hasSong = Boolean(playerstatus?.songid);
 
@@ -108,7 +110,7 @@ const Player = () => {
           position: 'relative',
           gridTemplateColumns: 'minmax(0, 1fr)',
           gridTemplateRows: 'minmax(0, 1fr)',
-          height: 'calc(100dvh - var(--nav-height) - 2 * var(--gutter))',
+          height: 'calc(100dvh - var(--nav-space, var(--nav-height)) - 2 * var(--gutter))',
           rowGap: 'var(--gap-block)',
           // landscape: the cover sits beside the controls
           [theme.breakpoints.up('md')]: {
@@ -134,6 +136,7 @@ const Player = () => {
             coverImage={coverImage}
             dimmed={!hasSong}
             isLoading={isCoverLoading}
+            onRevealNavigation={revealNavigation}
           />
         </Box>
         <Box

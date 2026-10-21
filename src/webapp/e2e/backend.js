@@ -84,6 +84,8 @@ export async function mockBackend(
     cachedCardId,
     coverGate,
     failRpc = false,
+    navigationVisibleGlobal = false,
+    navigationVisibleKioskSeed = false,
     rpcGate,
     showCovers = false,
     streamingLibrary = false,
@@ -160,7 +162,11 @@ export async function mockBackend(
       result = null;
     }
     if (key === 'get_app_settings') {
-      result = { show_covers: showCovers };
+      result = {
+        navigation_visible_global: navigationVisibleGlobal,
+        navigation_visible_kiosk_seed: navigationVisibleKioskSeed,
+        show_covers: showCovers,
+      };
     }
     if (key === 'list_library_sources') {
       result = [

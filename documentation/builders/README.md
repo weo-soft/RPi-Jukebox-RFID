@@ -32,6 +32,7 @@
 
 * Application
   * [Cover Art](./webapp/cover-art.md)
+  * [Navigation on the Start View](./webapp/navigation.md)
 * Music
   * [Playlists, Livestreams and Podcasts](./webapp/playlists-livestreams-podcasts.md)
 
