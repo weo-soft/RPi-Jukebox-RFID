@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import AddIcon from '@mui/icons-material/Add';
-import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
 import PlaylistPlayIcon from '@mui/icons-material/PlaylistPlay';
 import CardsList from './list';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -36,8 +35,8 @@ const CardsOverview = () => {
 
   const closeRegisterMenu = () => setRegisterMenuAnchor(null);
 
-  // One entry, three ways: this one card, a run over many cards, or one card
-  // whose album is picked from the library.
+  // The entry offers the existing form for one card and the bulk registration
+  // for a run over many cards.
   const register = (to) => {
     closeRegisterMenu();
     navigate(to);
@@ -128,10 +127,6 @@ const CardsOverview = () => {
         <MenuItem onClick={() => register('bulk')}>
           <ListItemIcon><PlaylistPlayIcon /></ListItemIcon>
           <ListItemText>{t('cards.overview.register-bulk')}</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => register('bulk?mode=free')}>
-          <ListItemIcon><LibraryMusicIcon /></ListItemIcon>
-          <ListItemText>{t('cards.overview.register-pick')}</ListItemText>
         </MenuItem>
       </Menu>
     </Grid>

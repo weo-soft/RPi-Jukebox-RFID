@@ -63,7 +63,7 @@ const answer = (command) => {
   }
 };
 
-const openScreen = async ({ entry = '/cards/bulk', publishedCardId } = {}) => {
+const openScreen = async ({ publishedCardId } = {}) => {
   request.mockImplementation(async (command) => answer(command));
 
   render(
@@ -76,7 +76,7 @@ const openScreen = async ({ entry = '/cards/bulk', publishedCardId } = {}) => {
             : { 'rfid.card_id': publishedCardId },
         }}
       >
-        <MemoryRouter initialEntries={[entry]}>
+        <MemoryRouter initialEntries={['/cards/bulk']}>
           <Routes>
             <Route element={<CardsBulk />} path="/cards/bulk" />
           </Routes>
@@ -95,16 +95,6 @@ const placeCard = async (cardId) => {
 const startBulk = async (user) => {
   await user.click(screen.getByRole('button', { name: 'cards.bulk.start' }));
 };
-
-test('the entry from the card list leads into the pick mode', async () => {
-  cards = {};
-
-  await openScreen({ entry: '/cards/bulk?mode=free' });
-
-  // The start area offers the picker; the run is not on offer here.
-  expect(screen.getByRole('button', { name: 'cards.bulk.start-free' })).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'cards.bulk.start' })).not.toBeInTheDocument();
-});
 
 test('a placed card binds the album that is offered', async () => {
   const user = userEvent.setup();
@@ -202,50 +192,6 @@ test('the undo removes the binding of the last card', async () => {
   await waitFor(() => {
     expect(request).toHaveBeenCalledWith('deleteCard', { card_id: '0001' });
   });
-});
-
-test('the free mode binds the album that is chosen for the placed card', async () => {
-  const user = userEvent.setup();
-  cards = {};
-
-  await openScreen({ entry: '/cards/bulk?mode=free' });
-  await user.click(screen.getByRole('button', { name: 'cards.bulk.start-free' }));
-  await placeCard('0001');
-
-  expect(await screen.findByText('cards.bulk.picker-with-card')).toBeInTheDocument();
-
-  await user.click(screen.getByRole('button', { name: /Folge 10/ }));
-
-  await waitFor(() => {
-    expect(request).toHaveBeenCalledWith('registerCard', {
-      card_id: '0001',
-      cmd_alias: 'play_album',
-      args: ['Benjamin Blümchen', 'Folge 10', null, 'mpd'],
-      overwrite: false,
-    });
-  });
-
-  // The card is done: the picker asks for the next one and reports the binding.
-  expect(await screen.findByText('cards.bulk.picker-no-card')).toBeInTheDocument();
-  expect(screen.getByText('cards.bulk.bound-at')).toBeInTheDocument();
-});
-
-test('an album another card holds is not bound a second time', async () => {
-  const user = userEvent.setup();
-  cards = Object.fromEntries([
-    albumCard('0002', 'play_album', ['Benjamin Blümchen', 'Folge 2', null, 'mpd']),
-  ]);
-
-  await openScreen({ entry: '/cards/bulk?mode=free' });
-  await user.click(screen.getByRole('button', { name: 'cards.bulk.start-free' }));
-  await placeCard('0001');
-  await screen.findByText('cards.bulk.picker-with-card');
-
-  await user.click(screen.getByLabelText('cards.bulk.picker-only-open'));
-  await user.click(screen.getByRole('button', { name: /Folge 2/ }));
-
-  expect(await screen.findByText('cards.bulk.album-conflict')).toBeInTheDocument();
-  expect(request).not.toHaveBeenCalledWith('registerCard', expect.anything());
 });
 
 test('the header steps back into the start area before it leaves the screen', async () => {

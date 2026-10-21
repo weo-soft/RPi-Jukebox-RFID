@@ -129,7 +129,6 @@
       "loading-error": "An error occurred while loading cards list.",
       "register-bulk": "Bulk registration",
       "register-card": "Register a card",
-      "register-pick": "Pick",
       "register-single": "Single registration"
     },
     "register": {
@@ -188,13 +187,6 @@
         "empty": "The selection holds no album of this source.",
         "empty-hint": "Choose other albums or clear the selection."
       },
-      "start-free": "Choose an album",
-      "picker-with-card": "Choose an album — card {{cardId}}",
-      "picker-no-card": "Place a card or type an id",
-      "picker-continue": "Continue",
-      "picker-only-open": "Only open albums",
-      "picker-no-match": "No album matches the search.",
-      "album-conflict": "Album {{album}} is already held by card {{cardId}}.",
       "position": "No. {{number}} of {{total}}",
       "open-count": "open: {{count}}",
       "place-card": "Place a card",

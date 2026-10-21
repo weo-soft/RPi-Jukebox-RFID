@@ -36,10 +36,9 @@ const COVER_RETRY_ATTEMPTS = 4;
 const COVER_RETRY_DELAY_MS = 1000;
 
 /*
- * One album as a row: a link into the album, a single choice or one entry of a
- * multiple choice. The caller decides between them with 'onSelect', 'onToggle'
- * and 'isManagementSelecting'; 'note' carries what the row has to say about the
- * album besides its name.
+ * One album as a row: a link into the album or one entry of a multiple choice.
+ * The caller decides between them with 'onToggle' and 'isManagementSelecting';
+ * 'note' carries what the row has to say about the album besides its name.
  */
 const AlbumListItem = ({
   albumartist,
@@ -51,7 +50,6 @@ const AlbumListItem = ({
   isManagementSelecting = false,
   isSelected = false,
   note = null,
-  onSelect,
   onToggle,
   onToggleSelected,
   provider = 'mpd',
@@ -215,12 +213,6 @@ const AlbumListItem = ({
         : isButton && onToggle
         ? (
           <ListItemButton onClick={onToggle} selected={isSelected} sx={LIBRARY_ROW_SX}>
-            {content}
-          </ListItemButton>
-        )
-        : isButton && onSelect
-        ? (
-          <ListItemButton onClick={onSelect} sx={LIBRARY_ROW_SX}>
             {content}
           </ListItemButton>
         )
