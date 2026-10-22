@@ -5,6 +5,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import AppSettingsProvider from './context/appsettings';
 import NavigationVisibilityProvider from './context/navigation';
+import SimpleModeProvider from './context/simple-mode';
 import PubSubProvider from './context/pubsub';
 import PlayerProvider from './context/player';
 import Router from './router';
@@ -14,9 +15,11 @@ function App() {
     <PubSubProvider>
       <PlayerProvider>
         <AppSettingsProvider>
-          <NavigationVisibilityProvider>
-            <Router />
-          </NavigationVisibilityProvider>
+          <SimpleModeProvider>
+            <NavigationVisibilityProvider>
+              <Router />
+            </NavigationVisibilityProvider>
+          </SimpleModeProvider>
         </AppSettingsProvider>
       </PlayerProvider>
     </PubSubProvider>

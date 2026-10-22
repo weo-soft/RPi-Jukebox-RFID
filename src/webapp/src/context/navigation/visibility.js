@@ -4,16 +4,9 @@
  * kiosk is the only client that loads the Web App from the box itself, so its
  * loopback origin selects the kiosk seed; all other origins start visible.
  */
-const NAVIGATION_VISIBLE_KEY = 'navigationVisible';
-const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '::1', '[::1]'];
-const DEFAULT_PORTS = ['', '80', '443'];
+import { isKioskOrigin } from '../../utils/kiosk';
 
-const isKioskOrigin = ({
-  hostname = '',
-  port = '',
-} = {}) => (
-  LOOPBACK_HOSTS.includes(hostname) && DEFAULT_PORTS.includes(port)
-);
+const NAVIGATION_VISIBLE_KEY = 'navigationVisible';
 
 const navigationSeed = ({ isKiosk, kioskSeed }) => (
   isKiosk ? Boolean(kioskSeed) : true
