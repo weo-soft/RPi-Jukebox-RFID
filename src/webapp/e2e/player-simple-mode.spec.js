@@ -35,7 +35,7 @@ test('simple mode disables seeking and hides shuffle, repeat and labels', async 
 
   await page.getByRole('button', { name: 'Increase volume' }).click();
   await expect(page.getByTestId('volume-feedback')).toBeVisible();
-  await expect(page.getByTestId('volume-feedback')).toContainText('47 %');
+  await expect(page.getByTestId('volume-feedback')).toContainText('45 %');
 });
 
 test('regular mode keeps the full player and its labels', async ({ page }) => {

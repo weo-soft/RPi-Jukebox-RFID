@@ -24,7 +24,8 @@ reload and a restart of the kiosk browser.
 ## Volume
 
 The volume row has large `−` and `+` buttons next to the slider. Each press
-changes the volume by five percent and stops at zero and at the configured
+moves to the next multiple of five in that direction, so an off-step value of
+42 becomes 45 on `+` and 40 on `−`. The step stops at zero and at the configured
 maximum volume. A large overlay shows the new level; muting and unmuting show
 their own feedback. The slider remains available for fine control.
 

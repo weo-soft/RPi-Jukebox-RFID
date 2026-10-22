@@ -15,8 +15,8 @@ import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 
 import PubSubContext from '../../context/pubsub/context';
 import request from '../../utils/request';
+import { nextVolume, VOLUME_STEP } from './volume-step';
 
-const VOLUME_STEP = 5;
 const FEEDBACK_MS = 1200;
 
 const touchBox = {
@@ -64,7 +64,7 @@ const Volume = () => {
 
   const changeVolumeBy = (delta) => {
     const current = Number(_volume) || 0;
-    const next = Math.max(0, Math.min(max, current + delta));
+    const next = nextVolume(current, delta, max);
     if (next === current) return;
 
     setVolume(next);
