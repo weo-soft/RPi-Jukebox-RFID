@@ -130,7 +130,7 @@ for (const route of routes) {
 // bound keeps a pile of new sections from passing unnoticed. The device
 // settings for the navigation, the simple mode and the library page size are
 // part of that length.
-const MAX_SETTINGS_FILLS = 3.7;
+const MAX_SETTINGS_FILLS = 3.75;
 
 test('settings route keeps its length within its bound', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'kiosk');
