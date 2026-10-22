@@ -438,7 +438,7 @@
       },
       "simple_mode": {
         "title": "Einfach-Modus",
-        "description": "Blendet Zufall, Wiederholen und die Zeitleiste aus."
+        "description": "Blendet Zufall und Wiederholen aus; die Zeitleiste bleibt sichtbar, ist aber nicht bedienbar."
       }
     },
     "spotify": {

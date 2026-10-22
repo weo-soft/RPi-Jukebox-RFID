@@ -1,4 +1,4 @@
-import { memo, useContext, useEffect } from 'react';
+import { memo, useContext, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Box from '@mui/material/Box';
@@ -27,6 +27,48 @@ const touchBox = (token) => ({
 });
 
 const ACTIVE_SURFACE = 'rgba(0, 150, 136, .18)';
+const PRESS_FEEDBACK_MS = 400;
+
+
+// A tap leaves no hover state on a touch screen. Keep a short visual press
+// response on the button so the action is visible before the player state
+// changes.
+const FeedbackIconButton = ({
+  children,
+  onClick,
+  sx,
+  ...props
+}) => {
+  const [pressed, setPressed] = useState(false);
+  const timer = useRef();
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const handleClick = (event) => {
+    setPressed(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setPressed(false), PRESS_FEEDBACK_MS);
+    onClick?.(event);
+  };
+
+  return (
+    <IconButton
+      {...props}
+      data-pressed={pressed ? 'true' : 'false'}
+      onClick={handleClick}
+      sx={[
+        { transition: 'transform 120ms ease, background-color 120ms ease' },
+        ...(Array.isArray(sx) ? sx : [sx]),
+        pressed && {
+          backgroundColor: ACTIVE_SURFACE,
+          transform: 'scale(.94)',
+        },
+      ]}
+    >
+      {children}
+    </IconButton>
+  );
+};
 
 const Control = ({ children, label, showLabel }) => (
   <Box
@@ -124,19 +166,19 @@ const Controls = () => {
 
       {!simpleMode &&
         <Control label={t('player.controls.shuffle.label')} showLabel>
-          <IconButton
+          <FeedbackIconButton
             aria-label={labelShuffle()}
             onClick={toggleShuffle}
             sx={toggleStyle(isShuffle)}
             title={labelShuffle()}
           >
             <ShuffleRoundedIcon sx={{ fontSize: 'var(--icon-comfort)' }} />
-          </IconButton>
+          </FeedbackIconButton>
         </Control>
       }
 
       <Control label={t('player.controls.prev')} showLabel={!simpleMode}>
-        <IconButton
+        <FeedbackIconButton
           aria-label={t('player.controls.prev_song')}
           disabled={!songIsScheduled}
           onClick={() => request('prev_song')}
@@ -144,11 +186,11 @@ const Controls = () => {
           title={t('player.controls.prev_song')}
         >
           <SkipPreviousRoundedIcon sx={{ fontSize: 'var(--icon-secondary)' }} />
-        </IconButton>
+        </FeedbackIconButton>
       </Control>
 
       <Control label={playLabel} showLabel={!simpleMode}>
-        <IconButton
+        <FeedbackIconButton
           aria-label={playLabel}
           disabled={!songIsScheduled}
           onClick={() => request(isPlaying ? 'pause' : 'play')}
@@ -161,11 +203,11 @@ const Controls = () => {
           {isPlaying &&
             <PauseCircleFilledRoundedIcon sx={{ fontSize: 'var(--icon-primary)' }} />
           }
-        </IconButton>
+        </FeedbackIconButton>
       </Control>
 
       <Control label={t('player.controls.next')} showLabel={!simpleMode}>
-        <IconButton
+        <FeedbackIconButton
           aria-label={t('player.controls.next_song')}
           disabled={!songIsScheduled}
           onClick={() => request('next_song')}
@@ -173,12 +215,12 @@ const Controls = () => {
           title={t('player.controls.next_song')}
         >
           <SkipNextRoundedIcon sx={{ fontSize: 'var(--icon-secondary)' }} />
-        </IconButton>
+        </FeedbackIconButton>
       </Control>
 
       {!simpleMode &&
         <Control label={t('player.controls.repeat.label')} showLabel>
-          <IconButton
+          <FeedbackIconButton
             aria-label={labelRepeat()}
             onClick={toggleRepeat}
             sx={toggleStyle(isRepeat)}
@@ -190,7 +232,7 @@ const Controls = () => {
             {isSingle &&
               <RepeatOneRoundedIcon sx={{ fontSize: 'var(--icon-comfort)' }} />
             }
-          </IconButton>
+          </FeedbackIconButton>
         </Control>
       }
 

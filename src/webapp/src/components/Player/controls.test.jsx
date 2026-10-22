@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { expect, test, vi } from 'vitest';
 
 import PlayerContext from '../../context/player/context';
@@ -7,6 +7,10 @@ import Controls from './controls';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: key => key }),
+}));
+
+vi.mock('../../utils/request', () => ({
+  default: vi.fn(),
 }));
 
 const playerState = {
@@ -61,4 +65,18 @@ test('regular mode shows shuffle, repeat and the labels', () => {
   expect(screen.getByText('player.controls.next')).toBeInTheDocument();
   expect(screen.getByText('player.controls.shuffle.label')).toBeInTheDocument();
   expect(screen.getByText('player.controls.repeat.label')).toBeInTheDocument();
+});
+
+test('a tapped control keeps its press feedback briefly', async () => {
+  renderControls(true);
+
+  const previous = screen.getByRole('button', {
+    name: 'player.controls.prev_song',
+  });
+  fireEvent.click(previous);
+
+  expect(previous).toHaveAttribute('data-pressed', 'true');
+  await waitFor(() => {
+    expect(previous).toHaveAttribute('data-pressed', 'false');
+  }, { timeout: 1200 });
 });

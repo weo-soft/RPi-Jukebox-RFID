@@ -10,11 +10,13 @@ The kiosk starts with simple mode enabled; every other origin starts with the
 full layout. In simple mode:
 
 - shuffle and repeat are hidden,
-- the seek bar and the time labels are hidden,
+- the seek bar cannot be dragged, while the progress and the time labels stay
+  visible,
 - the control labels below the buttons are hidden.
 
 Previous, play/pause, next and the volume buttons remain available. The full
-layout shows shuffle, repeat, the seek bar and labels under the controls.
+layout shows shuffle, repeat, a draggable seek bar and labels under the
+controls.
 
 The choice is stored in `localStorage` under `simpleMode`, so it survives a
 reload and a restart of the kiosk browser.
