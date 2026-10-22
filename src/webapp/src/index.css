@@ -29,9 +29,18 @@
   --touch-gap: 20px;
   --touch-volume: 64px;
 
+  /* The simple view has no labels and fewer controls, so it can spend the
+   * room on larger touch targets. */
+  --touch-simple-secondary: 72px;
+  --touch-simple-primary: 96px;
+  --touch-simple-volume: 64px;
+
   /* Derived from the touch tokens; resolved on use, so they follow the pointer tier */
   --icon-comfort: calc(var(--touch-comfort) / 2);
   --icon-volume: calc(var(--touch-volume) / 2);
+  --icon-simple-secondary: calc(var(--touch-simple-secondary) * 11 / 16);
+  --icon-simple-primary: calc(var(--touch-simple-primary) * 11 / 12);
+  --icon-simple-volume: calc(var(--touch-simple-volume) / 2);
   --icon-secondary: calc(var(--touch-secondary) * 11 / 16);
   --icon-primary: calc(var(--touch-primary) * 11 / 12);
 
@@ -63,6 +72,9 @@
     --touch-primary: clamp(80px, 16vmin, 144px);
     --touch-gap: clamp(12px, 3.33vmin, 30px);
     --touch-volume: clamp(64px, 13.33vmin, 96px);
+    --touch-simple-secondary: clamp(72px, 14vmin, 112px);
+    --touch-simple-primary: clamp(96px, 18vmin, 128px);
+    --touch-simple-volume: clamp(64px, 16vmin, 104px);
   }
 }
 

@@ -153,6 +153,10 @@ const Controls = () => {
   const playLabel = isPlaying
     ? t('player.controls.pause')
     : t('player.controls.play');
+  const secondaryToken = simpleMode ? '--touch-simple-secondary' : '--touch-secondary';
+  const secondaryIcon = simpleMode ? '--icon-simple-secondary' : '--icon-secondary';
+  const primaryToken = simpleMode ? '--touch-simple-primary' : '--touch-primary';
+  const primaryIcon = simpleMode ? '--icon-simple-primary' : '--icon-primary';
 
   return (
     <Box
@@ -182,10 +186,10 @@ const Controls = () => {
           aria-label={t('player.controls.prev_song')}
           disabled={!songIsScheduled}
           onClick={() => request('prev_song')}
-          sx={touchBox('--touch-secondary')}
+          sx={touchBox(secondaryToken)}
           title={t('player.controls.prev_song')}
         >
-          <SkipPreviousRoundedIcon sx={{ fontSize: 'var(--icon-secondary)' }} />
+          <SkipPreviousRoundedIcon sx={{ fontSize: `var(${secondaryIcon})` }} />
         </FeedbackIconButton>
       </Control>
 
@@ -194,14 +198,14 @@ const Controls = () => {
           aria-label={playLabel}
           disabled={!songIsScheduled}
           onClick={() => request(isPlaying ? 'pause' : 'play')}
-          sx={touchBox('--touch-primary')}
+          sx={touchBox(primaryToken)}
           title={playLabel}
         >
           {!isPlaying &&
-            <PlayCircleFilledRoundedIcon sx={{ fontSize: 'var(--icon-primary)' }} />
+            <PlayCircleFilledRoundedIcon sx={{ fontSize: `var(${primaryIcon})` }} />
           }
           {isPlaying &&
-            <PauseCircleFilledRoundedIcon sx={{ fontSize: 'var(--icon-primary)' }} />
+            <PauseCircleFilledRoundedIcon sx={{ fontSize: `var(${primaryIcon})` }} />
           }
         </FeedbackIconButton>
       </Control>
@@ -211,10 +215,10 @@ const Controls = () => {
           aria-label={t('player.controls.next_song')}
           disabled={!songIsScheduled}
           onClick={() => request('next_song')}
-          sx={touchBox('--touch-secondary')}
+          sx={touchBox(secondaryToken)}
           title={t('player.controls.next_song')}
         >
-          <SkipNextRoundedIcon sx={{ fontSize: 'var(--icon-secondary)' }} />
+          <SkipNextRoundedIcon sx={{ fontSize: `var(${secondaryIcon})` }} />
         </FeedbackIconButton>
       </Control>
 
