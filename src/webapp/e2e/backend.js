@@ -84,6 +84,7 @@ export async function mockBackend(
     cachedCardId,
     coverGate,
     failRpc = false,
+    libraryPageSize = 100,
     navigationVisibleGlobal = false,
     navigationVisibleKioskSeed = false,
     rpcGate,
@@ -163,6 +164,7 @@ export async function mockBackend(
     }
     if (key === 'get_app_settings') {
       result = {
+        library_page_size: libraryPageSize,
         navigation_visible_global: navigationVisibleGlobal,
         navigation_visible_kiosk_seed: navigationVisibleKioskSeed,
         show_covers: showCovers,

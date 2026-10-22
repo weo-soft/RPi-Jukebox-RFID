@@ -85,6 +85,11 @@ listing, batch deletion, and MPD refresh use the corresponding `entries` and
 `refresh` endpoints. nginx disables request buffering only for the upload
 endpoint; RPC and other JSON requests retain their 1 MiB limit.
 
+The library item lists are paginated in the browser. The configured default is
+`webapp.library_page_size` (default 100); a device can store
+`libraryPageSize` in `localStorage`. Only the visible page mounts album rows, so
+only those rows request covers.
+
 The old ZeroMQ-over-WebSocket endpoints on ports `5556` and `5557` were
 intentionally removed. Native ZeroMQ clients remain wire-compatible on TCP RPC
 port `5555` and publishing port `5558`.

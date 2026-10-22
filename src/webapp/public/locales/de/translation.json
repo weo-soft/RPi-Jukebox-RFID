@@ -226,6 +226,10 @@
       "playlists": "Playlists",
       "tracks": "Titel"
     },
+    "pagination": {
+      "page-size": "Einträge pro Seite",
+      "pages": "Seiten"
+    },
     "sources": {
       "mpd": "Lokal"
     },
@@ -393,6 +397,10 @@
       "navigation_global": {
         "title": "Anzeige der Navigation (Global)",
         "description": "Übersteuert die lokale Einstellung und zeigt die Navigation auf allen Geräten."
+      },
+      "library_page_size": {
+        "title": "Einträge pro Seite (Standard)",
+        "description": "Gilt für Geräte ohne eigene Auswahl. Die Auswahl in der Bibliothek überschreibt diesen Wert für das aktuelle Gerät."
       }
     },
     "timers": {

@@ -168,3 +168,7 @@ webapp:
   # Local default that the kiosk browser stores when it first loads the Web App
   # Defaults to false; every other origin starts with the navigation visible
   navigation_visible_kiosk_seed: false
+  # Number of library entries rendered per page; a device can override it in the
+  # library
+  # Defaults to 100
+  library_page_size: 100

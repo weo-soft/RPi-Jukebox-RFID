@@ -119,11 +119,13 @@ def get_app_settings():
     navigation_visible_kiosk_seed = cfg.setndefault(
         'webapp', 'navigation_visible_kiosk_seed', value=False
     )
+    library_page_size = cfg.setndefault('webapp', 'library_page_size', value=100)
 
     return {
         'show_covers': show_covers,
         'navigation_visible_global': navigation_visible_global,
         'navigation_visible_kiosk_seed': navigation_visible_kiosk_seed,
+        'library_page_size': library_page_size,
     }
 
 

@@ -226,6 +226,10 @@
       "playlists": "Playlists",
       "tracks": "Tracks"
     },
+    "pagination": {
+      "page-size": "Items per page",
+      "pages": "Pages"
+    },
     "sources": {
       "mpd": "Local"
     },
@@ -393,6 +397,10 @@
       "navigation_global": {
         "title": "Show navigation (global)",
         "description": "Overrides the local setting and shows the navigation on all devices."
+      },
+      "library_page_size": {
+        "title": "Items per page (default)",
+        "description": "Applies to devices without their own choice. The selection in the library overrides this value for the current device."
       }
     },
     "timers": {
