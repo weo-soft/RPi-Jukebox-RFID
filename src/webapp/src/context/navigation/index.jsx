@@ -28,12 +28,12 @@ const NavigationVisibilityProvider = ({
 
     const seed = navigationSeed({
       isKiosk: kiosk,
-      kioskSeed: settings.navigation_visible_kiosk_seed,
+      kioskSeed: settings?.navigation_visible_kiosk_seed,
     });
     writeNavigationVisible(seed);
     setLocalVisible(seed);
     setHasSeed(true);
-  }, [hasSeed, isLoaded, kiosk, settings.navigation_visible_kiosk_seed]);
+  }, [hasSeed, isLoaded, kiosk, settings?.navigation_visible_kiosk_seed]);
 
   const setLocalVisibility = (visible) => {
     writeNavigationVisible(visible);
@@ -44,7 +44,7 @@ const NavigationVisibilityProvider = ({
   const revealNavigation = () => setLocalVisibility(true);
 
   const effectiveLocal = localVisible ?? !kiosk;
-  const globalVisible = Boolean(settings.navigation_visible_global);
+  const globalVisible = Boolean(settings?.navigation_visible_global);
   const showStartNavigation = navigationVisible({
     globalVisible,
     localVisible: effectiveLocal,

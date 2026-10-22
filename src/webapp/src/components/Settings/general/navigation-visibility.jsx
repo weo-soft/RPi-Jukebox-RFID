@@ -28,7 +28,7 @@ const NavigationVisibility = () => {
     setLocalVisibility,
   } = useNavigationVisibility();
 
-  const globalVisible = Boolean(settings.navigation_visible_global);
+  const globalVisible = Boolean(settings?.navigation_visible_global);
 
   const updateGlobal = async (visible) => {
     setSettings(current => ({ ...current, navigation_visible_global: visible }));
