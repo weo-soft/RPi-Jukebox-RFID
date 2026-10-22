@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 
 import SettingsSection from '../section';
+import HistorySwipe from './history-swipe';
 import LibraryPageSize from './library-page-size';
 import NavigationVisibility from './navigation-visibility';
 import ShowCovers from './show-covers';
@@ -29,6 +30,7 @@ const SettingsGeneral = () => {
         <ShowCovers />
         <NavigationVisibility />
         <SimpleMode />
+        <HistorySwipe />
         <LibraryPageSize />
       </Grid>
     </SettingsSection>

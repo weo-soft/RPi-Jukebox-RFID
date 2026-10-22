@@ -95,6 +95,11 @@ starts with it enabled, every other origin starts with the full controls. It
 hides shuffle, repeat and the control labels; the seek bar stays visible but is
 disabled. The volume `−`/`+` buttons and the volume feedback stay available.
 
+The device-local history guard (`preventHistorySwipe`) adds
+`history-swipe-locked` to the document root; while the class is present,
+`overscroll-behavior-x: none` prevents the browser's horizontal history swipe.
+A loopback origin starts with the guard enabled.
+
 The old ZeroMQ-over-WebSocket endpoints on ports `5556` and `5557` were
 intentionally removed. Native ZeroMQ clients remain wire-compatible on TCP RPC
 port `5555` and publishing port `5558`.

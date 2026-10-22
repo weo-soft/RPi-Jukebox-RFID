@@ -413,6 +413,10 @@
       "simple_mode": {
         "title": "Einfach-Modus",
         "description": "Blendet Zufall und Wiederholen aus; die Zeitleiste bleibt sichtbar, ist aber nicht bedienbar."
+      },
+      "history_swipe": {
+        "title": "Verlaufswischen verhindern",
+        "description": "Verhindert das Vor- und Zurückblättern per horizontalem Wischen. Im Kiosk standardmäßig aktiv."
       }
     },
     "timers": {

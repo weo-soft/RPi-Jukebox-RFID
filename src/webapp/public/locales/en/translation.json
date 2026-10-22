@@ -413,6 +413,10 @@
       "simple_mode": {
         "title": "Simple mode",
         "description": "Hides shuffle and repeat; the seek bar stays visible but cannot be dragged."
+      },
+      "history_swipe": {
+        "title": "Prevent history swipe",
+        "description": "Prevents navigating back or forward with a horizontal swipe. Enabled by default in the kiosk."
       }
     },
     "timers": {

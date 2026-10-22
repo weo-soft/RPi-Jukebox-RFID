@@ -127,8 +127,10 @@ for (const route of routes) {
 // Stacked sections make the page as tall as their sum, which is what keeps them
 // lining up with each other. The sections that belong to setup start collapsed
 // and the rows are compact, so the page stays around three screen fills; the
-// bound keeps a pile of new sections from passing unnoticed.
-const MAX_SETTINGS_FILLS = 3.5;
+// bound keeps a pile of new sections from passing unnoticed. The device
+// settings for the navigation, the simple mode, the history guard and the
+// library page size are part of that length.
+const MAX_SETTINGS_FILLS = 3.7;
 
 test('settings route keeps its length within its bound', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'kiosk');

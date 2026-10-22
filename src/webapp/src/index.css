@@ -83,6 +83,14 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* The history gesture starts at the viewport edge. The root scroller has to
+ * carry the property, body alone does not cover it. */
+html.history-swipe-locked,
+html.history-swipe-locked body,
+html.history-swipe-locked #root {
+  overscroll-behavior-x: none;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
