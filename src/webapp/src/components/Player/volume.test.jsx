@@ -80,6 +80,33 @@ test('the minus button is disabled at zero', async () => {
   expect(screen.getByTestId('volume-increase')).toBeEnabled();
 });
 
+
+test('an off-step value moves up to the next multiple of five', async () => {
+  const user = userEvent.setup();
+  renderVolume({ volume: 42 });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('volume-value')).toHaveTextContent('42');
+  });
+
+  await user.click(screen.getByTestId('volume-increase'));
+
+  expect(request).toHaveBeenCalledWith('setVolume', { volume: 45 });
+});
+
+test('an off-step value moves down to the previous multiple of five', async () => {
+  const user = userEvent.setup();
+  renderVolume({ volume: 42 });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('volume-value')).toHaveTextContent('42');
+  });
+
+  await user.click(screen.getByTestId('volume-decrease'));
+
+  expect(request).toHaveBeenCalledWith('setVolume', { volume: 40 });
+});
+
 test('muting reports the state visually', async () => {
   const user = userEvent.setup();
   renderVolume();
