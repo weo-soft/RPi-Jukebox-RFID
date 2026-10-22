@@ -20,11 +20,11 @@ const VOLUME_STEP = 5;
 const FEEDBACK_MS = 1200;
 
 const touchBox = {
-  height: 'var(--touch-comfort)',
-  minHeight: 'var(--touch-comfort)',
-  minWidth: 'var(--touch-comfort)',
+  height: 'var(--touch-volume)',
+  minHeight: 'var(--touch-volume)',
+  minWidth: 'var(--touch-volume)',
   padding: 0,
-  width: 'var(--touch-comfort)',
+  width: 'var(--touch-volume)',
 };
 
 const FeedbackIcon = ({ feedback }) => {
@@ -143,13 +143,13 @@ const Volume = () => {
           title={labelIcon()}
         >
           {volumeMute &&
-            <VolumeOffIcon sx={{ fontSize: 'var(--icon-comfort)' }} />}
+            <VolumeOffIcon sx={{ fontSize: 'var(--icon-volume)' }} />}
           {!volumeMute && _volume === 0 &&
-            <VolumeMuteIcon sx={{ fontSize: 'var(--icon-comfort)' }} />}
+            <VolumeMuteIcon sx={{ fontSize: 'var(--icon-volume)' }} />}
           {!volumeMute && _volume > 0 && _volume < 50 &&
-            <VolumeDownIcon sx={{ fontSize: 'var(--icon-comfort)' }} />}
+            <VolumeDownIcon sx={{ fontSize: 'var(--icon-volume)' }} />}
           {!volumeMute && _volume >= 50 &&
-            <VolumeUpIcon sx={{ fontSize: 'var(--icon-comfort)' }} />}
+            <VolumeUpIcon sx={{ fontSize: 'var(--icon-volume)' }} />}
         </IconButton>
         <IconButton
           aria-label={t('player.volume.decrease')}
@@ -159,7 +159,7 @@ const Volume = () => {
           sx={touchBox}
           title={t('player.volume.decrease')}
         >
-          <RemoveIcon sx={{ fontSize: 'var(--icon-comfort)' }} />
+          <RemoveIcon sx={{ fontSize: 'var(--icon-volume)' }} />
         </IconButton>
         <Box sx={{ minWidth: 0, width: '100%' }}>
           <Slider
@@ -182,7 +182,7 @@ const Volume = () => {
           sx={touchBox}
           title={t('player.volume.increase')}
         >
-          <AddIcon sx={{ fontSize: 'var(--icon-comfort)' }} />
+          <AddIcon sx={{ fontSize: 'var(--icon-volume)' }} />
         </IconButton>
         <Typography
           aria-hidden="true"
