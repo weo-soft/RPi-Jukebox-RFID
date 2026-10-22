@@ -412,7 +412,7 @@
       },
       "simple_mode": {
         "title": "Simple mode",
-        "description": "Hides shuffle, repeat and the seek bar."
+        "description": "Hides shuffle and repeat; the seek bar stays visible but cannot be dragged."
       }
     },
     "timers": {

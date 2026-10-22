@@ -11,10 +11,14 @@ const openPlayer = async (page, simpleMode) => {
   await expect(page.getByTestId('player-cover')).toBeVisible();
 };
 
-test('simple mode hides the seek bar, shuffle, repeat and labels', async ({ page }) => {
+test('simple mode disables seeking and hides shuffle, repeat and labels', async ({ page }) => {
   await openPlayer(page, true);
 
-  await expect(page.getByRole('slider', { name: 'Current position' })).toHaveCount(0);
+  const seek = page.getByRole('slider', { name: 'Current position' });
+  await expect(seek).toBeVisible();
+  await expect(seek).toBeDisabled();
+  await expect(page.getByText('0:42', { exact: true })).toBeVisible();
+  await expect(page.getByText('3:44', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Enable shuffle' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Enable Playlist repeat' })).toHaveCount(0);
 
@@ -37,7 +41,9 @@ test('simple mode hides the seek bar, shuffle, repeat and labels', async ({ page
 test('regular mode keeps the full player and its labels', async ({ page }) => {
   await openPlayer(page, false);
 
-  await expect(page.getByRole('slider', { name: 'Current position' })).toBeVisible();
+  const seek = page.getByRole('slider', { name: 'Current position' });
+  await expect(seek).toBeVisible();
+  await expect(seek).toBeEnabled();
   await expect(page.getByRole('button', { name: 'Enable shuffle' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Enable Playlist repeat' })).toBeVisible();
 

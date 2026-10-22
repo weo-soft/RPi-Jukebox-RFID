@@ -25,18 +25,20 @@ const renderSeekbar = (simpleMode) => render(
   </SimpleModeContext.Provider>,
 );
 
-test('simple mode hides the seek bar', () => {
+test('simple mode keeps the progress visible but disables seeking', () => {
   renderSeekbar(true);
 
-  expect(screen.queryByRole('slider', {
+  expect(screen.getByRole('slider', {
     name: 'player.seekbar.song-position',
-  })).not.toBeInTheDocument();
+  })).toBeDisabled();
+  expect(screen.getByText('0:10')).toBeInTheDocument();
+  expect(screen.getByText('1:40')).toBeInTheDocument();
 });
 
-test('regular mode shows the seek bar', () => {
+test('regular mode shows an enabled seek bar', () => {
   renderSeekbar(false);
 
   expect(screen.getByRole('slider', {
     name: 'player.seekbar.song-position',
-  })).toBeInTheDocument();
+  })).toBeEnabled();
 });

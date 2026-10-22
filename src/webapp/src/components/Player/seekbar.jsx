@@ -54,13 +54,11 @@ const SeekBar = () => {
     }
   }, [isSeeking, playerstatus?.elapsed, timeTotal]);
 
-  if (simpleMode) return null;
-
   return (
     <Box>
       <Slider
         aria-label={t('player.seekbar.song-position')}
-        disabled={!playerstatus?.title}
+        disabled={simpleMode || !playerstatus?.title}
         getAriaValueText={(value) => toHHMMSS(
           parseInt(progressToTime(timeTotal, value)),
         )}
