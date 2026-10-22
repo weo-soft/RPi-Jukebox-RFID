@@ -85,6 +85,11 @@ listing, batch deletion, and MPD refresh use the corresponding `entries` and
 `refresh` endpoints. nginx disables request buffering only for the upload
 endpoint; RPC and other JSON requests retain their 1 MiB limit.
 
+The library item lists are paginated in the browser. The configured default is
+`webapp.library_page_size` (default 100); a device can store
+`libraryPageSize` in `localStorage`. Only the visible page mounts album rows, so
+only those rows request covers.
+
 The old ZeroMQ-over-WebSocket endpoints on ports `5556` and `5557` were
 intentionally removed. Native ZeroMQ clients remain wire-compatible on TCP RPC
 port `5555` and publishing port `5558`.
@@ -94,6 +99,14 @@ port `5555` and publishing port `5558`.
 The Web App runs on small touch panels in kiosk mode as well. The reference
 device is a 7 inch panel with 1024 x 600 CSS pixels, where one CSS pixel
 measures 0.15 mm.
+
+The navigation on the start view is device-local. The Web App stores
+`navigationVisible` in `localStorage` and seeds it on the first load: a loopback
+origin (`http://localhost`, the kiosk) takes
+`webapp.navigation_visible_kiosk_seed` (default `false`), every other origin
+starts visible. `webapp.navigation_visible_global` (default `false`) overrides
+the local value on every device. Seven taps on the player cover reveal the
+navigation again.
 
 The sizes are CSS custom properties in `src/webapp/src/index.css`, which
 `src/webapp/src/index.jsx` imports. The MUI theme in `src/webapp/src/theme.js`

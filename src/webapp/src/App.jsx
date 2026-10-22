@@ -2,9 +2,9 @@ import { Suspense } from 'react';
 
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
-import Grid from '@mui/material/Grid';
 
 import AppSettingsProvider from './context/appsettings';
+import NavigationVisibilityProvider from './context/navigation';
 import PubSubProvider from './context/pubsub';
 import PlayerProvider from './context/player';
 import Router from './router';
@@ -14,26 +14,9 @@ function App() {
     <PubSubProvider>
       <PlayerProvider>
         <AppSettingsProvider>
-          <Grid
-            container
-            id="routes"
-            sx={{
-              // Views start at the top. Centring them vertically moved a view
-              // that was still loading into the middle of the screen and let it
-              // jump up as soon as its content arrived.
-              alignItems: 'flex-start',
-              justifyContent: 'center',
-              // The readability limit sits on the shell, not on the content column
-              maxWidth: 'min(100%, 1100px)',
-              marginX: 'auto',
-              minHeight: '100dvh',
-              padding: 'var(--gutter)',
-              // space for the fixed navigation bar
-              paddingBottom: 'calc(var(--nav-height) + var(--gutter))',
-            }}
-          >
+          <NavigationVisibilityProvider>
             <Router />
-          </Grid>
+          </NavigationVisibilityProvider>
         </AppSettingsProvider>
       </PlayerProvider>
     </PubSubProvider>

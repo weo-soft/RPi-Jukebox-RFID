@@ -1,7 +1,8 @@
 import { lazy } from 'react';
-import { Route, HashRouter, Routes } from 'react-router-dom'
+import { HashRouter, Route, Routes, useLocation } from 'react-router-dom';
 
 import Navigation from './components/Navigation';
+import { useNavigationVisibility } from './context/navigation';
 
 import Grid from '@mui/material/Grid';
 
@@ -10,9 +11,32 @@ const Library = lazy(() => import('./components/Library'));
 const Player = lazy(() => import('./components/Player'));
 const Settings = lazy(() => import('./components/Settings'));
 
-const Router = () => {
+const AppLayout = () => {
+  const { pathname } = useLocation();
+  const { showStartNavigation } = useNavigationVisibility();
+  const hideStartNavigation = pathname === '/' && !showStartNavigation;
+
   return (
-    <HashRouter>
+    <Grid
+      container
+      id="routes"
+      style={{ '--nav-space': hideStartNavigation ? '0px' : 'var(--nav-height)' }}
+      sx={{
+        // Views start at the top. Centring them vertically moved a view
+        // that was still loading into the middle of the screen and let it
+        // jump up as soon as its content arrived.
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        // The readability limit sits on the shell, not on the content column
+        maxWidth: 'min(100%, 1100px)',
+        marginX: 'auto',
+        minHeight: '100dvh',
+        padding: 'var(--gutter)',
+        paddingBottom: hideStartNavigation
+          ? 'var(--gutter)'
+          : 'calc(var(--nav-height) + var(--gutter))',
+      }}
+    >
       <Grid
         component="main"
         size="grow"
@@ -36,7 +60,15 @@ const Router = () => {
           />
         </Routes>
       </Grid>
-      <Navigation />
+      {!hideStartNavigation && <Navigation />}
+    </Grid>
+  );
+};
+
+const Router = () => {
+  return (
+    <HashRouter>
+      <AppLayout />
     </HashRouter>
   );
 }

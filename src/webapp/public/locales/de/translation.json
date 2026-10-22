@@ -226,6 +226,10 @@
       "playlists": "Playlists",
       "tracks": "Titel"
     },
+    "pagination": {
+      "page-size": "Einträge pro Seite",
+      "pages": "Seiten"
+    },
     "sources": {
       "mpd": "Lokal",
       "spotify": "Spotify",
@@ -411,6 +415,18 @@
       "title": "Allgmeine Einstellungen",
       "show_covers": {
         "title": "Cover anzeigen"
+      },
+      "navigation_local": {
+        "title": "Anzeige der Navigation (Local)",
+        "description": "Gilt für dieses Gerät. Im Kiosk standardmäßig ausgeblendet; sieben Tipps auf das Cover zeigen sie wieder an."
+      },
+      "navigation_global": {
+        "title": "Anzeige der Navigation (Global)",
+        "description": "Übersteuert die lokale Einstellung für alle Geräte."
+      },
+      "library_page_size": {
+        "title": "Einträge pro Seite (Standard)",
+        "description": "Gilt für Geräte ohne eigene Auswahl in der Bibliothek."
       }
     },
     "spotify": {

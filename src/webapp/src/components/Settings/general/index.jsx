@@ -7,6 +7,8 @@ import {
 } from '@mui/material';
 
 import SettingsSection from '../section';
+import LibraryPageSize from './library-page-size';
+import NavigationVisibility from './navigation-visibility';
 import ShowCovers from './show-covers';
 
 const SettingsGeneral = () => {
@@ -24,6 +26,8 @@ const SettingsGeneral = () => {
         }}
       >
         <ShowCovers />
+        <NavigationVisibility />
+        <LibraryPageSize />
       </Grid>
     </SettingsSection>
   );

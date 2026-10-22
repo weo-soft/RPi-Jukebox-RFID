@@ -22,7 +22,7 @@ const AlbumList = ({
 
   if (albums?.length) {
     return (
-      <List sx={LIBRARY_LIST_SX}>
+      <List data-testid="library-album-list" sx={LIBRARY_LIST_SX}>
         {albums.map((entry, i) => (
           <AlbumListItem
             key={entry.content_uri || `${entry.provider}:${entry.albumartist}:${entry.album}:${i}`}

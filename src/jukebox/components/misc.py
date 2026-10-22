@@ -113,9 +113,19 @@ def empty_rpc_call(msg: str = ''):
 def get_app_settings():
     """Return settings for web app stored in jukebox.yaml"""
     show_covers = cfg.setndefault('webapp', 'show_covers', value=True)
+    navigation_visible_global = cfg.setndefault(
+        'webapp', 'navigation_visible_global', value=False
+    )
+    navigation_visible_kiosk_seed = cfg.setndefault(
+        'webapp', 'navigation_visible_kiosk_seed', value=False
+    )
+    library_page_size = cfg.setndefault('webapp', 'library_page_size', value=100)
 
     return {
-        'show_covers': show_covers
+        'show_covers': show_covers,
+        'navigation_visible_global': navigation_visible_global,
+        'navigation_visible_kiosk_seed': navigation_visible_kiosk_seed,
+        'library_page_size': library_page_size,
     }
 
 
@@ -124,6 +134,7 @@ def set_app_settings(settings={}):
     """Set configuration settings for the web app."""
     for key, value in settings.items():
         cfg.setn('webapp', key, value=value)
+    cfg.save()
 
 
 #: Editable Jellyfin plugin configuration keys (``players.jellyfin``) with

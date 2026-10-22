@@ -198,3 +198,14 @@ webapp:
   # when handling a lot of music
   # Defaults to true
   show_covers: true
+  # Show the navigation on the start view on every device, overriding the
+  # per-device setting in the browser
+  # Defaults to false
+  navigation_visible_global: false
+  # Local default that the kiosk browser stores when it first loads the Web App
+  # Defaults to false; every other origin starts with the navigation visible
+  navigation_visible_kiosk_seed: false
+  # Number of library entries rendered per page; a device can override it in the
+  # library
+  # Defaults to 100
+  library_page_size: 100

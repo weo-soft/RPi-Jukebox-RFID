@@ -1,9 +1,15 @@
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Skeleton from '@mui/material/Skeleton';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
+
+// Seven quick taps reveal the navigation again, the same gesture Android uses
+// for its developer options.
+const REVEAL_TAPS = 7;
+const REVEAL_TAP_WINDOW_MS = 3000;
 
 const coverBox = {
   aspectRatio: '1',
@@ -13,14 +19,45 @@ const coverBox = {
   overflow: 'hidden',
   position: 'relative',
   // the zone width and the inner height both limit the square
-  width: 'min(100%, calc(100dvh - var(--nav-height) - 2 * var(--gutter)))',
+  width: 'min(100%, calc(100dvh - var(--nav-space, var(--nav-height)) - 2 * var(--gutter)))',
 };
 
-const Cover = ({ coverImage, dimmed = false, isLoading = false }) => {
+const Cover = ({
+  coverImage,
+  dimmed = false,
+  isLoading = false,
+  onRevealNavigation,
+}) => {
   const { t } = useTranslation();
+  const taps = useRef(0);
+  const resetTimer = useRef();
+
+  useEffect(() => () => clearTimeout(resetTimer.current), []);
+
+  const handleTap = () => {
+    if (!onRevealNavigation) return;
+
+    taps.current += 1;
+    clearTimeout(resetTimer.current);
+
+    if (taps.current >= REVEAL_TAPS) {
+      taps.current = 0;
+      onRevealNavigation();
+      return;
+    }
+
+    resetTimer.current = setTimeout(() => {
+      taps.current = 0;
+    }, REVEAL_TAP_WINDOW_MS);
+  };
 
   return (
-    <Paper elevation={3} sx={coverBox}>
+    <Paper
+      data-testid="player-cover"
+      elevation={3}
+      onClick={handleTap}
+      sx={coverBox}
+    >
       {isLoading &&
         <Skeleton
           data-testid="cover-skeleton"

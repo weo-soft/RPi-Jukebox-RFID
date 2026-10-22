@@ -226,6 +226,10 @@
       "playlists": "Playlists",
       "tracks": "Tracks"
     },
+    "pagination": {
+      "page-size": "Items per page",
+      "pages": "Pages"
+    },
     "sources": {
       "mpd": "Local",
       "spotify": "Spotify",
@@ -411,6 +415,18 @@
       "title": "General Settings",
       "show_covers": {
         "title": "Show Cover Art"
+      },
+      "navigation_local": {
+        "title": "Show navigation (local)",
+        "description": "Applies to this device. Hidden by default in the kiosk; tap the cover seven times to show it again."
+      },
+      "navigation_global": {
+        "title": "Show navigation (global)",
+        "description": "Overrides the local setting on all devices."
+      },
+      "library_page_size": {
+        "title": "Items per page (default)",
+        "description": "Applies to devices without their own choice in the library."
       }
     },
     "spotify": {
