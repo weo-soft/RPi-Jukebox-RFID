@@ -14,18 +14,11 @@ import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 
 import PubSubContext from '../../context/pubsub/context';
+import { useSimpleMode } from '../../context/simple-mode';
 import request from '../../utils/request';
 import { nextVolume, VOLUME_STEP } from './volume-step';
 
 const FEEDBACK_MS = 1200;
-
-const touchBox = {
-  height: 'var(--touch-volume)',
-  minHeight: 'var(--touch-volume)',
-  minWidth: 'var(--touch-volume)',
-  padding: 0,
-  width: 'var(--touch-volume)',
-};
 
 const FeedbackIcon = ({ feedback }) => {
   if (feedback.kind === 'muted') {
@@ -42,6 +35,7 @@ const FeedbackIcon = ({ feedback }) => {
 
 const Volume = () => {
   const { t } = useTranslation();
+  const { simpleMode } = useSimpleMode();
   const { state } = useContext(PubSubContext);
   const { 'volume.level': { volume, mute } = {} } = state;
 
@@ -53,6 +47,15 @@ const Volume = () => {
   const feedbackTimer = useRef();
 
   const max = Number.isFinite(Number(maxVolume)) ? Number(maxVolume) : 100;
+  const volumeToken = simpleMode ? '--touch-simple-volume' : '--touch-volume';
+  const volumeIcon = simpleMode ? '--icon-simple-volume' : '--icon-volume';
+  const touchBox = {
+    height: `var(${volumeToken})`,
+    minHeight: `var(${volumeToken})`,
+    minWidth: `var(${volumeToken})`,
+    padding: 0,
+    width: `var(${volumeToken})`,
+  };
 
   const showFeedback = (nextFeedback) => {
     setFeedback(nextFeedback);
@@ -143,13 +146,13 @@ const Volume = () => {
           title={labelIcon()}
         >
           {volumeMute &&
-            <VolumeOffIcon sx={{ fontSize: 'var(--icon-volume)' }} />}
+            <VolumeOffIcon sx={{ fontSize: `var(${volumeIcon})` }} />}
           {!volumeMute && _volume === 0 &&
-            <VolumeMuteIcon sx={{ fontSize: 'var(--icon-volume)' }} />}
+            <VolumeMuteIcon sx={{ fontSize: `var(${volumeIcon})` }} />}
           {!volumeMute && _volume > 0 && _volume < 50 &&
-            <VolumeDownIcon sx={{ fontSize: 'var(--icon-volume)' }} />}
+            <VolumeDownIcon sx={{ fontSize: `var(${volumeIcon})` }} />}
           {!volumeMute && _volume >= 50 &&
-            <VolumeUpIcon sx={{ fontSize: 'var(--icon-volume)' }} />}
+            <VolumeUpIcon sx={{ fontSize: `var(${volumeIcon})` }} />}
         </IconButton>
         <IconButton
           aria-label={t('player.volume.decrease')}
@@ -159,7 +162,7 @@ const Volume = () => {
           sx={touchBox}
           title={t('player.volume.decrease')}
         >
-          <RemoveIcon sx={{ fontSize: 'var(--icon-volume)' }} />
+          <RemoveIcon sx={{ fontSize: `var(${volumeIcon})` }} />
         </IconButton>
         <Box sx={{ minWidth: 0, width: '100%' }}>
           <Slider
@@ -182,7 +185,7 @@ const Volume = () => {
           sx={touchBox}
           title={t('player.volume.increase')}
         >
-          <AddIcon sx={{ fontSize: 'var(--icon-volume)' }} />
+          <AddIcon sx={{ fontSize: `var(${volumeIcon})` }} />
         </IconButton>
         <Typography
           aria-hidden="true"
