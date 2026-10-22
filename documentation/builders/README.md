@@ -37,6 +37,7 @@
   * [Navigation on the Start View](./webapp/navigation.md)
   * [Library Pagination](./webapp/library.md)
   * [Simple Mode and Volume](./webapp/simple-mode.md)
+  * [History Swipe](./webapp/history-swipe.md)
 * Music
   * [Playlists, Livestreams and Podcasts](./webapp/playlists-livestreams-podcasts.md)
 

@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import AppSettingsProvider from './context/appsettings';
+import HistorySwipeProvider from './context/history-swipe';
 import NavigationVisibilityProvider from './context/navigation';
 import SimpleModeProvider from './context/simple-mode';
 import PubSubProvider from './context/pubsub';
@@ -16,9 +17,11 @@ function App() {
       <PlayerProvider>
         <AppSettingsProvider>
           <SimpleModeProvider>
-            <NavigationVisibilityProvider>
-              <Router />
-            </NavigationVisibilityProvider>
+            <HistorySwipeProvider>
+              <NavigationVisibilityProvider>
+                <Router />
+              </NavigationVisibilityProvider>
+            </HistorySwipeProvider>
           </SimpleModeProvider>
         </AppSettingsProvider>
       </PlayerProvider>
