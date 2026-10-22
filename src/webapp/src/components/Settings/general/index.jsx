@@ -10,6 +10,7 @@ import SettingsSection from '../section';
 import LibraryPageSize from './library-page-size';
 import NavigationVisibility from './navigation-visibility';
 import ShowCovers from './show-covers';
+import SimpleMode from './simple-mode';
 
 const SettingsGeneral = () => {
   const { t } = useTranslation();
@@ -27,6 +28,7 @@ const SettingsGeneral = () => {
       >
         <ShowCovers />
         <NavigationVisibility />
+        <SimpleMode />
         <LibraryPageSize />
       </Grid>
     </SettingsSection>

@@ -350,16 +350,20 @@
     "controls": {
       "shuffle": {
         "enable": "Enable shuffle",
-        "disable": "Disable shuffle"
+        "disable": "Disable shuffle",
+        "label": "Shuffle"
       },
       "prev_song": "Skip to previous track",
+      "prev": "Previous",
       "play": "Play",
       "pause": "Pause",
       "next_song": "Skip to next track",
+      "next": "Next",
       "repeat": {
         "enable": "Enable Playlist repeat",
         "enable-single": "Enable Song repeat",
-        "disable": "Disable repeat"
+        "disable": "Disable repeat",
+        "label": "Repeat"
       }
     },
     "cover": {
@@ -382,7 +386,11 @@
     "volume": {
       "slider": "Volume Slider",
       "mute": "Mute volume",
-      "unmute": "Unmute volume"
+      "unmute": "Unmute volume",
+      "decrease": "Decrease volume",
+      "increase": "Increase volume",
+      "muted": "Muted",
+      "sound-on": "Sound on"
     }
   },
   "settings": {
@@ -427,6 +435,10 @@
       "library_page_size": {
         "title": "Items per page (default)",
         "description": "Applies to devices without their own choice in the library."
+      },
+      "simple_mode": {
+        "title": "Simple mode",
+        "description": "Hides shuffle, repeat and the seek bar."
       }
     },
     "spotify": {

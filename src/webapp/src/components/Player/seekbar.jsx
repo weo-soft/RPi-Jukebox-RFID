@@ -6,6 +6,7 @@ import Slider from '@mui/material/Slider';
 import Typography from '@mui/material/Typography';
 
 import PlayerContext from '../../context/player/context';
+import { useSimpleMode } from '../../context/simple-mode';
 import {
   progressToTime,
   timeToProgress,
@@ -18,6 +19,7 @@ const SeekBar = () => {
   const { t } = useTranslation();
   const { state } = useContext(PlayerContext);
   const { playerstatus } = state;
+  const { simpleMode } = useSimpleMode();
 
   const [isSeeking, setIsSeeking] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -52,10 +54,12 @@ const SeekBar = () => {
     }
   }, [isSeeking, playerstatus?.elapsed, timeTotal]);
 
+  if (simpleMode) return null;
+
   return (
     <Box>
       <Slider
-        aria-labelledby={t('player.seekbar.song-position')}
+        aria-label={t('player.seekbar.song-position')}
         disabled={!playerstatus?.title}
         getAriaValueText={(value) => toHHMMSS(
           parseInt(progressToTime(timeTotal, value)),

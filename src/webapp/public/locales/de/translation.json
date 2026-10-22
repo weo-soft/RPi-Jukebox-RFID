@@ -350,16 +350,20 @@
     "controls": {
       "shuffle": {
         "enable": "Zufallswiedergabe aktivieren",
-        "disable": "Zufallswiedergabe deaktivieren"
+        "disable": "Zufallswiedergabe deaktivieren",
+        "label": "Zufall"
       },
       "prev_song": "Zurück",
+      "prev": "Zurück",
       "play": "Abspielen",
       "pause": "Pause",
       "next_song": "Weiter",
+      "next": "Weiter",
       "repeat": {
         "enable": "Wiedergabeliste Wiederholen aktivieren",
         "enable-single": "Song Wiederholen aktivieren",
-        "disable": "Wiederholen deaktivieren"
+        "disable": "Wiederholen deaktivieren",
+        "label": "Wiederholen"
       }
     },
     "cover": {
@@ -382,7 +386,11 @@
     "volume": {
       "slider": "Lautstärkeregler",
       "mute": "Stumm schalten",
-      "unmute": "Stumm schalten deaktivieren"
+      "unmute": "Stumm schalten deaktivieren",
+      "decrease": "Lautstärke verringern",
+      "increase": "Lautstärke erhöhen",
+      "muted": "Stumm",
+      "sound-on": "Ton an"
     }
   },
   "settings": {
@@ -427,6 +435,10 @@
       "library_page_size": {
         "title": "Einträge pro Seite (Standard)",
         "description": "Gilt für Geräte ohne eigene Auswahl in der Bibliothek."
+      },
+      "simple_mode": {
+        "title": "Einfach-Modus",
+        "description": "Blendet Zufall, Wiederholen und die Zeitleiste aus."
       }
     },
     "spotify": {

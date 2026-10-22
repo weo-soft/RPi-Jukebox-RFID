@@ -90,6 +90,11 @@ The library item lists are paginated in the browser. The configured default is
 `libraryPageSize` in `localStorage`. Only the visible page mounts album rows, so
 only those rows request covers.
 
+The start view has a device-local simple mode (`simpleMode`). A loopback origin
+starts with it enabled, every other origin starts with the full controls. It
+hides shuffle, repeat, the seek bar and the control labels; the volume `−`/`+`
+buttons and the volume feedback stay available.
+
 The old ZeroMQ-over-WebSocket endpoints on ports `5556` and `5557` were
 intentionally removed. Native ZeroMQ clients remain wire-compatible on TCP RPC
 port `5555` and publishing port `5558`.
