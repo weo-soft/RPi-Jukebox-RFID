@@ -208,6 +208,57 @@ buttons:
 
 The other pins are free; the assignment is not fixed in code.
 
+## Settings page
+
+The Web App has a **MCP23017 buttons** section under *Settings*. It writes the
+same `shared/settings/mcp23017.yaml` and applies changes immediately, without a
+restart: the actions are rebound, the pull-up mask is rewritten and the polling
+thread is restarted.
+
+### Assign a pin
+
+Every input (`GPA0`-`GPB7`) has a dropdown with the assignable actions. Choose
+an action to assign it, or *Not assigned* to clear the pin. The file is updated
+atomically, so comments and the other buttons are preserved.
+
+The selectable actions are fixed:
+
+| Action | Button type |
+| --- | --- |
+| Play/Pause | `momentary` |
+| Next title | `momentary` |
+| Previous title | `momentary` |
+| Volume up | `hold_repeat`, every 500 ms |
+| Volume down | `hold_repeat`, every 500 ms |
+| Shut down | `momentary` |
+| Reboot | `momentary` |
+| Say IP address | `momentary` |
+
+Shut down and reboot are marked with a warning; pressing the button executes
+them immediately.
+
+### Assign by pressing
+
+Choose an action, press **Start learning** and then press the button you want
+to use (within 15 seconds). The plugin temporarily enables the pull-ups on all
+16 inputs and suppresses the normal button actions, so the press only selects
+the pin. The settings page then writes the assignment and updates the list.
+
+If no button is pressed, the session ends after 15 seconds and the pull-up mask
+is restored.
+
+### Advanced definitions
+
+Buttons configured by hand with `long_press`, `short_long_press`, multiple
+actions or a full RPC command are shown as *advanced*. They keep working and
+are preserved in the YAML. Selecting an action for that pin replaces the
+advanced definition with the simple one.
+
+### Requirements
+
+The section is read-only while the plugin is not `running`; the state and the
+last error are shown above the list.
+
 ## Pull-ups
 
 The kernel driver does not expose a working bias request for this chip. The

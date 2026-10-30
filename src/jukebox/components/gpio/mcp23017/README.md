@@ -48,6 +48,16 @@ are `momentary`, `long_press`, `short_long_press` and `hold_repeat`.
 A configuration or hardware error disables the plugin with a message in
 `mcp23017.ctrl.get_status()`; the jukebox daemon keeps running.
 
+## Settings API
+
+`mcp23017.ctrl` also serves the settings page:
+
+- `get_button_settings()`: the action catalog and the assignment of all 16 pins
+- `set_button(pin, action_id)` and `clear_button(pin)`: rewrite the YAML file
+  and apply the change live
+- `start_learn(action_id)`, `get_learn_state()` and `cancel_learn()`: assign an
+  action to the next pressed button
+
 ## Pull-ups
 
 The kernel pin configuration path does not reach the pinconf of this driver, so
