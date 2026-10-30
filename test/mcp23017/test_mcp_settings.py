@@ -135,3 +135,9 @@ def test_assign_rejects_an_invalid_pin(tmp_path):
     path.write_text(CONFIG, encoding='utf-8')
     with pytest.raises(Exception):
         assign_button(str(path), 16, action_entry('next'), 1, 0x20)
+
+
+def test_buttons_with_a_custom_polarity_are_advanced(tmp_path):
+    text = CONFIG.replace('pull_up: internal', 'pull_up: external', 1)
+    config = make_config(text)
+    assert action_id_for(config.buttons[0]) is None

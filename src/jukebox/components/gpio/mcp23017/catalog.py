@@ -96,6 +96,8 @@ def action_id_for(button: ButtonConfig) -> Optional[str]:
     """
     if button.type not in ('momentary', 'hold_repeat'):
         return None
+    if not button.active_low or button.pull_up != 'internal':
+        return None
     spec = button.actions.get('on_press')
     if spec is None or spec.source != 'alias':
         return None
