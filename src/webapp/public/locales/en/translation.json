@@ -566,6 +566,32 @@
     },
     "systemcontrols": {
       "title": "System Controls"
+    },
+    "mcp23017": {
+      "title": "MCP23017 buttons",
+      "description": "Assign an action to each input of the I2C expander. Changes apply immediately.",
+      "assignment-title": "Pin assignment",
+      "assignment-description": "Choose an action for each input, or leave it unassigned. Buttons with a custom YAML definition are marked as advanced; choosing an action replaces that definition.",
+      "unassigned": "Not assigned",
+      "advanced": "Advanced YAML definition ({{type}}); choosing an action replaces it.",
+      "not-running": "The MCP23017 plugin is {{state}}.",
+      "learn-title": "Assign by pressing",
+      "learn-description": "Choose an action, start learning and then press the button you want to use.",
+      "learn-start": "Start learning",
+      "learn-waiting": "Press a button now…",
+      "learn-cancel": "Cancel",
+      "learn-done": "{{pin}} is now assigned.",
+      "learn-timeout": "No button was pressed in time.",
+      "actions": {
+        "play_pause": "Play/Pause",
+        "next": "Next title",
+        "previous": "Previous title",
+        "volume_up": "Volume up",
+        "volume_down": "Volume down",
+        "shutdown": "Shut down",
+        "reboot": "Reboot",
+        "say_ip": "Say IP address"
+      }
     }
   }
 }

@@ -314,6 +314,46 @@ const commands = {
     argKeys: ['host'],
   },
 
+  // MCP23017 buttons
+  mcp23017Settings: {
+    _package: 'mcp23017',
+    plugin: 'ctrl',
+    method: 'get_button_settings',
+  },
+
+  mcp23017SetButton: {
+    _package: 'mcp23017',
+    plugin: 'ctrl',
+    method: 'set_button',
+    argKeys: ['pin', 'action_id'],
+  },
+
+  mcp23017ClearButton: {
+    _package: 'mcp23017',
+    plugin: 'ctrl',
+    method: 'clear_button',
+    argKeys: ['pin'],
+  },
+
+  mcp23017StartLearn: {
+    _package: 'mcp23017',
+    plugin: 'ctrl',
+    method: 'start_learn',
+    argKeys: ['action_id'],
+  },
+
+  mcp23017LearnState: {
+    _package: 'mcp23017',
+    plugin: 'ctrl',
+    method: 'get_learn_state',
+  },
+
+  mcp23017CancelLearn: {
+    _package: 'mcp23017',
+    plugin: 'ctrl',
+    method: 'cancel_learn',
+  },
+
   // Synchronisation
   'sync_rfidcards_all': {
     _package: 'sync_rfidcards',

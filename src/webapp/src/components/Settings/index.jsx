@@ -4,6 +4,7 @@ import SettingsAudio from './audio/index';
 import SettingsAutoHotspot from './autohotspot';
 import SettingsGeneral from './general';
 import SettingsJellyfin from './jellyfin';
+import SettingsMcp23017 from './mcp23017';
 import SettingsSecondSwipe from './secondswipe';
 import SettingsSpotify from './spotify';
 import SettingsStatus from './status/index';
@@ -25,6 +26,7 @@ const Settings = () => (
   >
     <SettingsStatus />
     <SettingsGeneral />
+    <SettingsMcp23017 />
     <SettingsTimers />
     <SettingsAudio />
     <SettingsSpotify />

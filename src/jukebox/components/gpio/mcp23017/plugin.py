@@ -28,6 +28,8 @@ _STARTUP_RETRY_SECONDS = 0.1
 
 _CTRL: Optional[Ctrl] = None
 _BACKEND: Optional[LgpioBackend] = None
+_CONFIG_FILE: Optional[str] = None
+_CFG_MCP = None
 
 
 @plugin.initialize
@@ -48,6 +50,7 @@ def initialize() -> None:
         _CTRL.mark_error(f'{error.__class__.__name__}: {error}')
         return
     _CTRL.load_config(config)
+    _CTRL.set_config_path(_CONFIG_FILE, _reload_config)
     _CTRL.resolve_actions(cmd_alias_definitions)
     _start_hardware(config)
 
@@ -58,8 +61,8 @@ def finalize() -> None:
         return
     _CTRL.bind_actions(ActionBinder())
     if not _CTRL.has_valid_buttons():
-        logger.warning('No valid MCP23017 buttons configured; polling not started')
-        return
+        logger.warning('No valid MCP23017 buttons configured; '
+                       'polling starts for the settings page only')
     if not _CTRL.start_polling():
         logger.warning('MCP23017 polling could not be started')
 
@@ -75,19 +78,25 @@ def plugin_atexit(signal_id: int, **ignored_kwargs) -> None:
 
 
 def _load_config(cfg_main) -> McpConfig:
-    config_file = cfg_main.setndefault('mcp23017', 'config_file',
-                                       value='../../shared/settings/mcp23017.yaml')
-    cfg_mcp = cfghandler.get_handler('mcp23017')
-    cfghandler.load_yaml(cfg_mcp, config_file)
-    return parse_config(cfg_mcp)
+    global _CONFIG_FILE, _CFG_MCP
+    _CONFIG_FILE = cfg_main.setndefault('mcp23017', 'config_file',
+                                        value='../../shared/settings/mcp23017.yaml')
+    _CFG_MCP = cfghandler.get_handler('mcp23017')
+    cfghandler.load_yaml(_CFG_MCP, _CONFIG_FILE)
+    return parse_config(_CFG_MCP)
+
+
+def _reload_config() -> McpConfig:
+    """Reload the settings file after the settings page changed it."""
+    cfghandler.load_yaml(_CFG_MCP, _CONFIG_FILE)
+    return parse_config(_CFG_MCP)
 
 
 def _start_hardware(config: McpConfig) -> None:
     global _BACKEND
     try:
         chip = _wait_for_chip(config)
-        backend = LgpioBackend(chip, config.bus, config.address,
-                               [button.pin for button in config.valid_buttons])
+        backend = LgpioBackend(chip, config.bus, config.address, list(range(16)))
         _BACKEND = backend
         backend.open()
         backend.check_bank()
