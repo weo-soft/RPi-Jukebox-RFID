@@ -104,3 +104,34 @@ test('learning an action assigns the pressed button', async () => {
   expect(request).toHaveBeenCalledWith('mcp23017CancelLearn');
   expect(await screen.findByText(/GPA3/)).toBeInTheDocument();
 });
+
+
+test('choosing an action in the dropdown assigns the pin', async () => {
+  const user = userEvent.setup();
+  request.mockImplementation(async (command) => {
+    if (command === 'mcp23017Settings') {
+      return { result: makeSettings() };
+    }
+    if (command === 'mcp23017SetButton') {
+      const pins = makeSettings().pins.map(entry => (
+        entry.pin === 1
+          ? { ...entry, assigned: true, action_id: 'next', type: 'momentary' }
+          : entry
+      ));
+      return { result: makeSettings({ pins }) };
+    }
+    return { result: null };
+  });
+
+  render(<SettingsMcp23017 />);
+  await screen.findByText('GPA0');
+
+  const dropdowns = screen.getAllByRole('combobox');
+  await user.click(dropdowns[1]);
+  await user.click(await screen.findByRole('option', { name: 'Next title' }));
+
+  await waitFor(() => {
+    expect(request).toHaveBeenCalledWith(
+      'mcp23017SetButton', { pin: 1, action_id: 'next' });
+  });
+});
