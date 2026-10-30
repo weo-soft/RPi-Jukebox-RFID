@@ -78,7 +78,16 @@ export const rpcResults = {
 };
 
 export const socketEvents = {
-  'batt_status': { charging: false, soc: 76 },
+  'batt_status': {
+    available: true,
+    charging: false,
+    current_ma: -450,
+    power_w: 5.4,
+    soc: 76,
+    state: 'discharging',
+    voltage: 12005,
+    voltage_v: 12.005,
+  },
   'core.plugins.loaded': { battmon: true },
   'core.version': '3.7.0-alpha',
   'host.temperature.cpu': '47.2',

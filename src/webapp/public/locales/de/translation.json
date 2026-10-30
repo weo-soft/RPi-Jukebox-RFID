@@ -532,7 +532,18 @@
       "battery": {
         "title": "Batterieladung",
         "charging": "Batterie wird geladen",
-        "not-charging": "Batterie wird nicht geladen"
+        "not-charging": "Batterie wird nicht geladen",
+        "unavailable": "Nicht verfügbar",
+        "states": {
+          "charging": "Wird geladen",
+          "discharging": "Wird entladen",
+          "idle": "Leerlauf",
+          "unknown": "Unbekannt"
+        },
+        "details": "{{voltage}} V · {{current}} A · {{power}} W",
+        "indicator": {
+          "aria-label": "Batterie {{soc}} Prozent, {{state}}"
+        }
       },
       "cpu-temp": {
         "label": "CPU Temperatur",

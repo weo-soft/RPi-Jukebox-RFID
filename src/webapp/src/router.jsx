@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 import { HashRouter, Route, Routes, useLocation } from 'react-router-dom';
 
+import BatteryIndicator from './components/Battery/indicator';
 import Navigation from './components/Navigation';
 import { useNavigationVisibility } from './context/navigation';
 
@@ -37,6 +38,7 @@ const AppLayout = () => {
           : 'calc(var(--nav-height) + var(--gutter))',
       }}
     >
+      <BatteryIndicator />
       <Grid
         component="main"
         size="grow"

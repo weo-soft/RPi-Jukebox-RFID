@@ -35,6 +35,9 @@ batt_mon = None
 
 class battmon_simulator(BatteryMonitorBase.BattmonBase):
     '''Battery Monitor Simulator '''
+
+    source_name = 'simulator'
+
     def __init__(self, cfg):
         self.simulated_battery_voltage = 3100
         self.updown = 'up'

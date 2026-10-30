@@ -57,6 +57,7 @@ const LibraryHeader = ({ handleMusicFilter, musicFilter, sources }) => {
           borderColor: 'divider',
           display: 'flex',
           minWidth: 0,
+          paddingRight: '80px',
           width: '100%',
         }}
       >
