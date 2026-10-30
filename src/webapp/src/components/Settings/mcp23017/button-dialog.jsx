@@ -65,12 +65,16 @@ const ButtonDialog = ({ mode, pin, settings, onClose, onSaved }) => {
       }
       return;
     }
+    let finalResult = result;
     if (editing && targetPin !== pin) {
-      await request('mcp23017ClearButton', { pin });
+      const cleared = await request('mcp23017ClearButton', { pin });
+      if (!cleared.error && cleared.result) {
+        finalResult = cleared.result;
+      }
     }
     if (!mounted.current) return;
     setBusy(false);
-    onSaved(result);
+    onSaved(finalResult);
   };
 
   const pollLearn = async (targetAction) => {

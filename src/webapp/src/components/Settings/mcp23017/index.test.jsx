@@ -232,3 +232,21 @@ test('learns the input from a button press', async () => {
     expect(screen.queryByText('Add button assignment')).not.toBeInTheDocument();
   });
 });
+
+
+test('moves the assignment when editing learns another input', async () => {
+  const user = userEvent.setup();
+  render(<SettingsMcp23017 />);
+
+  await user.click(await screen.findByRole('button', { name: 'Edit GPA0' }));
+  await user.click(screen.getByRole('tab', { name: 'Assign by pressing' }));
+  await user.click(screen.getByRole('button', { name: 'Start learning' }));
+
+  await waitFor(() => {
+    expect(request).toHaveBeenCalledWith(
+      'mcp23017SetButton', { pin: 4, action_id: 'play_pause' });
+  });
+  await waitFor(() => {
+    expect(request).toHaveBeenCalledWith('mcp23017ClearButton', { pin: 0 });
+  });
+});
