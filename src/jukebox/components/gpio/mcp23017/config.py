@@ -137,8 +137,10 @@ def parse_config(cfg: Any) -> McpConfig:
     poll_interval_ms = _int_value(cfg.getn('poll_interval_ms', default=25),
                                   'poll_interval_ms', 10, 1000)
     raw_buttons = cfg.getn('buttons', default=None)
-    if not isinstance(raw_buttons, Mapping) or not raw_buttons:
-        raise ConfigError("'buttons' must be a non-empty mapping")
+    if raw_buttons is None:
+        raw_buttons = {}
+    if not isinstance(raw_buttons, Mapping):
+        raise ConfigError("'buttons' must be a mapping")
     buttons: List[ButtonConfig] = []
     used_pins: Dict[int, str] = {}
     for name, raw in raw_buttons.items():
