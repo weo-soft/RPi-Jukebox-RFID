@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 import { Route, HashRouter, Routes } from 'react-router-dom'
 
+import BatteryIndicator from './components/Battery/indicator';
 import Navigation from './components/Navigation';
 
 import Grid from '@mui/material/Grid';
@@ -13,6 +14,7 @@ const Settings = lazy(() => import('./components/Settings'));
 const Router = () => {
   return (
     <HashRouter>
+      <BatteryIndicator />
       <Grid
         component="main"
         size={{ xs: 12, md: 6 }}

@@ -57,7 +57,16 @@ const rpcResults = {
 };
 
 const socketEvents = {
-  'batt_status': { charging: false, soc: 76 },
+  'batt_status': {
+    available: true,
+    charging: false,
+    current_ma: -450,
+    power_w: 5.4,
+    soc: 76,
+    state: 'discharging',
+    voltage: 12005,
+    voltage_v: 12.005,
+  },
   'core.plugins.loaded': { battmon: true },
   'core.version': '3.7.0-alpha',
   'host.temperature.cpu': '47.2',
@@ -369,6 +378,44 @@ for (const route of routes) {
     expect(consoleErrors).toEqual([]);
   });
 }
+
+test('battery indicator opens the settings', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page);
+  await page.goto('/');
+
+  const indicator = page.getByRole('link', { name: 'Battery 76 percent, Discharging' });
+  await expect(indicator).toBeVisible();
+  await indicator.click();
+
+  await expect(page).toHaveURL(/#\/settings$/);
+  expect(consoleErrors).toEqual([]);
+});
+
+test('battery indicator keeps the library search reachable', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page);
+  await page.goto('/#/library');
+
+  await expect(page.getByRole('link', { name: 'Battery 76 percent, Discharging' })).toBeVisible();
+  const search = page.getByRole('button', { name: 'Show search' });
+  await search.click();
+
+  await expect(page.getByRole('textbox', { name: 'Search' })).toBeVisible();
+  expect(consoleErrors).toEqual([]);
+});
+
+test('battery indicator keeps the selector cancel reachable', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page);
+  await page.goto('/#/library/mpd/albums?isSelecting=1');
+
+  await expect(page.getByRole('link', { name: 'Battery 76 percent, Discharging' })).toBeVisible();
+  await page.getByRole('link', { name: 'Cancel' }).click();
+
+  await expect(page).toHaveURL(/#\/cards\/register$/);
+  expect(consoleErrors).toEqual([]);
+});
 
 test('bottom navigation changes routes', async ({ page }) => {
   const consoleErrors = collectConsoleErrors(page);
