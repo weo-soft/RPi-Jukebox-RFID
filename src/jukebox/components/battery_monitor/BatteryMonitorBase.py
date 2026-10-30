@@ -23,13 +23,47 @@
 # Contributing author(s):
 # - Arne Pagel
 
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
+
 import jukebox.plugs as plugs
-import jukebox.cfghandler
-import jukebox.publishing
+import jukebox.publishing as publishing
 import jukebox.multitimer as multitimer
 import jukebox.utils as utils
 
 batt_mon = None
+
+#: States an adapter may report and the base class publishes.
+BATTERY_STATES = ('charging', 'discharging', 'idle', 'unknown')
+
+#: State of the status object while no reading is available.
+UNAVAILABLE_STATE = 'unavailable'
+
+
+class BatterySourceError(Exception):
+    """Raised by an adapter when a reading cannot be obtained."""
+
+
+@dataclass
+class BatteryReading:
+    """Normalized measurement of a battery adapter.
+
+    Every field is optional. A field that is ``None`` is treated as unknown and
+    is left out of the published status object.
+    """
+
+    soc: Optional[int] = None
+    state: Optional[str] = None
+    voltage_v: Optional[float] = None
+    current_ma: Optional[float] = None
+    power_w: Optional[float] = None
+    remaining_s: Optional[int] = None
+    timestamp: Optional[str] = None
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
 
 class pt1_frac():
@@ -71,19 +105,26 @@ def interpolate(cc, input):
 
 
 class BattmonBase():
-    '''Battery Monitor base class '''
+    '''Battery Monitor base class
+
+    An adapter inherits from this class, implements :meth:`init_batt_mon_hw` and
+    overrides either :meth:`read` or :meth:`get_batt_voltage`. The base class
+    polls the adapter, normalizes the reading, evaluates the configured
+    thresholds and publishes the result on the ``batt_status`` topic.
+    '''
+
+    #: Short name of the measurement source, published as ``source``.
+    source_name = 'unknown'
+    #: Whether the base class may derive ``soc`` from the voltage curve.
+    soc_from_voltage = True
 
     def __init__(self, cfg, logger):
         self._logger = logger
-        self.batt_status = {}
-        self.batt_status['soc'] = 0
-        self.batt_status['charging'] = 0
-        self.batt_status['voltage'] = 0
-        self.interval = 5
-        num = cfg.setndefault('battmon', 'scale_to_phy_num', value=35)
-        denom = cfg.setndefault('battmon', 'scale_to_phy_denom', value=15)
-
-        self.init_batt_mon_hw(num, denom)
+        self.f1 = None
+        self.fs = None
+        self._warning_active = False
+        self._shutdown_issued = False
+        self._last_error = None
 
         self.soc_cc = {3000: 0,
                        3200: 5,
@@ -92,18 +133,24 @@ class BattmonBase():
                        4000: 95,
                        4200: 100}
 
-        self.ok_voltage = 3400
-        self.warning_voltage = 3300
-        self.shutdown_voltage = 3000
-
-        self.last_sample_time = -5
-        batt_voltage_mV = self.get_batt_voltage()
-
-        self.f1 = pt1_frac(0.5, batt_voltage_mV)
-        self.fs = pt1_frac(0.01, batt_voltage_mV)
-
+        self.warning_voltage_mv = cfg.setndefault('battmon', 'warning_voltage_mv', value=3300)
+        self.all_clear_voltage_mv = cfg.setndefault('battmon', 'all_clear_voltage_mv', value=3400)
+        self.shutdown_voltage_mv = cfg.setndefault('battmon', 'shutdown_voltage_mv', value=3000)
+        self.warning_soc = cfg.setndefault('battmon', 'warning_soc', value=None)
+        self.all_clear_soc = cfg.setndefault('battmon', 'all_clear_soc', value=None)
+        self.shutdown_soc = cfg.setndefault('battmon', 'shutdown_soc', value=None)
         self.warning_action = cfg.setndefault('battmon', 'warning_action', value=None)
         self.all_clear_action = cfg.setndefault('battmon', 'all_clear_action', value=None)
+
+        self.interval = cfg.setndefault('battmon', 'poll_interval_sec', value=5)
+        if not isinstance(self.interval, (int, float)) or self.interval < 1:
+            raise ValueError("battmon.poll_interval_sec must be at least 1")
+
+        num = cfg.setndefault('battmon', 'scale_to_phy_num', value=35)
+        denom = cfg.setndefault('battmon', 'scale_to_phy_denom', value=15)
+
+        self.batt_status = self._initial_status()
+        self.init_batt_mon_hw(num, denom)
 
         self.status_thread = multitimer.GenericEndlessTimerClass('batt_mon.timer_status', self.interval, self.publish_status)
         self.status_thread.start()
@@ -113,39 +160,176 @@ class BattmonBase():
 
     def get_batt_voltage(self):
         self._logger.error("get_batt_voltage shall be overwritten")
+        return None
+
+    def read(self) -> BatteryReading:
+        """Return the current reading.
+
+        The default implementation reads the battery voltage through
+        :meth:`get_batt_voltage`. Adapters with more measurement values override
+        this method.
+        """
+        voltage_mv = self.get_batt_voltage()
+        if voltage_mv is None:
+            raise BatterySourceError("adapter provides no voltage")
+        return BatteryReading(voltage_v=float(voltage_mv) / 1000.0)
 
     @plugs.tag
     def get_batt_status(self):
         return (self.batt_status)
 
     def publish_status(self):
-        batt_voltage_mV_raw = self.get_batt_voltage()
+        try:
+            reading = self.read()
+        except Exception as error:
+            self._publish_error(error)
+            return
 
-        batt_voltage_mV = self.f1.iter(batt_voltage_mV_raw)
-        batt_voltage_mV_slow = self.fs.iter(batt_voltage_mV_raw)
+        self._clear_error()
+        derived = self._derive_values(reading)
+        self._evaluate_thresholds(derived)
 
-        soc = int(interpolate(self.soc_cc, batt_voltage_mV))
+        self.batt_status = self._build_status(reading, derived)
+        self._logger.info(f"SOC: {derived['soc']}%, Batt Voltage: {derived['voltage_mv']}mV, state: {derived['state']}")
 
-        if (batt_voltage_mV - batt_voltage_mV_slow) < 0:
-            charging = 0
-        else:
-            charging = 1
+        publishing.get_publisher().send('batt_status', self.batt_status)
 
-        if (batt_voltage_mV < self.shutdown_voltage):
-            self._logger.warning(f"Shutdown due to low Battery: {soc}%, Batt Voltage: {batt_voltage_mV}mV")
-            plugs.call_ignore_errors('host', 'shutdown')
+    def _initial_status(self) -> Dict[str, Any]:
+        return {
+            'available': False,
+            'state': UNAVAILABLE_STATE,
+            'charging': False,
+            'source': self.source_name,
+            'timestamp': _utc_now(),
+        }
 
-        if (batt_voltage_mV < self.warning_voltage):
-            if (self.warning_action is not None):
+    def _derive_values(self, reading: BatteryReading) -> Dict[str, Any]:
+        voltage_mv = None
+        voltage_slow = None
+        if reading.voltage_v is not None:
+            raw_mv = int(round(float(reading.voltage_v) * 1000))
+            if self.f1 is None:
+                self.f1 = pt1_frac(0.5, raw_mv)
+                self.fs = pt1_frac(0.01, raw_mv)
+            voltage_mv = self.f1.iter(raw_mv)
+            voltage_slow = self.fs.iter(raw_mv)
+
+        soc = reading.soc
+        if soc is None and self.soc_from_voltage and voltage_mv is not None:
+            soc = int(interpolate(self.soc_cc, voltage_mv))
+        if soc is not None:
+            soc = int(max(0, min(100, round(float(soc)))))
+
+        state = reading.state
+        if state is not None and state not in BATTERY_STATES:
+            state = 'unknown'
+        if state is None:
+            if voltage_mv is not None:
+                state = 'charging' if (voltage_mv - voltage_slow) >= 0 else 'discharging'
+            else:
+                state = 'unknown'
+
+        return {
+            'soc': soc,
+            'state': state,
+            'charging': state == 'charging',
+            'voltage_mv': voltage_mv,
+        }
+
+    def _build_status(self, reading: BatteryReading, derived: Dict[str, Any]) -> Dict[str, Any]:
+        timestamp = reading.timestamp
+        if not isinstance(timestamp, str) or not timestamp:
+            timestamp = _utc_now()
+        status = {
+            'available': True,
+            'state': derived['state'],
+            'charging': derived['charging'],
+            'source': self.source_name,
+            'timestamp': timestamp,
+        }
+        if derived['soc'] is not None:
+            status['soc'] = derived['soc']
+        if derived['voltage_mv'] is not None:
+            status['voltage'] = derived['voltage_mv']
+            status['voltage_v'] = round(derived['voltage_mv'] / 1000.0, 3)
+        if reading.current_ma is not None:
+            status['current_ma'] = round(float(reading.current_ma), 1)
+        if reading.power_w is not None:
+            status['power_w'] = round(abs(float(reading.power_w)), 3)
+        if reading.remaining_s is not None:
+            status['remaining_s'] = int(reading.remaining_s)
+        return status
+
+    def _publish_error(self, error: Exception):
+        message = f"{type(error).__name__}: {error}"
+        if message != self._last_error:
+            self._logger.warning(f"Battery source unavailable: {message}")
+            self._last_error = message
+
+        self.batt_status = {
+            'available': False,
+            'state': UNAVAILABLE_STATE,
+            'charging': False,
+            'source': self.source_name,
+            'timestamp': _utc_now(),
+        }
+        publishing.get_publisher().send('batt_status', self.batt_status)
+
+    def _clear_error(self):
+        if self._last_error is not None:
+            self._logger.info("Battery source is available again")
+            self._last_error = None
+
+    def _evaluate_thresholds(self, derived: Dict[str, Any]):
+        voltage_mv = derived['voltage_mv']
+        soc = derived['soc']
+        self._evaluate_warning(voltage_mv, soc)
+        self._evaluate_shutdown(voltage_mv, soc)
+
+    def _evaluate_warning(self, voltage_mv, soc):
+        triggered = False
+        checked = False
+        if self.warning_voltage_mv is not None and voltage_mv is not None:
+            checked = True
+            triggered = triggered or voltage_mv < self.warning_voltage_mv
+        if self.warning_soc is not None and soc is not None:
+            checked = True
+            triggered = triggered or soc <= self.warning_soc
+
+        cleared = True
+        cleared_checked = False
+        if self.all_clear_voltage_mv is not None and voltage_mv is not None:
+            cleared_checked = True
+            cleared = cleared and voltage_mv >= self.all_clear_voltage_mv
+        if self.all_clear_soc is not None and soc is not None:
+            cleared_checked = True
+            cleared = cleared and soc >= self.all_clear_soc
+
+        if not self._warning_active and checked and triggered:
+            self._warning_active = True
+            self._logger.warning(f"Battery warning: {soc}%, {voltage_mv}mV")
+            if self.warning_action is not None:
                 utils.decode_and_call_rpc_command(self.warning_action, self._logger)
-        elif batt_voltage_mV > self.ok_voltage:
-            if (self.all_clear_action is not None):
+        elif self._warning_active and cleared_checked and cleared:
+            self._warning_active = False
+            self._logger.info(f"Battery warning cleared: {soc}%, {voltage_mv}mV")
+            if self.all_clear_action is not None:
                 utils.decode_and_call_rpc_command(self.all_clear_action, self._logger)
 
-        self._logger.info(f"SOC: {soc}%, Batt Voltage: {batt_voltage_mV}mV, charging:{charging}")
+    def _evaluate_shutdown(self, voltage_mv, soc):
+        if self._shutdown_issued:
+            return
 
-        self.batt_status['soc'] = soc
-        self.batt_status['charging'] = charging
-        self.batt_status['voltage'] = batt_voltage_mV
+        triggered = False
+        checked = False
+        if self.shutdown_voltage_mv is not None and voltage_mv is not None:
+            checked = True
+            triggered = voltage_mv < self.shutdown_voltage_mv
+        if self.shutdown_soc is not None and soc is not None:
+            checked = True
+            triggered = triggered or soc <= self.shutdown_soc
 
-        jukebox.publishing.get_publisher().send('batt_status', self.batt_status)
+        if checked and triggered:
+            self._shutdown_issued = True
+            self._logger.warning(f"Shutdown due to low Battery: {soc}%, Batt Voltage: {voltage_mv}mV")
+            plugs.call_ignore_errors('host', 'shutdown')

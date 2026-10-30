@@ -19,6 +19,8 @@ class battmon_ina219(BatteryMonitorBase.BattmonBase):
     See [Battery Monitor documentation](../../builders/components/power/batterymonitor.md)
     '''
 
+    source_name = 'ina219'
+
     def __init__(self, cfg):
         super().__init__(cfg, logger)
 

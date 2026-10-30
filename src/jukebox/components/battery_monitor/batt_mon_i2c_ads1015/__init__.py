@@ -40,6 +40,8 @@ class battmon_ads1015(BatteryMonitorBase.BattmonBase):
     See [Battery Monitor documentation](../../builders/components/power/batterymonitor.md)
     """
 
+    source_name = 'ads1015'
+
     def __init__(self, cfg):
         super().__init__(cfg, logger)
 
