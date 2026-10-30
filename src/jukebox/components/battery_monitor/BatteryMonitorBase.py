@@ -119,6 +119,7 @@ class BattmonBase():
     soc_from_voltage = True
 
     def __init__(self, cfg, logger):
+        self._cfg = cfg
         self._logger = logger
         self.f1 = None
         self.fs = None
