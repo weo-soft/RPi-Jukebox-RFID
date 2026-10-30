@@ -75,9 +75,19 @@ def test_global_values_are_validated(old, new):
         make_config(BASE.replace(old, new))
 
 
-def test_missing_buttons_is_a_global_error():
+def test_missing_buttons_yields_an_empty_configuration():
+    config = make_config('bus: 1\naddress: 0x20\n')
+    assert config.buttons == []
+
+
+def test_empty_buttons_yields_an_empty_configuration():
+    config = make_config('bus: 1\naddress: 0x20\nbuttons: {}\n')
+    assert config.buttons == []
+
+
+def test_buttons_must_be_a_mapping():
     with pytest.raises(ConfigError):
-        make_config('bus: 1\naddress: 0x20\n')
+        make_config('bus: 1\naddress: 0x20\nbuttons: []\n')
 
 
 @pytest.mark.parametrize('value,expected', [

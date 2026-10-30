@@ -42,6 +42,10 @@ def clear_button(path: str, pin: int, bus: int, address: int) -> None:
     if name is None:
         return
     del buttons[name]
+    buttons.ca.items.pop(name, None)
+    if not buttons:
+        data['buttons'] = {}
+        data.ca.items.pop('buttons', None)
     _write(path, data)
     logger.info('Removed the MCP23017 assignment of pin %s', pin_name(pin))
 

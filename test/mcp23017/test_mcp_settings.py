@@ -141,3 +141,15 @@ def test_buttons_with_a_custom_polarity_are_advanced(tmp_path):
     text = CONFIG.replace('pull_up: internal', 'pull_up: external', 1)
     config = make_config(text)
     assert action_id_for(config.buttons[0]) is None
+
+
+def test_clear_all_buttons_keeps_a_valid_file(tmp_path):
+    path = tmp_path / 'mcp23017.yaml'
+    path.write_text(CONFIG, encoding='utf-8')
+    for pin in (0, 2, 3):
+        clear_button(str(path), pin, 1, 0x20)
+    text = path.read_text(encoding='utf-8')
+    assert 'buttons: {}' in text
+    assert load(path).buttons == []
+    assign_button(str(path), 1, action_entry('next'), 1, 0x20)
+    assert [button.pin for button in load(path).buttons] == [1]
