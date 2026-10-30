@@ -23,6 +23,7 @@ export ENABLE_WEBAPP_PROD_DOWNLOAD=true
 # n - setup Spotify
 # n - setup jellyfin
 # n - setup rfid reader
+# n - support MCP23017 buttons
 # n - setup samba
 # y - setup webapp
 # - - exact bundle download (forced)

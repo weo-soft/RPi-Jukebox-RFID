@@ -298,6 +298,66 @@ Do you want to setup a rfid reader? [Y/n]"
   log "ENABLE_RFID_READER=${ENABLE_RFID_READER}"
 }
 
+_option_mcp23017() {
+  # ENABLE_MCP23017
+  if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
+    log "ENABLE_MCP23017=${ENABLE_MCP23017} (non-interactive)"
+    return 0
+  fi
+  clear_c
+  print_c "----------------------- MCP23017 -----------------------
+
+The Adafruit MCP23017 I2C GPIO expander adds 16 inputs for
+buttons. The installer enables the I2C interface, adds the
+kernel overlay and creates the configuration file. The
+button-to-action mapping is edited in
+shared/settings/mcp23017.yaml afterwards.
+
+Do you want to support MCP23017 buttons? [y/N]"
+  read -r response
+  case "$response" in
+    [yY][eE][sS]|[yY])
+      ENABLE_MCP23017=true
+      ;;
+    *)
+      ENABLE_MCP23017=false
+      ;;
+  esac
+  if [ "$ENABLE_MCP23017" = true ]; then
+    local address bus numeric
+    while true; do
+      print_c "I2C address of the MCP23017 [0x20]:"
+      read -r address
+      address="${address:-0x20}"
+      if [[ "$address" =~ ^0[xX][0-9a-fA-F]{1,2}$ ]]; then
+        numeric=$(( address ))
+      elif [[ "$address" =~ ^[0-9]{1,3}$ ]]; then
+        numeric=$(( 10#$address ))
+      else
+        numeric=0
+      fi
+      if (( numeric >= 32 && numeric <= 39 )); then
+        MCP23017_ADDRESS="$address"
+        break
+      fi
+      print_c "Invalid address. Use a value between 0x20 and 0x27."
+    done
+    while true; do
+      print_c "I2C bus [1]:"
+      read -r bus
+      bus="${bus:-1}"
+      if [[ "$bus" =~ ^[0-6]$ ]]; then
+        MCP23017_I2C_BUS="$bus"
+        break
+      fi
+      print_c "Invalid bus. Use a number between 0 and 6."
+    done
+  fi
+  log "ENABLE_MCP23017=${ENABLE_MCP23017}"
+  log "MCP23017_ADDRESS=${MCP23017_ADDRESS}"
+  log "MCP23017_I2C_BUS=${MCP23017_I2C_BUS}"
+}
+
 _option_samba() {
   # ENABLE_SAMBA
   if [[ "${NON_INTERACTIVE:-}" == "true" ]]; then
@@ -500,6 +560,7 @@ _run_customize_options() {
   _option_spotify
   _option_jellyfin
   _option_rfid_reader
+  _option_mcp23017
   _option_samba
   _option_webapp
   if [[ $ENABLE_WEBAPP == true ]] ; then

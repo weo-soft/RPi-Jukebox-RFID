@@ -33,6 +33,7 @@ INSTALL_SCRIPT="${LOCAL_INSTALL_SCRIPT_PATH}/install-jukebox.sh"
 #   SETUP_SPOTIFY=false                    n - setup Spotify
 #   ENABLE_JELLYFIN=false                  n - setup jellyfin
 #   ENABLE_RFID_READER=false               n - setup rfid reader
+#   ENABLE_MCP23017=false                  n - support MCP23017 buttons
 #   ENABLE_SAMBA=true                      y - setup samba
 #   ENABLE_WEBAPP=true                     y - setup webapp
 #   ENABLE_WEBAPP_PROD_DOWNLOAD=true       - - exact Web App bundle download (forced)
@@ -54,6 +55,7 @@ DISABLE_ONBOARD_AUDIO=false
 SETUP_SPOTIFY=false
 ENABLE_JELLYFIN=false
 ENABLE_RFID_READER=false
+ENABLE_MCP23017=false
 ENABLE_SAMBA=true
 ENABLE_WEBAPP=true
 ENABLE_WEBAPP_PROD_DOWNLOAD=true
@@ -66,6 +68,7 @@ export ENABLE_WEBAPP_PROD_DOWNLOAD=true
 INTERACTIVE_ANSWERS='y
 n
 y
+n
 n
 n
 n

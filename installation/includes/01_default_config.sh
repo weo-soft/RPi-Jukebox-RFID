@@ -22,6 +22,9 @@ SPOTIFY_REDIRECT_URI=${SPOTIFY_REDIRECT_URI:-""}
 SPOTIFY_DEVICE_NAME=${SPOTIFY_DEVICE_NAME:-"Phoniebox"}
 UPDATE_RASPI_OS=${UPDATE_RASPI_OS:-"false"}
 ENABLE_RFID_READER=${ENABLE_RFID_READER:-"true"}
+ENABLE_MCP23017=${ENABLE_MCP23017:-"false"}
+MCP23017_ADDRESS=${MCP23017_ADDRESS:-"0x20"}
+MCP23017_I2C_BUS=${MCP23017_I2C_BUS:-"1"}
 ENABLE_SAMBA=${ENABLE_SAMBA:-"false"}
 # Jellyfin: enabled together with the server/credentials below; the values are
 # consumed by setup_jellyfin.sh (env-driven in non-interactive mode).

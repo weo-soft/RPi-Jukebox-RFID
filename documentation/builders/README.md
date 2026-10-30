@@ -13,6 +13,7 @@
   * [Bluetooth audio buttons](./bluetooth-audio-buttons.md)
   * [Spotify](./spotify.md)
 * [GPIO Recipes](./gpio.md)
+* [MCP23017 buttons](./mcp23017-buttons.md)
 * [Card Database](./card-database.md)
   * [RFID Cards synchronisation](./components/synchronisation/rfidcards.md)
 * [Auto Hotspot](./autohotspot.md)

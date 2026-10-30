@@ -39,6 +39,9 @@ ENABLE_JELLYFIN="true"
 JELLYFIN_HOST="http://jellyfin.local:8096"
 JELLYFIN_USERNAME="jelly"
 JELLYFIN_PASSWORD="secret-pw"
+ENABLE_MCP23017="true"
+MCP23017_ADDRESS="0x21"
+MCP23017_I2C_BUS="2"
 source "${REPOSITORY_ROOT}/installation/includes/01_default_config.sh"
 [[ "${ENABLE_STATIC_IP}" == "false" ]]
 [[ "${ENABLE_SAMBA}" == "true" ]]
@@ -52,13 +55,20 @@ source "${REPOSITORY_ROOT}/installation/includes/01_default_config.sh"
 [[ "${JELLYFIN_HOST}" == "http://jellyfin.local:8096" ]]
 [[ "${JELLYFIN_USERNAME}" == "jelly" ]]
 [[ "${JELLYFIN_PASSWORD}" == "secret-pw" ]]
+[[ "${ENABLE_MCP23017}" == "true" ]]
+[[ "${MCP23017_ADDRESS}" == "0x21" ]]
+[[ "${MCP23017_I2C_BUS}" == "2" ]]
 
 # Defaults still apply when a variable is unset
-unset ENABLE_SAMBA SETUP_SPOTIFY ENABLE_JELLYFIN
+unset ENABLE_SAMBA SETUP_SPOTIFY ENABLE_JELLYFIN ENABLE_MCP23017
+unset MCP23017_ADDRESS MCP23017_I2C_BUS
 source "${REPOSITORY_ROOT}/installation/includes/01_default_config.sh"
 [[ "${ENABLE_SAMBA}" == "false" ]]
 [[ "${SETUP_SPOTIFY}" == "false" ]]
 [[ "${ENABLE_JELLYFIN}" == "false" ]]
+[[ "${ENABLE_MCP23017}" == "false" ]]
+[[ "${MCP23017_ADDRESS}" == "0x20" ]]
+[[ "${MCP23017_I2C_BUS}" == "1" ]]
 
 # --- _option_*() skip prompts when NON_INTERACTIVE=true ---
 source "${REPOSITORY_ROOT}/installation/routines/customize_options.sh"
@@ -87,6 +97,12 @@ _option_rfid_reader <<< ''
 SETUP_SPOTIFY="true"
 _option_spotify <<< 'y'
 [[ "${SETUP_SPOTIFY}" == "true" ]]  # untouched by the prompt
+
+ENABLE_MCP23017="true"
+MCP23017_ADDRESS="0x21"
+_option_mcp23017 <<< ''
+[[ "${ENABLE_MCP23017}" == "true" ]]
+[[ "${MCP23017_ADDRESS}" == "0x21" ]]
 
 ENABLE_JELLYFIN="true"
 _option_jellyfin <<< 'n'
@@ -363,6 +379,7 @@ prepare_dependencies() { :; }
 set_raspi_config() { :; }
 init_git_repo_from_tardir() { :; }
 setup_jukebox_core() { :; }
+setup_mcp23017() { :; }
 setup_mpd() { :; }
 setup_spotify() { :; }
 setup_samba() { :; }
