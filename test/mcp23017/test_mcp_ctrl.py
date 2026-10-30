@@ -1,5 +1,7 @@
 """RPC surface and status tests for the MCP23017 control object."""
 
+import pytest
+
 from components.gpio.mcp23017.ctrl import Ctrl, read_overlay
 from components.rpc_command_alias import cmd_alias_definitions
 from mcp23017_fakes import (
@@ -128,6 +130,52 @@ def test_list_buttons_targets(tmp_path):
     assert buttons['volume_up']['actions']['on_press']['target']['package'] == 'volume'
 
 
+def test_test_button_simulates_by_default(tmp_path):
+    ctrl, _, recorder, _ = make_ctrl(tmp_path)
+    result = ctrl.test_button('play_pause')
+    assert result['button'] == 'play_pause'
+    assert result['pin'] == 0
+    assert result['value'] == 1
+    assert result['executed'] is False
+    assert result['blocked'] is False
+    assert result['result'] is None
+    assert result['target']['package'] == 'player'
+    assert recorder.calls == []
+
+
+def test_test_button_executes_when_requested(tmp_path):
+    ctrl, _, recorder, backend = make_ctrl(tmp_path)
+    backend.values[0] = 0
+    result = ctrl.test_button('play_pause', execute=True)
+    assert result['executed'] is True
+    assert result['value'] == 0
+    assert recorder.calls == ['player.ctrl.toggle']
+
+
+def test_test_button_blocks_power_actions(tmp_path):
+    ctrl, _, recorder, _ = make_ctrl(tmp_path)
+    result = ctrl.test_button('power', execute=True)
+    assert result['executed'] is False
+    assert result['blocked'] is True
+    assert recorder.calls == []
+    result = ctrl.test_button('power', execute=True, force=True)
+    assert result['executed'] is True
+    assert result['blocked'] is False
+    assert recorder.calls == ['host.shutdown.None']
+
+
+def test_test_button_rejects_unknown_names(tmp_path):
+    ctrl, _, _, _ = make_ctrl(tmp_path)
+    with pytest.raises(ValueError):
+        ctrl.test_button('does_not_exist')
+
+
+def test_test_button_requires_a_running_plugin():
+    ctrl = Ctrl(clock=FakeClock(), boot_config_paths=NO_BOOT_CONFIG)
+    with pytest.raises(RuntimeError):
+        ctrl.test_button('play_pause')
+
+
 def test_unknown_alias_marks_button_invalid(tmp_path):
     text = CONFIG.replace('alias: toggle', 'alias: does_not_exist')
     ctrl, config, _, _ = make_ctrl(tmp_path, text)
@@ -135,6 +183,8 @@ def test_unknown_alias_marks_button_invalid(tmp_path):
     assert button.valid is False
     assert 'unknown RPC alias' in button.error
     assert ctrl.list_buttons()[0]['actions'] == {}
+    with pytest.raises(RuntimeError):
+        ctrl.test_button('play_pause')
 
 
 def test_overlay_matching(tmp_path):

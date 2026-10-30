@@ -31,6 +31,13 @@ _I2C_BUS_PATTERN = re.compile(r'^i2c(\d+)$')
 _POLL_ERROR_LOG_SECONDS = 60.0
 _GPPU_REWRITE_SECONDS = 5.0
 
+_PRIMARY_ACTION = {
+    'momentary': ('on_press',),
+    'hold_repeat': ('on_press',),
+    'long_press': ('on_long_press',),
+    'short_long_press': ('on_short_press', 'on_long_press'),
+}
+
 
 def read_overlay(config: Optional[McpConfig],
                  paths: Sequence[str] = BOOT_CONFIG_PATHS) -> Optional[Dict[str, Any]]:
@@ -271,6 +278,48 @@ class Ctrl:
             })
         return entries
 
+    @plugin.tag
+    def test_button(self, name: str, execute: bool = False,
+                    force: bool = False) -> Dict[str, Any]:
+        """Simulate or run the primary action of one button."""
+        if self._config is None:
+            raise RuntimeError('MCP23017 plugin is disabled')
+        if self._state != 'running':
+            raise RuntimeError(f'MCP23017 plugin is {self._state}: '
+                               f"{self._last_error or 'not initialized'}")
+        button = next((entry for entry in self._config.buttons if entry.name == name), None)
+        if button is None:
+            raise ValueError(f"Unknown button '{name}'")
+        if not button.valid:
+            raise RuntimeError(f"Button '{name}' is invalid: {button.error}")
+        key = _primary_action_key(button)
+        action = button.resolved.get(key)
+        if action is None:
+            raise RuntimeError(f"Button '{name}' has no resolved action '{key}'")
+        if self._backend is None:
+            raise RuntimeError('MCP23017 backend is not attached')
+        value = self._backend.read_pin(button.pin)
+        blocked = (execute and not force and action.package == 'host'
+                   and action.plugin in ('shutdown', 'reboot'))
+        executed = False
+        result = None
+        if execute and not blocked:
+            function = self._bindings.get(name, {}).get(key)
+            if function is None:
+                raise RuntimeError(f"Button '{name}' action '{key}' is not bound")
+            result = function()
+            executed = True
+        return {
+            'button': name,
+            'pin': button.pin,
+            'value': value,
+            'type': button.type,
+            'target': action.target(),
+            'executed': executed,
+            'blocked': blocked,
+            'result': result,
+        }
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
@@ -301,6 +350,13 @@ class Ctrl:
             'valid': button.valid,
             'error': button.error,
         }
+
+
+def _primary_action_key(button: ButtonConfig) -> str:
+    for key in _PRIMARY_ACTION.get(button.type, ()):
+        if key in button.resolved:
+            return key
+    return next(iter(button.resolved))
 
 
 def resolve_and_bind(ctrl: Ctrl, known_aliases: Dict[str, Dict[str, Any]],
