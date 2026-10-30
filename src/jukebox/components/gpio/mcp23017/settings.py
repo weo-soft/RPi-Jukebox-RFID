@@ -59,7 +59,9 @@ def _button_entry(pin: int, action: Dict[str, Any]) -> CommentedMap:
     spec['alias'] = action['alias']
     args = action.get('args')
     if args:
-        spec['args'] = CommentedSeq(args)
+        sequence = CommentedSeq(args)
+        sequence.fa.set_flow_style()
+        spec['args'] = sequence
     actions = CommentedMap()
     actions['on_press'] = spec
     entry['actions'] = actions
