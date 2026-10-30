@@ -16,11 +16,14 @@ import time
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 import jukebox.plugs as plugin
+from components.rpc_command_alias import cmd_alias_definitions
 
 from .actions import ActionBinder, ActionError, resolve_action
 from .buttons import ButtonController
-from .config import ButtonConfig, McpConfig
+from .catalog import action_entry, action_id_for, catalog_entries
+from .config import ButtonConfig, ConfigError, McpConfig, parse_pin, pin_name
 from .device import BackendError
+from .settings import assign_button, clear_button as clear_button_assignment
 
 logger = logging.getLogger('jb.mcp23017')
 
@@ -30,6 +33,10 @@ _I2C_BUS_PATTERN = re.compile(r'^i2c(\d+)$')
 
 _POLL_ERROR_LOG_SECONDS = 60.0
 _GPPU_REWRITE_SECONDS = 5.0
+_LEARN_TIMEOUT_SECONDS = 15.0
+_LEARN_RESULT_SECONDS = 30.0
+_LEARN_DEBOUNCE_SECONDS = 0.05
+_ALL_PULLUPS = 0xffff
 
 _PRIMARY_ACTION = {
     'momentary': ('on_press',),
@@ -93,7 +100,10 @@ class Ctrl:
     """Plugin state, polling thread and RPC surface of the MCP23017 buttons."""
 
     def __init__(self, clock: Callable[[], float] = time.monotonic,
-                 boot_config_paths: Sequence[str] = BOOT_CONFIG_PATHS):
+                 boot_config_paths: Sequence[str] = BOOT_CONFIG_PATHS,
+                 config_path: Optional[str] = None,
+                 reload_config: Optional[Callable[[], McpConfig]] = None,
+                 binder: Optional[ActionBinder] = None):
         self._clock = clock
         self._boot_config_paths = tuple(boot_config_paths)
         self._config: Optional[McpConfig] = None
@@ -109,6 +119,18 @@ class Ctrl:
         self._gppu_mask = 0
         self._last_poll_error_log: Optional[float] = None
         self._last_gppu_rewrite: Optional[float] = None
+        self._config_path = config_path
+        self._reload_config = reload_config
+        self._binder = binder or ActionBinder()
+        self._apply_lock = threading.RLock()
+        self._learn_lock = threading.Lock()
+        self._learn: Optional[Dict[str, Any]] = None
+
+    def set_config_path(self, path: str,
+                        reload_config: Callable[[], McpConfig]) -> None:
+        """Provide the settings file and the reload callback for the UI."""
+        self._config_path = path
+        self._reload_config = reload_config
 
     # ------------------------------------------------------------------
     # Lifecycle, called by the plugin entry point
@@ -172,8 +194,12 @@ class Ctrl:
         return self._config is not None and bool(self._config.valid_buttons)
 
     def start_polling(self) -> bool:
-        """Start the polling thread when the plugin is running and has buttons."""
-        if not self.is_running or not self.has_valid_buttons() or self._backend is None:
+        """Start the polling thread while the plugin is running.
+
+        The thread also runs without configured buttons: the settings page
+        needs it to detect a button during learning.
+        """
+        if not self.is_running or self._backend is None:
             return False
         self._controller = ButtonController(self._config.buttons, self._backend.read_pin,
                                             self._bindings, self._clock)
@@ -194,11 +220,60 @@ class Ctrl:
         self._controller = None
         self._backend = None
         self._bindings = {}
+        with self._learn_lock:
+            self._learn = None
+
+    def _restore_gppu(self) -> None:
+        if self._backend is None:
+            return
+        try:
+            self._backend.write_gppu(self._gppu_mask)
+        except Exception as error:
+            logger.error('Restoring the GPPU mask after learning failed: %s', error)
 
     def poll_once(self, now: float) -> None:
         """Run one polling cycle; used by the thread and by tests."""
+        with self._learn_lock:
+            learn = self._learn
+        if learn is not None:
+            if learn['state'] == 'waiting':
+                self._poll_learn(now)
+                return
+            if now < learn['deadline']:
+                # Keep the buttons silent while the settings page consumes
+                # the learned pin, so the learned press cannot fire the old
+                # action.
+                return
+            with self._learn_lock:
+                self._learn = None
         if self._controller is not None:
             self._controller.poll(now)
+
+    def _poll_learn(self, now: float) -> None:
+        finished = False
+        with self._learn_lock:
+            learn = self._learn
+            if learn is None or learn['state'] != 'waiting':
+                return
+            if now >= learn['deadline']:
+                learn['state'] = 'timeout'
+                learn['deadline'] = now + _LEARN_RESULT_SECONDS
+                finished = True
+            else:
+                for line in range(16):
+                    raw = self._backend.read_pin(line)
+                    state = learn['raw'].setdefault(line, {'last': None, 'since': now})
+                    if state['last'] != raw:
+                        state['last'] = raw
+                        state['since'] = now
+                    if raw == 0 and now - state['since'] >= _LEARN_DEBOUNCE_SECONDS:
+                        learn['pin'] = line
+                        learn['state'] = 'learned'
+                        learn['deadline'] = now + _LEARN_RESULT_SECONDS
+                        finished = True
+                        break
+        if finished:
+            self._restore_gppu()
 
     def _poll_loop(self) -> None:
         while not self._stop.is_set():
@@ -279,6 +354,110 @@ class Ctrl:
         return entries
 
     @plugin.tag
+    def get_button_settings(self) -> Dict[str, Any]:
+        """Return the assignable actions and the assignment of all 16 pins."""
+        config = self._config
+        pins = []
+        for line in range(16):
+            button = None
+            if config is not None:
+                button = next((entry for entry in config.buttons if entry.pin == line), None)
+            action_id = action_id_for(button) if button is not None and button.valid else None
+            pins.append({
+                'pin': line,
+                'name': pin_name(line),
+                'assigned': button is not None,
+                'button': button.name if button is not None else None,
+                'action_id': action_id,
+                'type': button.type if button is not None else None,
+                'advanced': button is not None and action_id is None,
+                'valid': button.valid if button is not None else True,
+                'error': button.error if button is not None else None,
+            })
+        return {
+            'state': self._state,
+            'enabled': self._enabled,
+            'bus': config.bus if config else None,
+            'address': config.address_hex if config else None,
+            'config_file': self._config_path,
+            'last_error': self._last_error,
+            'actions': catalog_entries(),
+            'pins': pins,
+        }
+
+    @plugin.tag
+    def set_button(self, pin: int, action_id: str) -> Dict[str, Any]:
+        """Assign one catalog action to a pin and apply it without a restart."""
+        self._require_writable()
+        line = self._pin_or_raise(pin)
+        action = action_entry(action_id)
+        if action is None:
+            raise ValueError(f"Unknown action '{action_id}'")
+        assign_button(self._config_path, line, action,
+                      self._config.bus, self._config.address)
+        self._apply_config(self._reload_config())
+        return self.get_button_settings()
+
+    @plugin.tag
+    def clear_button(self, pin: int) -> Dict[str, Any]:
+        """Remove the assignment of one pin and apply it without a restart."""
+        self._require_writable()
+        line = self._pin_or_raise(pin)
+        clear_button_assignment(self._config_path, line,
+                                self._config.bus, self._config.address)
+        self._apply_config(self._reload_config())
+        return self.get_button_settings()
+
+    @plugin.tag
+    def start_learn(self, action_id: str) -> Dict[str, Any]:
+        """Start a learn session; the next stable press is reported."""
+        self._require_writable()
+        if action_entry(action_id) is None:
+            raise ValueError(f"Unknown action '{action_id}'")
+        now = self._clock()
+        with self._learn_lock:
+            self._learn = {
+                'action_id': action_id,
+                'state': 'waiting',
+                'pin': None,
+                'deadline': now + _LEARN_TIMEOUT_SECONDS,
+                'raw': {},
+            }
+        try:
+            self._backend.write_gppu(_ALL_PULLUPS)
+        except Exception as error:
+            with self._learn_lock:
+                self._learn = None
+            raise RuntimeError(f'Cannot enable the pull-ups for learning: {error}')
+        return self.get_learn_state()
+
+    @plugin.tag
+    def get_learn_state(self) -> Dict[str, Any]:
+        """Return the state of the current learn session."""
+        with self._learn_lock:
+            learn = self._learn
+            if learn is None:
+                return {'state': 'idle', 'action_id': None, 'pin': None,
+                        'remaining_seconds': None}
+            remaining = max(0.0, learn['deadline'] - self._clock())
+            return {
+                'state': learn['state'],
+                'action_id': learn['action_id'],
+                'pin': learn['pin'],
+                'remaining_seconds': round(remaining, 1),
+            }
+
+    @plugin.tag
+    def cancel_learn(self) -> Dict[str, Any]:
+        """Stop a running learn session and restore the pull-up mask."""
+        with self._learn_lock:
+            waiting = self._learn is not None and self._learn['state'] == 'waiting'
+            self._learn = None
+        if waiting:
+            self._restore_gppu()
+        return self.get_learn_state()
+
+    @plugin.tag
     def test_button(self, name: str, execute: bool = False,
                     force: bool = False) -> Dict[str, Any]:
         """Simulate or run the primary action of one button."""
@@ -323,6 +502,40 @@ class Ctrl:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+    def _require_writable(self) -> None:
+        if not self.is_running or self._backend is None:
+            raise RuntimeError('MCP23017 plugin is not running')
+        if self._config is None or self._config_path is None or self._reload_config is None:
+            raise RuntimeError('MCP23017 settings persistence is not configured')
+
+    @staticmethod
+    def _pin_or_raise(pin: Any) -> int:
+        try:
+            return parse_pin(pin)
+        except ConfigError as error:
+            raise ValueError(str(error))
+
+    def _apply_config(self, config: McpConfig) -> None:
+        """Apply a reloaded configuration without restarting the daemon."""
+        with self._apply_lock:
+            was_polling = self._thread is not None and self._thread.is_alive()
+            self.stop_polling()
+            with self._learn_lock:
+                self._learn = None
+            self._config = config
+            self._controller = None
+            self._bindings = {}
+            self.resolve_actions(cmd_alias_definitions)
+            self.bind_actions(self._binder)
+            self._gppu_mask = config.gppu_mask
+            try:
+                self._backend.write_gppu(self._gppu_mask)
+            except Exception as error:
+                self.mark_error(f'{error.__class__.__name__}: {error}')
+                raise
+            if was_polling:
+                self.start_polling()
+
     def _read_gppu(self) -> Optional[int]:
         if self._backend is None:
             return None
