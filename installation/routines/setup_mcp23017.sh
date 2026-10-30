@@ -15,7 +15,7 @@ setup_mcp23017() {
 }
 
 _run_setup_mcp23017() {
-  _mcp23017_require_i2c_tools
+  _mcp23017_check_i2c_tools
   _mcp23017_apply_boot_config "$(get_boot_config_path)"
   _mcp23017_enable_i2c_dev
   _mcp23017_add_user_to_groups
@@ -24,13 +24,33 @@ _run_setup_mcp23017() {
   _mcp23017_add_fin_message
 }
 
-_mcp23017_require_i2c_tools() {
-  local tool
-  for tool in i2cset i2cget; do
-    if ! command -v "$tool" > /dev/null 2>&1; then
-      exit_on_error "ERROR: '$tool' is missing. Install the 'i2c-tools' package."
+# Locate an i2c-tools binary. The installer runs over SSH without /usr/sbin in
+# the PATH of a non-root user, so the sbin directories are searched as well.
+_mcp23017_find_tool() {
+  local tool="$1" directory
+  if command -v "$tool" > /dev/null 2>&1; then
+    command -v "$tool"
+    return 0
+  fi
+  for directory in /usr/sbin /sbin /usr/bin /bin; do
+    if [ -x "${directory}/${tool}" ]; then
+      printf '%s\n' "${directory}/${tool}"
+      return 0
     fi
   done
+  return 1
+}
+
+_mcp23017_check_i2c_tools() {
+  local tool missing=""
+  for tool in i2cset i2cget; do
+    if ! _mcp23017_find_tool "$tool" > /dev/null; then
+      missing="${missing} ${tool}"
+    fi
+  done
+  if [ -n "$missing" ]; then
+    warn_mcp23017 "i2c-tools command(s) missing:${missing}. Install 'i2c-tools'; the mcp23017 plugin needs them for the pull-ups."
+  fi
 }
 
 # Add the overlay block to the boot configuration. The file is passed in, so
@@ -109,19 +129,22 @@ _mcp23017_install_settings() {
 _mcp23017_check_hardware() {
   local bus="${MCP23017_I2C_BUS:-1}"
   local address="${MCP23017_ADDRESS:-0x20}"
+  local i2cdetect_bin i2cget_bin
 
   if [ ! -e "/dev/i2c-${bus}" ]; then
     warn_mcp23017 "/dev/i2c-${bus} does not exist yet; a reboot is required."
     return 0
   fi
-  if command -v i2cdetect > /dev/null 2>&1; then
-    if i2cdetect -y "$bus" 2>/dev/null | grep -qiE "UU|${address#0x}"; then
+  i2cdetect_bin="$(_mcp23017_find_tool i2cdetect || true)"
+  i2cget_bin="$(_mcp23017_find_tool i2cget || true)"
+  if [ -n "$i2cdetect_bin" ]; then
+    if "$i2cdetect_bin" -y "$bus" 2>/dev/null | grep -qiE "UU|${address#0x}"; then
       log "  MCP23017 detected at ${address} on I2C bus ${bus}"
     else
       warn_mcp23017 "No MCP23017 at ${address} on I2C bus ${bus}; check the jumpers."
     fi
   fi
-  if ! i2cget -f -y "$bus" "$address" 0x0c > /dev/null 2>&1; then
+  if [ -n "$i2cget_bin" ] && ! "$i2cget_bin" -f -y "$bus" "$address" 0x0c > /dev/null 2>&1; then
     warn_mcp23017 "GPPU is not readable; check the address, bus and permissions."
   fi
   if command -v gpioinfo > /dev/null 2>&1 && ! gpioinfo 2>/dev/null | grep -q '16 lines'; then

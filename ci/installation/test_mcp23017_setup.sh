@@ -48,3 +48,18 @@ missing="${work}/missing.txt"
 _mcp23017_apply_boot_config "$missing"
 
 echo "MCP23017 setup tests passed"
+
+# i2c-tools may live outside PATH; the lookup falls back to the sbin dirs and a
+# missing tool only warns instead of aborting the installation.
+fake_bin="${work}/bin"
+mkdir -p "${fake_bin}"
+printf '#!/bin/sh\nexit 0\n' > "${fake_bin}/i2cset"
+chmod +x "${fake_bin}/i2cset"
+[ "$(PATH="${fake_bin}:${PATH}" _mcp23017_find_tool i2cset)" = "${fake_bin}/i2cset" ]
+
+if ! PATH="${fake_bin}" _mcp23017_check_i2c_tools > /dev/null 2>&1; then
+  echo "ERROR: missing i2c-tools must not abort the setup" >&2
+  exit 1
+fi
+
+echo "MCP23017 tool lookup tests passed"
