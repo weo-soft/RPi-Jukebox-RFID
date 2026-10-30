@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -13,9 +13,36 @@ import BatteryIcon from './battery-icon';
 import PubSubContext from '../../context/pubsub/context';
 import { batteryDetails, batteryStateLabel } from './state';
 
+const EDGE_GAP = 8;
+
+// The indicator floats above the content column. Its right edge follows the
+// main region of the current shell, so the position holds for a centered
+// column as well as for a full width layout.
+const useContentEdge = () => {
+  const [right, setRight] = useState(EDGE_GAP);
+
+  useEffect(() => {
+    const update = () => {
+      const main = document.querySelector('main');
+      if (!main) {
+        return;
+      }
+      const distance = window.innerWidth - main.getBoundingClientRect().right;
+      setRight(Math.max(EDGE_GAP, Math.round(distance) + EDGE_GAP));
+    };
+
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  return right;
+};
+
 const BatteryIndicator = () => {
   const { t } = useTranslation();
   const theme = useTheme();
+  const right = useContentEdge();
 
   const { state: {
     'batt_status': battery,
@@ -43,11 +70,13 @@ const BatteryIndicator = () => {
           borderRadius: 2,
           display: 'flex',
           gap: 0.5,
+          minHeight: 48,
+          minWidth: 48,
           paddingLeft: 1,
           paddingRight: 0.5,
           paddingY: 0.5,
           position: 'fixed',
-          right: { xs: '8px', md: 'calc(25vw + 8px)' },
+          right: `${right}px`,
           top: '8px',
           zIndex: 1100,
         }}
