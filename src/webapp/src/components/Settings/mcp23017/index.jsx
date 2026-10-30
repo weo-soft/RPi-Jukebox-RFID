@@ -42,6 +42,7 @@ const SettingsMcp23017 = () => {
     const { result, error: requestError } = await request('mcp23017Settings');
     if (requestError) {
       setError(String(requestError));
+      setLearnState({ state: 'idle' });
       return;
     }
     setSettings(result);
@@ -65,6 +66,7 @@ const SettingsMcp23017 = () => {
     if (!mounted.current) return;
     if (requestError) {
       setError(String(requestError));
+      setLearnState({ state: 'idle' });
       return;
     }
     setSettings(result);
@@ -196,6 +198,7 @@ const SettingsMcp23017 = () => {
                     onChange={event => applyAssignment(entry.pin, event.target.value)}
                     disabled={!running || busy}
                     displayEmpty
+                    inputProps={{ 'aria-label': entry.name }}
                   >
                     <MenuItem value="">{t('settings.mcp23017.unassigned')}</MenuItem>
                     {actions.map(action => (
@@ -234,6 +237,7 @@ const SettingsMcp23017 = () => {
               value={learnAction}
               onChange={event => setLearnAction(event.target.value)}
               disabled={!running || busy || learnState.state === 'waiting'}
+              inputProps={{ 'aria-label': t('settings.mcp23017.learn-title') }}
             >
               {actions.map(action => (
                 <MenuItem key={action.id} value={action.id}>
