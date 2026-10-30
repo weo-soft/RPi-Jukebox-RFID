@@ -53,6 +53,7 @@ const makeSettings = (overrides = {}) => ({
 });
 
 beforeEach(() => {
+  window.localStorage.setItem('settingsCollapsedSections', '[]');
   request.mockImplementation(async command => {
     if (command === 'mcp23017Settings') {
       return { result: makeSettings() };

@@ -5,9 +5,6 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  CardHeader,
   CircularProgress,
   Divider,
   FormControl,
@@ -18,6 +15,7 @@ import {
 } from '@mui/material';
 
 import request from '../../../utils/request';
+import SettingsSection from '../section';
 
 const LEARN_POLL_MS = 500;
 
@@ -138,15 +136,11 @@ const SettingsMcp23017 = () => {
 
   if (settings === null) {
     return (
-      <Card>
-        <CardHeader title={t('settings.mcp23017.title')} />
-        <Divider />
-        <CardContent>
-          {error
-            ? <Alert severity="error">{error}</Alert>
-            : <CircularProgress size={24} />}
-        </CardContent>
-      </Card>
+      <SettingsSection id="mcp23017" title={t('settings.mcp23017.title')}>
+        {error
+          ? <Alert severity="error">{error}</Alert>
+          : <CircularProgress size={24} />}
+      </SettingsSection>
     );
   }
 
@@ -156,13 +150,10 @@ const SettingsMcp23017 = () => {
   const learnedPin = pins.find(entry => entry.pin === learnState.pin);
 
   return (
-    <Card>
-      <CardHeader
-        title={t('settings.mcp23017.title')}
-        subheader={t('settings.mcp23017.description')}
-      />
-      <Divider />
-      <CardContent>
+    <SettingsSection id="mcp23017" title={t('settings.mcp23017.title')}>
+        <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 2 }}>
+          {t('settings.mcp23017.description')}
+        </Typography>
         {!running && (
           <Alert severity="warning" sx={{ marginBottom: 2 }}>
             {t('settings.mcp23017.not-running', { state: settings.state })}
@@ -276,8 +267,7 @@ const SettingsMcp23017 = () => {
             {t('settings.mcp23017.learn-timeout')}
           </Alert>
         )}
-      </CardContent>
-    </Card>
+    </SettingsSection>
   );
 };
 

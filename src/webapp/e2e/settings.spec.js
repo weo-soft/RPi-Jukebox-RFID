@@ -22,6 +22,7 @@ test('settings sections start in the documented state', async ({ page }) => {
   await expect(section('System Controls')).toHaveAttribute('aria-expanded', 'false');
   await expect(section('Second Swipe')).toHaveAttribute('aria-expanded', 'false');
   await expect(section('Auto Hotspot')).toHaveAttribute('aria-expanded', 'false');
+  await expect(section('MCP23017 buttons')).toHaveAttribute('aria-expanded', 'false');
 });
 
 test('a collapsed section keeps its state across a reload', async ({ page }) => {

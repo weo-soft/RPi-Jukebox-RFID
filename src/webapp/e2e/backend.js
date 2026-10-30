@@ -1,5 +1,28 @@
 export const rpcResults = {
   get_app_settings: { show_covers: false },
+  get_button_settings: {
+    state: 'running',
+    enabled: true,
+    bus: 1,
+    address: '0x20',
+    config_file: 'shared/settings/mcp23017.yaml',
+    last_error: null,
+    actions: [
+      { id: 'play_pause', label: 'Play/Pause', type: 'momentary' },
+      { id: 'next', label: 'Next title', type: 'momentary' },
+    ],
+    pins: Array.from({ length: 16 }, (_, pin) => ({
+      pin,
+      name: pin < 8 ? `GPA${pin}` : `GPB${pin - 8}`,
+      assigned: false,
+      button: null,
+      action_id: null,
+      type: null,
+      advanced: false,
+      valid: true,
+      error: null,
+    })),
+  },
   get_autohotspot_status: 'inactive',
   get_disk_usage: { used: 8_000, total: 32_000 },
   get_folder_content: [
