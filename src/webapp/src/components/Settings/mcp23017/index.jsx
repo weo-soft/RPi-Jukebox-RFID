@@ -9,40 +9,37 @@ import {
   CardContent,
   CardHeader,
   CircularProgress,
+  Dialog,
   Divider,
-  FormControl,
-  Grid,
-  MenuItem,
-  Select,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
   Typography,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 
 import request from '../../../utils/request';
-
-const LEARN_POLL_MS = 500;
+import ButtonDialog from './button-dialog';
+import { assignedActionLabel } from './labels';
 
 const SettingsMcp23017 = () => {
   const { t } = useTranslation();
   const [settings, setSettings] = useState(null);
   const [error, setError] = useState('');
+  const [dialog, setDialog] = useState(null);
+  const [removeTarget, setRemoveTarget] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [learnAction, setLearnAction] = useState('play_pause');
-  const [learnState, setLearnState] = useState({ state: 'idle' });
-  const pollTimer = useRef(null);
   const mounted = useRef(true);
-
-  const stopPolling = useCallback(() => {
-    if (pollTimer.current !== null) {
-      clearInterval(pollTimer.current);
-      pollTimer.current = null;
-    }
-  }, []);
 
   const refresh = useCallback(async () => {
     const { result, error: requestError } = await request('mcp23017Settings');
+    if (!mounted.current) return;
     if (requestError) {
       setError(String(requestError));
-      setLearnState({ state: 'idle' });
       return;
     }
     setSettings(result);
@@ -53,87 +50,27 @@ const SettingsMcp23017 = () => {
     refresh();
     return () => {
       mounted.current = false;
-      stopPolling();
     };
-  }, [refresh, stopPolling]);
+  }, [refresh]);
 
-  const assignLearned = useCallback(async (pin, actionId) => {
+  const remove = async () => {
     setBusy(true);
-    const { result, error: requestError } = await request(
-      'mcp23017SetButton', { pin, action_id: actionId });
-    await request('mcp23017CancelLearn');
-    setBusy(false);
-    if (!mounted.current) return;
-    if (requestError) {
-      setError(String(requestError));
-      setLearnState({ state: 'idle' });
-      return;
-    }
-    setSettings(result);
-  }, []);
-
-  const pollLearn = useCallback(async (actionId) => {
-    const { result, error: requestError } = await request('mcp23017LearnState');
-    if (!mounted.current) return;
-    if (requestError) {
-      stopPolling();
-      setError(String(requestError));
-      setLearnState({ state: 'idle' });
-      return;
-    }
-    setLearnState(result);
-    if (result.state === 'learned') {
-      stopPolling();
-      await assignLearned(result.pin, result.action_id || actionId);
-    } else if (result.state === 'timeout') {
-      stopPolling();
-      await request('mcp23017CancelLearn');
-    } else if (result.state === 'idle') {
-      stopPolling();
-    }
-  }, [assignLearned, stopPolling]);
-
-  const startLearn = async () => {
     setError('');
-    setBusy(true);
     const { result, error: requestError } = await request(
-      'mcp23017StartLearn', { action_id: learnAction });
-    setBusy(false);
+      'mcp23017ClearButton', { pin: removeTarget.pin });
     if (!mounted.current) return;
-    if (requestError) {
-      setError(String(requestError));
-      return;
-    }
-    setLearnState(result);
-    stopPolling();
-    pollLearn(learnAction);
-    pollTimer.current = setInterval(() => pollLearn(learnAction), LEARN_POLL_MS);
-  };
-
-  const cancelLearn = async () => {
-    stopPolling();
-    await request('mcp23017CancelLearn');
-    if (mounted.current) setLearnState({ state: 'idle' });
-  };
-
-  const applyAssignment = async (pin, actionId) => {
-    setError('');
-    setBusy(true);
-    const { result, error: requestError } = actionId
-      ? await request('mcp23017SetButton', { pin, action_id: actionId })
-      : await request('mcp23017ClearButton', { pin });
     setBusy(false);
-    if (!mounted.current) return;
     if (requestError) {
       setError(String(requestError));
       return;
     }
     setSettings(result);
+    setRemoveTarget(null);
   };
 
-  const actionLabel = (action) => {
-    const label = t(`settings.mcp23017.actions.${action.id}`, { defaultValue: action.label });
-    return action.danger ? `${label} ⚠` : label;
+  const save = (result) => {
+    setSettings(result);
+    setDialog(null);
   };
 
   if (settings === null) {
@@ -152,63 +89,53 @@ const SettingsMcp23017 = () => {
 
   const running = settings.state === 'running';
   const actions = settings.actions || [];
-  const pins = settings.pins || [];
-  const learnedPin = pins.find(entry => entry.pin === learnState.pin);
+  const assigned = settings.pins.filter(entry => entry.assigned);
 
   return (
     <Card>
-      <CardHeader
-        title={t('settings.mcp23017.title')}
-        subheader={t('settings.mcp23017.description')}
-      />
+      <CardHeader title={t('settings.mcp23017.title')} />
       <Divider />
       <CardContent>
-        {!running && (
-          <Alert severity="warning" sx={{ marginBottom: 2 }}>
-            {t('settings.mcp23017.not-running', { state: settings.state })}
-            {settings.last_error ? `: ${settings.last_error}` : ''}
-          </Alert>
-        )}
-        {error && (
-          <Alert severity="error" sx={{ marginBottom: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
+      <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 2 }}>
+        {t('settings.mcp23017.description')}
+      </Typography>
+      {!running && (
+        <Alert severity="warning" sx={{ marginBottom: 2 }}>
+          {t('settings.mcp23017.not-running', { state: settings.state })}
+          {settings.last_error ? `: ${settings.last_error}` : ''}
+        </Alert>
+      )}
+      {error && (
+        <Alert severity="error" sx={{ marginBottom: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
 
-        <Typography variant="subtitle2" sx={{ marginBottom: 1 }}>
-          {t('settings.mcp23017.assignment-title')}
+      {assigned.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          {t('settings.mcp23017.empty')}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 2 }}>
-          {t('settings.mcp23017.assignment-description')}
-        </Typography>
-
-        <Grid container spacing={1} sx={{ marginBottom: 3 }}>
-          {pins.map(entry => (
-            <Grid key={entry.pin} size={{ xs: 12, sm: 6 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography
-                  sx={{ width: 48, fontFamily: 'monospace', flexShrink: 0 }}
-                  variant="body2"
-                >
-                  {entry.name}
-                </Typography>
-                <FormControl size="small" fullWidth>
-                  <Select
-                    value={entry.action_id || ''}
-                    onChange={event => applyAssignment(entry.pin, event.target.value)}
-                    disabled={!running || busy}
-                    displayEmpty
-                    inputProps={{ 'aria-label': entry.name }}
-                  >
-                    <MenuItem value="">{t('settings.mcp23017.unassigned')}</MenuItem>
-                    {actions.map(action => (
-                      <MenuItem key={action.id} value={action.id}>
-                        {actionLabel(action)}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
+      ) : (
+        assigned.map(entry => (
+          <Box
+            key={entry.pin}
+            sx={{
+              alignItems: 'center',
+              borderBottom: 1,
+              borderColor: 'divider',
+              display: 'flex',
+              gap: 1,
+              paddingY: 1,
+              '&:last-child': { borderBottom: 0 },
+            }}
+          >
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                {entry.name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {assignedActionLabel(t, entry, actions)}
+              </Typography>
               {entry.advanced && (
                 <Typography variant="caption" color="warning.main">
                   {t('settings.mcp23017.advanced', { type: entry.type })}
@@ -219,63 +146,68 @@ const SettingsMcp23017 = () => {
                   {entry.error}
                 </Typography>
               )}
-            </Grid>
-          ))}
-        </Grid>
-
-        <Divider sx={{ marginBottom: 2 }} />
-        <Typography variant="subtitle2" sx={{ marginBottom: 1 }}>
-          {t('settings.mcp23017.learn-title')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 2 }}>
-          {t('settings.mcp23017.learn-description')}
-        </Typography>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <Select
-              value={learnAction}
-              onChange={event => setLearnAction(event.target.value)}
-              disabled={!running || busy || learnState.state === 'waiting'}
-              inputProps={{ 'aria-label': t('settings.mcp23017.learn-title') }}
+            </Box>
+            <IconButton
+              size="large"
+              aria-label={t('settings.mcp23017.edit', { pin: entry.name })}
+              onClick={() => setDialog({ mode: 'edit', pin: entry.pin })}
+              disabled={!running || busy}
             >
-              {actions.map(action => (
-                <MenuItem key={action.id} value={action.id}>
-                  {actionLabel(action)}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Button
-            variant="contained"
-            onClick={startLearn}
-            disabled={!running || busy || learnState.state === 'waiting'}
-          >
-            {t('settings.mcp23017.learn-start')}
-          </Button>
-          {learnState.state === 'waiting' && (
-            <>
-              <CircularProgress size={18} />
-              <Typography variant="body2">
-                {t('settings.mcp23017.learn-waiting')}
-              </Typography>
-              <Button size="small" onClick={cancelLearn}>
-                {t('settings.mcp23017.learn-cancel')}
-              </Button>
-            </>
-          )}
-        </Box>
+              <EditIcon />
+            </IconButton>
+            <IconButton
+              size="large"
+              aria-label={t('settings.mcp23017.delete', { pin: entry.name })}
+              onClick={() => setRemoveTarget(entry)}
+              disabled={!running || busy}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+        ))
+      )}
 
-        {learnState.state === 'learned' && learnedPin && (
-          <Alert severity="success" sx={{ marginTop: 2 }}>
-            {t('settings.mcp23017.learn-done', { pin: learnedPin.name })}
-          </Alert>
-        )}
-        {learnState.state === 'timeout' && (
-          <Alert severity="warning" sx={{ marginTop: 2 }}>
-            {t('settings.mcp23017.learn-timeout')}
-          </Alert>
-        )}
+      <Button
+        variant="outlined"
+        startIcon={<AddIcon />}
+        onClick={() => setDialog({ mode: 'add' })}
+        disabled={!running || busy}
+        sx={{ minHeight: 48, marginTop: 2 }}
+      >
+        {t('settings.mcp23017.add')}
+      </Button>
+
+      {dialog && (
+        <ButtonDialog
+          mode={dialog.mode}
+          pin={dialog.pin}
+          settings={settings}
+          onClose={() => setDialog(null)}
+          onSaved={save}
+        />
+      )}
+
+      <Dialog open={Boolean(removeTarget)} onClose={() => setRemoveTarget(null)}>
+        <DialogTitle>{t('settings.mcp23017.remove-title')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {removeTarget
+              ? t('settings.mcp23017.remove-text', {
+                pin: removeTarget.name,
+                action: assignedActionLabel(t, removeTarget, actions),
+              })
+              : ''}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRemoveTarget(null)} disabled={busy}>
+            {t('settings.mcp23017.cancel')}
+          </Button>
+          <Button color="error" onClick={remove} disabled={busy}>
+            {t('settings.mcp23017.remove')}
+          </Button>
+        </DialogActions>
+      </Dialog>
       </CardContent>
     </Card>
   );
