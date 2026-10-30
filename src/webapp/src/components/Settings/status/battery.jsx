@@ -8,7 +8,7 @@ import {
   Avatar,
 } from '@mui/material';
 
-import BatteryIcon from '../helpers/battery-icon';
+import BatteryIcon from '../../Battery/battery-icon';
 import PubSubContext from '../../../context/pubsub/context';
 import { pluginIsLoaded } from '../../../utils/utils';
 
