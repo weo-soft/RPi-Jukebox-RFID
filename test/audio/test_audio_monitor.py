@@ -6,6 +6,7 @@ import pytest
 
 import jukebox.plugs as plugin
 
+_saved_publishing = sys.modules.get('jukebox.publishing')
 sys.modules.setdefault('jukebox.publishing', MagicMock())
 
 
@@ -19,6 +20,11 @@ plugin.atexit = dummy_decorator
 plugin.tag = dummy_decorator
 
 import components.volume as volume  # noqa: E402
+
+if _saved_publishing is None:
+    sys.modules.pop('jukebox.publishing', None)
+else:
+    sys.modules['jukebox.publishing'] = _saved_publishing
 
 
 @pytest.fixture

@@ -2,6 +2,7 @@ import importlib
 import logging
 import sys
 import threading
+import types
 from unittest.mock import MagicMock
 
 import pytest
@@ -15,6 +16,15 @@ def _passthrough_decorator(obj=None, **ignored_kwargs):
     return obj
 
 
+def _real_publishing():
+    """Return the real publishing module, replacing a mock left by another test."""
+    publishing_module = sys.modules.get('jukebox.publishing')
+    if isinstance(publishing_module, types.ModuleType):
+        return publishing_module
+    sys.modules.pop('jukebox.publishing', None)
+    return importlib.import_module('jukebox.publishing')
+
+
 @pytest.fixture
 def hostif_linux(monkeypatch):
     monkeypatch.setattr(plugin, 'register', _passthrough_decorator)
@@ -22,13 +32,10 @@ def hostif_linux(monkeypatch):
     monkeypatch.setattr(plugin, 'finalize', _passthrough_decorator)
     monkeypatch.setattr(plugin, 'atexit', _passthrough_decorator)
     monkeypatch.setattr(plugin, 'loaded_as', lambda ignored_name: 'host')
-    publishing_module = sys.modules.get('jukebox.publishing')
-    if publishing_module is None:
-        publishing_module = importlib.import_module('jukebox.publishing')
     monkeypatch.setattr(
         sys.modules['jukebox'],
         'publishing',
-        publishing_module,
+        _real_publishing(),
         raising=False,
     )
 
@@ -46,13 +53,17 @@ def _temperature_config(*keys, value):
 
 
 def _patch_get_publisher(hostif_linux, monkeypatch, get_publisher):
+    publishing_module = _real_publishing()
     monkeypatch.setattr(
-        hostif_linux.jukebox.publishing,
-        'get_publisher',
-        get_publisher,
+        sys.modules['jukebox'],
+        'publishing',
+        publishing_module,
+        raising=False,
     )
+    monkeypatch.setattr(publishing_module, 'get_publisher', get_publisher)
     timer_module = sys.modules[hostif_linux.GenericEndlessTimerClass.__module__]
-    monkeypatch.setattr(timer_module.publishing, 'get_publisher', get_publisher)
+    monkeypatch.setattr(timer_module, 'publishing', publishing_module, raising=False)
+    monkeypatch.setattr(publishing_module, 'get_publisher', get_publisher)
 
 
 def test_unavailable_sensor_leaves_temperature_timer_disabled(
