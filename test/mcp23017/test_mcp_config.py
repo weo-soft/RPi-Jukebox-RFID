@@ -1,5 +1,7 @@
 """Configuration parsing and validation tests for the MCP23017 plugin."""
 
+import os
+
 import pytest
 import jukebox.cfghandler as cfghandler
 from ruamel.yaml import YAML
@@ -270,3 +272,30 @@ def test_yaml_handler_receives_the_parsed_data():
     handler = cfghandler.ConfigHandler('mcp23017-direct')
     handler.config_dict(YAML(typ='rt').load(BASE))
     assert parse_config(handler).bus == 1
+
+
+REPOSITORY_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def load_file(name):
+    path = os.path.join(REPOSITORY_ROOT, 'resources', 'default-settings', name)
+    handler = cfghandler.ConfigHandler(name)
+    cfghandler.load_yaml(handler, path)
+    return handler
+
+
+def test_example_configuration_is_valid():
+    config = parse_config(load_file('mcp23017.example.yaml'))
+    assert [button.name for button in config.buttons] == [
+        'play_pause', 'next', 'previous', 'volume_up', 'volume_down']
+    assert all(button.valid for button in config.buttons)
+    assert config.gppu_mask == 0x1f
+    assert config.buttons[3].hold_ms == 500
+
+
+def test_default_jukebox_configuration_contains_the_module():
+    handler = load_file('jukebox.default.yaml')
+    assert handler.getn('modules', 'named', 'mcp23017', default=None) == 'gpio.mcp23017.plugin'
+    assert handler.getn('mcp23017', 'enable', default=None) is False
+    assert handler.getn('mcp23017', 'config_file', default=None) == \
+        '../../shared/settings/mcp23017.yaml'
