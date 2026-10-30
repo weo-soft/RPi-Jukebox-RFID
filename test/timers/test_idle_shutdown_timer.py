@@ -1,8 +1,11 @@
+import importlib
 import importlib.util
 import logging
 import os
+import sys
 import threading
 import time
+import types
 from pathlib import Path
 
 import pytest
@@ -48,6 +51,15 @@ class SnapshotSequence:
         return value
 
 
+def _real_publishing():
+    """Return the real publishing module, replacing a mock left by another test."""
+    publishing_module = sys.modules.get('jukebox.publishing')
+    if isinstance(publishing_module, types.ModuleType):
+        return publishing_module
+    sys.modules.pop('jukebox.publishing', None)
+    return importlib.import_module('jukebox.publishing')
+
+
 class Publisher:
     def __init__(self):
         self.messages = []
@@ -61,6 +73,7 @@ def controller_factory(monkeypatch):
     controllers = []
     config_writes = []
     publisher = Publisher()
+    monkeypatch.setattr(idle_shutdown, 'publishing', _real_publishing(), raising=False)
     monkeypatch.setattr(
         idle_shutdown.publishing,
         'get_publisher',
