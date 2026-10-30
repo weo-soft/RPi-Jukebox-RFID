@@ -15,6 +15,9 @@ The GPIO configuration itself is stored in a separate file, in this case ``../..
 The GPIO module uses [GPIOZero](https://gpiozero.readthedocs.io/) as a backend to access the RPi's GPIO pins.
 It's a wrapper to integrate GPIOZero into the Jukebox's API, allowing a YAML based configuration and providing helpful error messages on misconfiguration.
 
+Buttons connected to an MCP23017 I2C GPIO expander are configured separately;
+see [MCP23017 buttons](mcp23017-buttons.md).
+
 ## Pin Numbering
 
 The pin numbering is the BCM pin numbering, as is the

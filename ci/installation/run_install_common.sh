@@ -22,6 +22,7 @@ export ENABLE_WEBAPP_PROD_DOWNLOAD=true
 # n - disable on-chip audio
 # - - mpd overwrite config (only with existing installation)
 # n - setup rfid reader
+# n - support MCP23017 buttons
 # y - setup samba
 # y - setup webapp
 # - - exact Web App bundle download (forced)
@@ -32,6 +33,7 @@ export ENABLE_WEBAPP_PROD_DOWNLOAD=true
 n
 n
 y
+n
 n
 n
 n

@@ -7,6 +7,7 @@ install() {
   set_raspi_config
   init_git_repo_from_tardir
   setup_jukebox_core
+  setup_mcp23017
   setup_mpd
   setup_samba
   setup_jukebox_webapp

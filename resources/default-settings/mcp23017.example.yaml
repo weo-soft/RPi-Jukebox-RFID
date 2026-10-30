@@ -1,0 +1,74 @@
+# MCP23017 I2C GPIO expander (Adafruit 5346)
+#
+# The expander is driven by the kernel through the mcp23017 overlay; its 16
+# lines appear as an additional gpiochip. Buttons connect one contact to the
+# line and the other contact to GND; the internal pull-up provides the idle
+# level.
+#
+# Pin names: GPA0-GPA7 are lines 0-7, GPB0-GPB7 are lines 8-15. A plain line
+# number (0-15) is accepted as well.
+#
+# Types:
+#   momentary        on_press fires once per press
+#   long_press       on_long_press fires when hold_ms is reached
+#   short_long_press on_short_press on release before hold_ms, otherwise
+#                    on_long_press
+#   hold_repeat      on_press fires immediately and repeats every hold_ms
+bus: 1
+address: 0x20
+chip: auto          # auto or a fixed gpiochip number
+poll_interval_ms: 25
+buttons:
+  play_pause:
+    pin: GPA0
+    type: momentary
+    active_low: true
+    pull_up: internal
+    debounce_ms: 30
+    actions:
+      on_press:
+        alias: toggle
+
+  next:
+    pin: GPA1
+    type: momentary
+    active_low: true
+    pull_up: internal
+    debounce_ms: 30
+    actions:
+      on_press:
+        alias: next_song
+
+  previous:
+    pin: GPA2
+    type: momentary
+    active_low: true
+    pull_up: internal
+    debounce_ms: 30
+    actions:
+      on_press:
+        alias: prev_song
+
+  volume_up:
+    pin: GPA3
+    type: hold_repeat
+    active_low: true
+    pull_up: internal
+    debounce_ms: 30
+    hold_ms: 500
+    actions:
+      on_press:
+        alias: change_volume
+        args: [2]
+
+  volume_down:
+    pin: GPA4
+    type: hold_repeat
+    active_low: true
+    pull_up: internal
+    debounce_ms: 30
+    hold_ms: 500
+    actions:
+      on_press:
+        alias: change_volume
+        args: [-2]

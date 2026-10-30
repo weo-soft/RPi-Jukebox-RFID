@@ -371,6 +371,45 @@
     },
     "systemcontrols": {
       "title": "Systemsteuerung"
+    },
+    "mcp23017": {
+      "title": "MCP23017-Taster",
+      "description": "Es werden nur zugeordnete Taster angezeigt. Füge eine neue Zuordnung hinzu oder bearbeite bzw. entferne eine bestehende.",
+      "empty": "Es sind noch keine Taster zugeordnet.",
+      "add": "Zuordnung hinzufügen",
+      "edit": "{{pin}} bearbeiten",
+      "delete": "{{pin}} löschen",
+      "remove-title": "Zuordnung entfernen?",
+      "remove-text": "{{pin}} löst dann nicht mehr „{{action}}“ aus.",
+      "remove": "Entfernen",
+      "cancel": "Abbrechen",
+      "dialog-add-title": "Tasterzuordnung hinzufügen",
+      "dialog-edit-title": "Tasterzuordnung ändern",
+      "mode-direct": "Eingang und Aktion wählen",
+      "mode-learn": "Durch Drücken zuordnen",
+      "pin": "Eingang",
+      "action": "Aktion",
+      "choose-action": "Aktion wählen",
+      "save": "Speichern",
+      "no-free-pins": "Alle Eingänge sind belegt.",
+      "advanced": "Erweiterte YAML-Definition ({{type}})",
+      "advanced-label": "Erweitert ({{type}})",
+      "advanced-edit": "Dieser Eingang hat eine erweiterte YAML-Definition. Speichern ersetzt sie.",
+      "not-running": "Das MCP23017-Plugin ist {{state}}.",
+      "learn-description": "Wähle eine Aktion und drücke innerhalb von 15 Sekunden den gewünschten Taster.",
+      "learn-start": "Anlernen starten",
+      "learn-waiting": "Jetzt einen Taster drücken …",
+      "learn-timeout": "Es wurde kein Taster gedrückt.",
+      "actions": {
+        "play_pause": "Play/Pause",
+        "next": "Nächster Titel",
+        "previous": "Vorheriger Titel",
+        "volume_up": "Lautstärke erhöhen",
+        "volume_down": "Lautstärke senken",
+        "shutdown": "Herunterfahren",
+        "reboot": "Neustart",
+        "say_ip": "IP-Adresse ansagen"
+      }
     }
   }
 }

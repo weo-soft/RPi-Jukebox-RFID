@@ -5,6 +5,7 @@ at
 alsa-utils
 espeak
 ffmpeg
+i2c-tools
 libasound2-dev
 liblgpio-dev
 libzmq5

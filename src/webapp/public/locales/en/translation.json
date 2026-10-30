@@ -373,6 +373,45 @@
     },
     "systemcontrols": {
       "title": "System Controls"
+    },
+    "mcp23017": {
+      "title": "MCP23017 buttons",
+      "description": "Only assigned buttons are listed. Add a new assignment or edit and remove an existing one.",
+      "empty": "No buttons are assigned yet.",
+      "add": "Add assignment",
+      "edit": "Edit {{pin}}",
+      "delete": "Delete {{pin}}",
+      "remove-title": "Remove assignment?",
+      "remove-text": "{{pin}} will no longer trigger {{action}}.",
+      "remove": "Remove",
+      "cancel": "Cancel",
+      "dialog-add-title": "Add button assignment",
+      "dialog-edit-title": "Change button assignment",
+      "mode-direct": "Choose input and action",
+      "mode-learn": "Assign by pressing",
+      "pin": "Input",
+      "action": "Action",
+      "choose-action": "Choose an action",
+      "save": "Save",
+      "no-free-pins": "All inputs are assigned.",
+      "advanced": "Advanced YAML definition ({{type}})",
+      "advanced-label": "Advanced ({{type}})",
+      "advanced-edit": "This input has an advanced YAML definition. Saving replaces it.",
+      "not-running": "The MCP23017 plugin is {{state}}.",
+      "learn-description": "Choose an action and press the button you want to use within 15 seconds.",
+      "learn-start": "Start learning",
+      "learn-waiting": "Press a button now…",
+      "learn-timeout": "No button was pressed in time.",
+      "actions": {
+        "play_pause": "Play/Pause",
+        "next": "Next title",
+        "previous": "Previous title",
+        "volume_up": "Volume up",
+        "volume_down": "Volume down",
+        "shutdown": "Shut down",
+        "reboot": "Reboot",
+        "say_ip": "Say IP address"
+      }
     }
   }
 }
