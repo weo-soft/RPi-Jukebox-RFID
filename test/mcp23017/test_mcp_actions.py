@@ -95,6 +95,32 @@ def test_resolve_full_rpc():
     }
 
 
+def test_binder_wakes_the_display_after_the_action(monkeypatch):
+    from components.gpio.mcp23017 import actions
+
+    calls = []
+    monkeypatch.setattr(
+        actions.jukebox.utils,
+        'bind_rpc_command',
+        lambda *args, **kwargs: lambda: calls.append('action'),
+    )
+    monkeypatch.setattr(
+        actions.plugin,
+        'call_ignore_errors',
+        lambda *args, **kwargs: calls.append(('display', 'activity')),
+    )
+    resolved = resolve_action(
+        ActionSpec(source='rpc', package='player', plugin='ctrl',
+                   method='toggle'),
+        {},
+    )
+
+    function = actions.ActionBinder().bind(resolved)
+    function()
+
+    assert calls == ['action', ('display', 'activity')]
+
+
 def test_binder_binds_a_real_plugin_callable():
     code = textwrap.dedent("""
         import jukebox.plugs as plugs

@@ -13,6 +13,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Mapping, Optional
 
+import jukebox.plugs as plugin
 import jukebox.utils
 
 logger = logging.getLogger('jb.mcp23017')
@@ -134,9 +135,16 @@ class ActionBinder:
         self._logger = log
 
     def bind(self, action: ResolvedAction) -> Callable[[], Any]:
-        """Return a callable that runs the action without going through ``plugs.call``."""
-        return jukebox.utils.bind_rpc_command(action.to_rpc(), dereference=True,
-                                              logger=self._logger)
+        """Bind the action and wake the display after it ran."""
+        function = jukebox.utils.bind_rpc_command(action.to_rpc(), dereference=True,
+                                                  logger=self._logger)
+
+        def bound():
+            result = function()
+            plugin.call_ignore_errors('display', 'activity')
+            return result
+
+        return bound
 
 
 def _parse_args(value: Any) -> Optional[List[Any]]:
