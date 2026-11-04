@@ -386,6 +386,7 @@ setup_samba() { :; }
 setup_jellyfin() { :; }
 setup_jukebox_webapp() { :; }
 setup_kiosk_mode() { :; }
+setup_display() { CALLED+=("setup_display"); }
 setup_rfid_reader() { :; }
 optimize_boot_time() { :; }
 setup_autohotspot() { :; }
@@ -404,6 +405,7 @@ install
 [[ "${ENABLE_KIOSK_MODE}" == "false" ]] || fail "kiosk mode was not disabled without the WebApp"
 [[ "${ENABLE_STATIC_IP}" == "false" ]]  || fail "static IP was not disabled with autohotspot"
 [[ " ${CALLED[*]} " != *" customize_options "* ]] || fail "customize_options was called in non-interactive mode"
+[[ " ${CALLED[*]} " == *" setup_display "* ]] || fail "display setup was not called in non-interactive mode"
 
 # The WebApp bundle normalization is re-applied when the WebApp is enabled
 CALLED=()
