@@ -49,6 +49,8 @@ jobs:
         run: bash ./ci/installation/test_install_noninteractive.sh
       - name: Test MCP23017 setup routine
         run: bash ./ci/installation/test_mcp23017_setup.sh
+      - name: Test display setup routine
+        run: bash ./ci/installation/test_display_setup.sh
 
   run_raspbian_armv6_zmq:
     name: 'Raspberry Pi Debian bookworm armv6 ZMQ packages'

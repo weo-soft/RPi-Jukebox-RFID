@@ -354,8 +354,6 @@ const commands = {
     method: 'cancel_learn',
   },
 
-  // Synchronisation
-
   // Display
   displayStatus: {
     _package: 'display',
@@ -391,6 +389,7 @@ const commands = {
     plugin: 'set_power',
     argKeys: ['on'],
   },
+  // Synchronisation
   'sync_rfidcards_all': {
     _package: 'sync_rfidcards',
     plugin: 'ctrl',
@@ -402,6 +401,8 @@ const commands = {
     method: 'sync_change_on_rfid_scan',
     argKeys: ['option']
   },
+
+
 };
 
 export default commands;

@@ -37,6 +37,7 @@ install() {
           run_and_print_lc ./setup_hifiberry.sh enable "${HIFIBERRY_BOARD}")
   fi
   setup_kiosk_mode
+  setup_display
   setup_rfid_reader
   optimize_boot_time
   setup_autohotspot

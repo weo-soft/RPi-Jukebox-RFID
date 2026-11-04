@@ -12,6 +12,7 @@
 * [Web App](./webapp.md)
 * [Player Backends](./player-backends.md)
 * [Battery Sources](./battery-sources.md)
+* [Display Plugin](./display.md)
 * [RFID Readers](./rfid/README.md)
 * [Docstring API Docs (from py files)](./docstring/README.md)
 * [Plugin Reference](./docstring/README.md#jukebox.plugs)

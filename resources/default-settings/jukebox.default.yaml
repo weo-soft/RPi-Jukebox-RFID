@@ -20,6 +20,7 @@ modules:
     gpio: gpio.gpioz.plugin
     mcp23017: gpio.mcp23017.plugin
     sync_rfidcards: synchronisation.rfidcards
+    display: display
   others:
   - misc
 pulse:
@@ -213,3 +214,45 @@ webapp:
   # library
   # Defaults to 100
   library_page_size: 100
+
+display:
+  # Sysfs backlight device. Empty = auto-detect through /sys/class/backlight/*
+  # (for example "rpi_backlight" for the official 7" display).
+  # The installer writes the name only when exactly one device exists.
+  backlight_device: ""
+  # DDC/CI brightness for HDMI monitors without a sysfs backlight.
+  #   auto : use only when no sysfs device exists
+  #   on   : prefer DDC/CI, even when a sysfs device exists
+  #   off  : never use DDC/CI
+  ddc_control: auto
+  # Display number for `ddcutil -d <n>`.
+  ddc_display: 1
+  # X11 software fallback (gamma for brightness, DPMS for standby).
+  #   auto : only for capabilities without a hardware solution
+  #   off  : never use X11
+  x11_control: auto
+  # X11 output for xrandr, for example "HDMI-1". Empty = auto-detect.
+  x11_output: ""
+  # Active brightness in percent (1-100).
+  brightness: 100
+  # Brightness of the dimmed stage in percent (0-100).
+  dim_brightness: 10
+  # Inactivity until dimming, in minutes. 0 disables the dim stage.
+  dim_timeout_min: 2
+  # Inactivity until standby, in minutes. 0 disables standby.
+  # Must be 0 or at least dim_timeout_min.
+  standby_timeout_min: 5
+  # Standby mechanic:
+  #   auto      : backlight for sysfs/DDC, otherwise power_off
+  #   backlight : brightness 0 through the active source
+  #   power_off : complete power-off through vcgencmd, DDC/CI or X11 DPMS
+  standby_mechanic: auto
+  # Music policy:
+  #   normal            : timers run independently of playback
+  #   on_while_playing  : stay active while music is playing
+  #   dim_while_playing : allow dimming, no standby while playing
+  music_mode: normal
+  # Evdev touch device name or substring. Empty = auto-detect.
+  touch_device: ""
+  # Additional evdev devices whose key events count as interaction.
+  button_devices: []
