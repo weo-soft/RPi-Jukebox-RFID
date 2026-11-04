@@ -5,6 +5,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid';
 
 import AppSettingsProvider from './context/appsettings';
+import WakeOverlay from './components/display/WakeOverlay';
 import PubSubProvider from './context/pubsub';
 import PlayerProvider from './context/player';
 import Router from './router';
@@ -26,6 +27,7 @@ function App() {
           </Grid>
         </AppSettingsProvider>
       </PlayerProvider>
+      <WakeOverlay />
     </PubSubProvider>
   );
 }
