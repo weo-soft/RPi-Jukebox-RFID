@@ -14,7 +14,6 @@ from time import monotonic
 import evdev
 import zmq
 from components.controls.common.evdev_listener import EvDevKeyListener, find_device
-from jukebox.publishing.subscriber import Subscriber
 
 logger = logging.getLogger('jb.display.activity')
 
@@ -33,7 +32,7 @@ class ActivityMonitor:
             touch_device='',
             button_devices=None,
             clock=monotonic,
-            subscriber_factory=Subscriber,
+            subscriber_factory=None,
             input_device_factory=evdev.InputDevice,
             key_listener_factory=EvDevKeyListener):
         self._state_machine = state_machine
@@ -121,8 +120,11 @@ class ActivityMonitor:
             self._close_subscriber(subscriber)
 
     def _subscribe(self):
+        factory = self._subscriber_factory
+        if factory is None:
+            from jukebox.publishing.subscriber import Subscriber as factory
         try:
-            return self._subscriber_factory(
+            return factory(
                 'inproc://PublisherToProxy',
                 topics=['rfid.card_id', 'playerstatus'],
             )
