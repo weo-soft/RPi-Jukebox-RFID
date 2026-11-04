@@ -310,7 +310,13 @@ class X11Control:
         if not self.authority or not os.path.isfile(self.authority):
             self.authority = _find_x_authority()
 
+    def _ensure_environment(self):
+        if self.authority and os.path.isfile(self.authority):
+            return
+        self._resolve_environment()
+
     def _run_x(self, args, timeout):
+        self._ensure_environment()
         environment = os.environ.copy()
         environment['DISPLAY'] = self.display
         if self.authority:

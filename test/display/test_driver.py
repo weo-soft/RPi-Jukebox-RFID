@@ -276,6 +276,26 @@ def test_x11_probe_gamma_and_power(tmp_path, monkeypatch):
     assert x11.calls_with(['xset', '-dpms'])
 
 
+def test_x11_reresolves_when_the_authority_disappears(tmp_path, monkeypatch):
+    old = tmp_path / 'old-serverauth'
+    old.write_text('', encoding='ascii')
+    new = tmp_path / 'new-serverauth'
+    new.write_text('', encoding='ascii')
+    x11 = FakeX11()
+    monkeypatch.setattr(driver, '_run_command', x11)
+    monkeypatch.setattr(driver.shutil, 'which', make_which('xset', 'xrandr'))
+    control = driver.X11Control(
+        environ={'DISPLAY': ':0', 'XAUTHORITY': str(old)},
+    )
+    assert control.probe() is True
+
+    old.unlink()
+    monkeypatch.setattr(driver, '_find_x_authority', lambda: str(new))
+    control._ensure_environment()
+
+    assert control.authority == str(new)
+
+
 def test_x11_output_missing(tmp_path, monkeypatch):
     authority = tmp_path / 'serverauth'
     authority.write_text('', encoding='ascii')
