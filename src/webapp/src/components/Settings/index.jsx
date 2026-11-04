@@ -2,6 +2,7 @@
 import { Grid } from '@mui/material';
 
 import SettingsAudio from './audio/index';
+import SettingsDisplay from './display/index';
 import SettingsAutoHotspot from './autohotspot';
 import SettingsGeneral from './general';
 import SettingsSecondSwipe from './secondswipe';
@@ -33,6 +34,9 @@ const Settings = () => {
       </Grid>
       <Grid>
         <SettingsTimers />
+      </Grid>
+      <Grid>
+        <SettingsDisplay />
       </Grid>
       <Grid>
         <SettingsAudio />

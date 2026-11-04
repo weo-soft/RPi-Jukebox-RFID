@@ -84,7 +84,40 @@
             "title": "Lautstärke Stufen"
           }
         },
-        "timers": {
+        "display": {
+      "title": "Display",
+      "state": "Zustand",
+      "state-active": "An",
+      "state-dimmed": "Gedimmt",
+      "state-standby": "Standby",
+      "source": "Quelle",
+      "source-sysfs": "Backlight",
+      "source-ddc": "DDC/CI",
+      "source-x11": "Software-Dimmen (Gamma)",
+      "source-none": "Keine",
+      "device": "Gerät",
+      "brightness": "Helligkeit",
+      "dim-brightness": "Dim-Helligkeit",
+      "dim-timeout": "Dimmen nach (Minuten)",
+      "standby-timeout": "Standby nach (Minuten)",
+      "music-mode": "Solange Musik läuft",
+      "music-mode-normal": "Normal",
+      "music-mode-on": "An lassen",
+      "music-mode-dim": "Dimmen",
+      "standby-mechanic": "Standby-Mechanik",
+      "standby-mechanic-auto": "Automatisch",
+      "standby-mechanic-backlight": "Dunkel (Backlight 0)",
+      "standby-mechanic-power-off": "Aus (Display-Power)",
+      "power": "Display an",
+      "busy": "Wird angewendet…",
+      "unavailable": "Display nicht steuerbar.",
+      "no-backlight": "Kein Backlight-Gerät gefunden. Standby ist weiterhin möglich.",
+      "no-input": "Keine Berechtigung für Eingabegeräte. Tasten wecken das Display nicht.",
+      "software-dim": "Software-Dimmen (Gamma) – die Hintergrundbeleuchtung bleibt an.",
+      "errors": "Fehler",
+      "tap-to-wake": "Zum Aufwecken berühren"
+    },
+    "timers": {
           "description": "Wähle die Anzahl der Minuten nachdem die Aktion ausgeführt werden soll.",
           "restart": "Laufenden Timer neu starten"
         },

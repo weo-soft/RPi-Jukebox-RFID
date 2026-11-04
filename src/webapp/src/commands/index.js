@@ -308,6 +308,42 @@ const commands = {
     method: 'sync_change_on_rfid_scan',
     argKeys: ['option']
   },
+
+  // Display
+  displayStatus: {
+    _package: 'display',
+    plugin: 'status',
+  },
+  displaySetBrightness: {
+    _package: 'display',
+    plugin: 'set_brightness',
+    argKeys: ['percent'],
+  },
+  displaySetDimBrightness: {
+    _package: 'display',
+    plugin: 'set_dim_brightness',
+    argKeys: ['percent'],
+  },
+  displaySetTimeouts: {
+    _package: 'display',
+    plugin: 'set_timeouts',
+    argKeys: ['dim_min', 'standby_min'],
+  },
+  displaySetMusicMode: {
+    _package: 'display',
+    plugin: 'set_music_mode',
+    argKeys: ['mode'],
+  },
+  displaySetStandbyMechanic: {
+    _package: 'display',
+    plugin: 'set_standby_mechanic',
+    argKeys: ['mechanic'],
+  },
+  displaySetPower: {
+    _package: 'display',
+    plugin: 'set_power',
+    argKeys: ['on'],
+  },
 };
 
 export default commands;
