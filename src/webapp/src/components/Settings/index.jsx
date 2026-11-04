@@ -1,6 +1,7 @@
 import Box from '@mui/material/Box';
 
 import SettingsAudio from './audio/index';
+import SettingsDisplay from './display/index';
 import SettingsAutoHotspot from './autohotspot';
 import SettingsGeneral from './general';
 import SettingsJellyfin from './jellyfin';
@@ -28,6 +29,7 @@ const Settings = () => (
     <SettingsGeneral />
     <SettingsMcp23017 />
     <SettingsTimers />
+    <SettingsDisplay />
     <SettingsAudio />
     <SettingsSpotify />
     <SettingsJellyfin />

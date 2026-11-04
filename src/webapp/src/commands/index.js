@@ -355,6 +355,42 @@ const commands = {
   },
 
   // Synchronisation
+
+  // Display
+  displayStatus: {
+    _package: 'display',
+    plugin: 'status',
+  },
+  displaySetBrightness: {
+    _package: 'display',
+    plugin: 'set_brightness',
+    argKeys: ['percent'],
+  },
+  displaySetDimBrightness: {
+    _package: 'display',
+    plugin: 'set_dim_brightness',
+    argKeys: ['percent'],
+  },
+  displaySetTimeouts: {
+    _package: 'display',
+    plugin: 'set_timeouts',
+    argKeys: ['dim_min', 'standby_min'],
+  },
+  displaySetMusicMode: {
+    _package: 'display',
+    plugin: 'set_music_mode',
+    argKeys: ['mode'],
+  },
+  displaySetStandbyMechanic: {
+    _package: 'display',
+    plugin: 'set_standby_mechanic',
+    argKeys: ['mechanic'],
+  },
+  displaySetPower: {
+    _package: 'display',
+    plugin: 'set_power',
+    argKeys: ['on'],
+  },
   'sync_rfidcards_all': {
     _package: 'sync_rfidcards',
     plugin: 'ctrl',
