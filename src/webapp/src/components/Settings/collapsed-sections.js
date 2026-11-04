@@ -12,6 +12,7 @@ export const DEFAULT_COLLAPSED_SECTIONS = [
   'system-controls',
   'second-swipe',
   'auto-hotspot',
+  'display',
 ];
 
 const isSectionIdList = (value) => (

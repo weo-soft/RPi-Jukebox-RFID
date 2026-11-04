@@ -129,9 +129,9 @@ for (const route of routes) {
 // and the rows are compact, so the page stays around three screen fills; the
 // bound keeps a pile of new sections from passing unnoticed. The device
 // settings for the navigation, the simple mode, the history guard, the
-// library page size and the collapsed MCP23017 button setup are part of that
-// length.
-const MAX_SETTINGS_FILLS = 4.05;
+// library page size, the collapsed MCP23017 button setup and the collapsed
+// display controls are part of that length.
+const MAX_SETTINGS_FILLS = 4.2;
 
 test('settings route keeps its length within its bound', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'kiosk');

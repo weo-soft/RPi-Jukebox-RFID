@@ -80,6 +80,7 @@ const provider = (state, child) => (
 );
 
 beforeEach(() => {
+  window.localStorage.setItem('settingsCollapsedSections', '[]');
   vi.clearAllMocks();
   request.mockResolvedValue({ result: STATUS });
 });
