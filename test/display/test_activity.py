@@ -1,5 +1,6 @@
 """Tests for the display interaction monitor."""
 
+import importlib.util
 import sys
 from pathlib import Path
 
@@ -8,7 +9,16 @@ import evdev
 
 sys.path.insert(0, str(Path(__file__).parents[2] / 'src/jukebox'))
 
-from components.display import activity  # noqa: E402
+MODULE_PATH = (
+    Path(__file__).parents[2]
+    / 'src/jukebox/components/display/activity.py'
+)
+SPEC = importlib.util.spec_from_file_location(
+    'display_activity_under_test',
+    MODULE_PATH,
+)
+activity = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(activity)
 
 
 class FakeClock:
