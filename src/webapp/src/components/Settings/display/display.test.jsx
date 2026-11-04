@@ -5,6 +5,8 @@ import { beforeEach, expect, test, vi } from 'vitest';
 import PubSubContext from '../../../context/pubsub/context';
 import request from '../../../utils/request';
 import SettingsDisplay from './index';
+import de from '../../../../public/locales/de/translation.json';
+import en from '../../../../public/locales/en/translation.json';
 
 
 const { translations } = vi.hoisted(() => ({
@@ -80,6 +82,15 @@ const provider = (state, child) => (
 beforeEach(() => {
   vi.clearAllMocks();
   request.mockResolvedValue({ result: STATUS });
+});
+
+test('defines the display translations under settings', () => {
+  [en, de].forEach((i18n) => {
+    expect(i18n.settings.display.title).toBeTruthy();
+    expect(i18n.settings.display.brightness).toBeTruthy();
+    expect(i18n.settings.display['source-x11']).toBeTruthy();
+    expect(i18n.settings.display.unavailable).toBeTruthy();
+  });
 });
 
 test('renders controls from the initial status', async () => {
