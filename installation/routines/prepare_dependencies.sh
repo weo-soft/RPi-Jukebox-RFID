@@ -43,7 +43,7 @@ _collect_apt_packages() {
 
     if [[ "$ENABLE_KIOSK_MODE" == true ]]; then
         _add_apt_packages xserver-xorg x11-xserver-utils xinit openbox \
-            "${KIOSK_MODE_CHROMIUM_PACKAGE}"
+            ddcutil "${KIOSK_MODE_CHROMIUM_PACKAGE}"
     fi
 
     if [[ "$ENABLE_AUTOHOTSPOT" == true ]]; then
