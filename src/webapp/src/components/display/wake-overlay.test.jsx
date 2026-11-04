@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import {
+  afterEach,
   beforeEach,
   expect,
   test,
@@ -29,6 +30,10 @@ const standby = () => provider(
 beforeEach(() => {
   vi.clearAllMocks();
   socketRequest.mockResolvedValue({});
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 test('shows the overlay in standby and sends exactly one activity ping', () => {
@@ -78,6 +83,31 @@ test('swallows the tap and does not reach the content underneath', () => {
   fireEvent.click(overlay);
 
   expect(parentPointerDown).not.toHaveBeenCalled();
+});
+
+test('keeps swallowing the tap during the release delay', () => {
+  vi.useFakeTimers();
+  const { rerender } = render(standby());
+  fireEvent.pointerDown(screen.getByTestId('wake-overlay'));
+  expect(socketRequest).toHaveBeenCalledTimes(1);
+
+  rerender(provider(
+    { 'display.status': { state: 'active' } },
+    <WakeOverlay />,
+  ));
+  expect(screen.getByTestId('wake-overlay')).toBeInTheDocument();
+  fireEvent.pointerDown(screen.getByTestId('wake-overlay'));
+  expect(socketRequest).toHaveBeenCalledTimes(1);
+
+  act(() => {
+    vi.advanceTimersByTime(599);
+  });
+  expect(screen.getByTestId('wake-overlay')).toBeInTheDocument();
+
+  act(() => {
+    vi.advanceTimersByTime(1);
+  });
+  expect(screen.queryByTestId('wake-overlay')).toBeNull();
 });
 
 test('sends a new wake ping after the next standby period', () => {
