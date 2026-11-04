@@ -530,6 +530,11 @@ class DisplayDriver:
         if self.brightness_source == 'x11' and self.x11.available:
             self.power_path = 'x11'
 
+    def set_standby_mechanic(self, mechanic):
+        """Update the mechanic used by the next power transition."""
+        with self._lock:
+            self._config['standby_mechanic'] = mechanic
+
     def resolve_standby_mechanic(self):
         """Return the active standby mechanic or ``None``."""
         requested = self._config.get('standby_mechanic', 'auto')
