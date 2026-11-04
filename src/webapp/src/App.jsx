@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import AppSettingsProvider from './context/appsettings';
+import WakeOverlay from './components/display/WakeOverlay';
 import HistorySwipeProvider from './context/history-swipe';
 import NavigationVisibilityProvider from './context/navigation';
 import SimpleModeProvider from './context/simple-mode';
@@ -25,6 +26,7 @@ function App() {
           </SimpleModeProvider>
         </AppSettingsProvider>
       </PlayerProvider>
+      <WakeOverlay />
     </PubSubProvider>
   );
 }
