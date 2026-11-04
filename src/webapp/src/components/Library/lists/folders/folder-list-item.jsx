@@ -16,6 +16,12 @@ import request from '../../../../utils/request';
 import FolderLink from './folder-link';
 import FolderTypeAvatar from './folder-type-avatar';
 
+import {
+  LIBRARY_ACTION_SPACE_SX,
+  LIBRARY_PRIMARY_SX,
+  LIBRARY_ROW_SX,
+} from '../list-layout';
+
 const FolderListItem = ({
   folder,
   isManagementSelecting,
@@ -61,7 +67,6 @@ const FolderListItem = ({
           data={{ dir: relpath }}
           edge="end"
           nativeButton={false}
-          sx={{ height: 44, width: 44 }}
         >
           <NavigateNextIcon />
         </IconButton>
@@ -72,11 +77,14 @@ const FolderListItem = ({
     <ListItem
       disablePadding
       secondaryAction={secondaryAction}
+      sx={{
+        '& > .MuiListItemButton-root': LIBRARY_ACTION_SPACE_SX,
+      }}
     >
       <ListItemButton
         onClick={activateItem}
         selected={isManagementSelecting && isSelected}
-        sx={{ minHeight: 56 }}
+        sx={LIBRARY_ROW_SX}
       >
         {isManagementSelecting &&
           <ListItemIcon sx={{ minWidth: 44 }}>
@@ -95,11 +103,7 @@ const FolderListItem = ({
         <FolderTypeAvatar type={type} />
         <ListItemText
           primary={name}
-          slotProps={{
-            primary: {
-              sx: { overflowWrap: 'anywhere' },
-            },
-          }}
+          slotProps={{ primary: { sx: LIBRARY_PRIMARY_SX } }}
         />
       </ListItemButton>
     </ListItem>

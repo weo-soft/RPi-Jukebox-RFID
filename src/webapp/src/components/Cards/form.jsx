@@ -6,11 +6,12 @@ import {
   CardContent,
   CardHeader,
   Grid,
-  Typography
+  Typography,
 } from '@mui/material';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
 
 import Header from '../Header';
+import CardIdField from './card-id-field';
 import ActionsControls from './controls/actions-controls';
 import ControlsSelector from './controls/controls-selector';
 
@@ -19,7 +20,7 @@ const InfoNoCardSwiped = () => {
 
   return (
     <Typography>
-      {`⚠️ ${t('cards.form.no-card-swiped')}`}
+      {t('cards.form.no-card-swiped')}
     </Typography>
   );
 };
@@ -27,6 +28,7 @@ const InfoNoCardSwiped = () => {
 const CardsForm = ({
   title,
   cardId,
+  onCardIdChange,
   actionData,
   setActionData,
 }) => {
@@ -44,29 +46,41 @@ const CardsForm = ({
                   <BookmarkIcon />
                 </Avatar>
               }
-              title={
-                cardId
-                  ? cardId
-                  : t('cards.form.no-card-id')
-              }
+              slotProps={{
+                subheader: { sx: { fontSize: 'var(--font-body)' } },
+              }}
+              subheader={t('cards.form.card-id-hint')}
+              title={t('cards.card-id.label')}
             />
             <CardContent>
-              {cardId &&
-                <>
-                  <Grid container sx={{ alignItems: 'center' }}>
-                    <ControlsSelector
-                      actionData={actionData}
-                      setActionData={setActionData}
-                      cardId={cardId}
-                    />
-                  </Grid>
-                  <ActionsControls
-                    actionData={actionData}
-                    cardId={cardId}
-                  />
-                </>
-              }
-              {!cardId && <InfoNoCardSwiped />}
+              <Grid container spacing={2}>
+                <Grid size={12}>
+                  {onCardIdChange
+                    ? <CardIdField onChange={onCardIdChange} value={cardId || ''} />
+                    : <Typography sx={{ fontFamily: 'monospace', fontSize: 18 }}>
+                        {cardId}
+                      </Typography>
+                  }
+                </Grid>
+                {cardId &&
+                  <>
+                    <Grid size={{ md: 6, xs: 12 }}>
+                      <ControlsSelector
+                        actionData={actionData}
+                        setActionData={setActionData}
+                        cardId={cardId}
+                      />
+                    </Grid>
+                    <Grid size={{ md: 6, xs: 12 }}>
+                      <ActionsControls
+                        actionData={actionData}
+                        cardId={cardId}
+                      />
+                    </Grid>
+                  </>
+                }
+                {!cardId && <Grid size={12}><InfoNoCardSwiped /></Grid>}
+              </Grid>
             </CardContent>
           </Card>
         </Grid>
@@ -74,7 +88,5 @@ const CardsForm = ({
     </>
   );
 };
-
-
 
 export default CardsForm;

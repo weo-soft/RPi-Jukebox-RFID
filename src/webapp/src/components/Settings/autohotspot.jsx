@@ -2,16 +2,14 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  Divider,
+  Box,
   FormGroup,
   FormControlLabel,
   Grid,
   Link,
 } from '@mui/material';
 
+import SettingsSection from './section';
 import { SwitchWithLoader } from '../general';
 
 import request from '../../utils/request';
@@ -57,52 +55,51 @@ const SettingsAutoHotpot = () => {
   }, []);
 
   return (
-    <Card>
-      <CardHeader
-        title={t('settings.autohotspot.title')}
-        subheader={
-          autohotspotStatus === 'not-installed' &&
-          <>
-            {`⚠️ ${t('settings.autohotspot.not-installed')}`}
-            <Link
-              href={helpUrl}
-              target="_blank"
-              rel="noreferrer"
-              sx={{
-                marginLeft: '10px'
-              }}
-            >
-              {t('settings.autohotspot.why')}
-            </Link>
-          </>
-        }
-      />
-      <Divider />
-      <CardContent>
-        <Grid container sx={{ flexDirection: 'column' }}>
-          <Grid>
-            <FormGroup>
-              <FormControlLabel
-                sx={{
-                  justifyContent: 'space-between',
-                  marginLeft: '0',
-                }}
-                control={
-                  <SwitchWithLoader
-                    isLoading={isLoading}
-                    checked={autohotspotStatus === 'active'}
-                    disabled={autohotspotStatus === 'not-installed'}
-                    onChange={() => toggleAutoHotspot()}
-                  />
-                }
-                label={t('settings.autohotspot.control-label')}
-                labelPlacement="start"
+    <SettingsSection
+      id="auto-hotspot"
+      subheader={
+        autohotspotStatus === 'not-installed' &&
+        <Box sx={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap' }}>
+          {t('settings.autohotspot.not-installed')}
+          <Link
+            href={helpUrl}
+            rel="noreferrer"
+            sx={{
+              alignItems: 'center',
+              display: 'inline-flex',
+              marginLeft: 'var(--space-2)',
+              minHeight: 'var(--touch-min)',
+            }}
+            target="_blank"
+          >
+            {t('settings.autohotspot.why')}
+          </Link>
+        </Box>
+      }
+      title={t('settings.autohotspot.title')}
+    >
+      <Grid container sx={{ flexDirection: 'column' }}>
+        <FormGroup>
+          <FormControlLabel
+            sx={{
+              justifyContent: 'space-between',
+              marginLeft: '0',
+              minHeight: 72,
+            }}
+            control={
+              <SwitchWithLoader
+                checked={autohotspotStatus === 'active'}
+                disabled={autohotspotStatus === 'not-installed'}
+                isLoading={isLoading}
+                onChange={() => toggleAutoHotspot()}
               />
-            </FormGroup>
-          </Grid>
-        </Grid>
-      </CardContent>
-    </Card>
+            }
+            label={t('settings.autohotspot.control-label')}
+            labelPlacement="start"
+          />
+        </FormGroup>
+      </Grid>
+    </SettingsSection>
   );
 };
 

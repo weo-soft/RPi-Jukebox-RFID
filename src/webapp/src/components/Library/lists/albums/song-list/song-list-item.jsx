@@ -10,6 +10,12 @@ import {
 import { toHHMMSS } from '../../../../../utils/utils';
 import request from '../../../../../utils/request'
 
+import {
+  LIBRARY_PRIMARY_SX,
+  LIBRARY_ROW_SX,
+  LIBRARY_SECONDARY_SX,
+} from '../../list-layout';
+
 const SongListItem = ({
   isSelecting,
   registerMusicToCard,
@@ -39,10 +45,15 @@ const SongListItem = ({
       <ListItemButton
         role={undefined}
         onClick={() => (isSelecting ? registerSongToCard() : playSingle())}
+        sx={LIBRARY_ROW_SX}
       >
         <ListItemText
           primary={title || t('library.albums.unknown-title')}
           secondary={`${artist || t('library.albums.unknown-artist')} • ${toHHMMSS(duration)}`}
+          slotProps={{
+            primary: { sx: LIBRARY_PRIMARY_SX },
+            secondary: { sx: LIBRARY_SECONDARY_SX },
+          }}
         />
       </ListItemButton>
     </ListItem>

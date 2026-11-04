@@ -7,23 +7,51 @@ import { useTranslation } from 'react-i18next';
 
 import {
   Avatar,
+  Checkbox,
   ListItem,
   ListItemAvatar,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
+  Typography,
 } from '@mui/material';
 
 import noCover from '../../../../../assets/noCover.jpg';
 
+import {
+  LIBRARY_AVATAR_SX,
+  LIBRARY_PRIMARY_SX,
+  LIBRARY_ROW_SX,
+  LIBRARY_SECONDARY_SX,
+} from '../../list-layout';
+
 import AppSettingsContext from '../../../../../context/appsettings/context';
 import request from '../../../../../utils/request';
 
+// The backend resolves covers asynchronously (MPD extracts embedded art,
+// Jellyfin downloads it from the server). A pending result is re-checked a
+// few times so the cover appears as soon as the file is cached, without
+// requiring a view switch to re-mount the item.
+const COVER_RETRY_ATTEMPTS = 4;
+const COVER_RETRY_DELAY_MS = 1000;
+
+/*
+ * One album as a row: a link into the album or one entry of a multiple choice.
+ * The caller decides between them with 'onToggle' and 'isManagementSelecting';
+ * 'note' carries what the row has to say about the album besides its name.
+ */
 const AlbumListItem = ({
   albumartist,
   album,
+  content_type,
   content_uri,
   cover_url,
   isButton = true,
+  isManagementSelecting = false,
+  isSelected = false,
+  note = null,
+  onToggle,
+  onToggleSelected,
   provider = 'mpd',
   view = 'albums',
 }) => {
@@ -40,19 +68,32 @@ const AlbumListItem = ({
   } = settings;
 
   useEffect(() => {
-    const getCoverArt = async () => {
+    let cancelled = false;
+
+    const getCoverArt = async (attempt = 1) => {
       const { result } = await request('getAlbumCoverArt', {
         albumartist,
         album,
         content_uri,
         provider,
       });
-      if (result) {
-        if(result !== 'CACHE_PENDING') {
-          setCoverImage(result.startsWith('http') ? result : `/cover-cache/${result}`);
+      if (cancelled) return;
+      if (result && result !== 'CACHE_PENDING') {
+        setCoverImage(result.startsWith('http') ? result : `/cover-cache/${result}`);
+      }
+      else if (result === 'CACHE_PENDING' || result === null || result === undefined) {
+        // The backend is still extracting/downloading the cover (MPD:
+        // CACHE_PENDING, Jellyfin: null). Re-check a few times so the cover
+        // appears as soon as the cache file is written, without requiring a
+        // view switch to re-mount the item.
+        if (attempt < COVER_RETRY_ATTEMPTS) {
+          setTimeout(
+            () => getCoverArt(attempt + 1),
+            COVER_RETRY_DELAY_MS * attempt,
+          );
         }
-      };
-    }
+      }
+    };
 
     setCoverImage(cover_url || noCover);
     if (cover_url) {
@@ -61,6 +102,9 @@ const AlbumListItem = ({
     else if (albumartist && album && show_covers) {
       getCoverArt();
     }
+    return () => {
+      cancelled = true;
+    };
   }, [albumartist, album, content_uri, cover_url, provider, show_covers]);
 
   const AlbumLink = forwardRef((props, ref) => {
@@ -82,23 +126,99 @@ const AlbumListItem = ({
 
   const content = (
     <>
+      {onToggle &&
+        <ListItemIcon sx={{ minWidth: 44 }}>
+          <Checkbox
+            checked={isSelected}
+            edge="start"
+            readOnly
+            slotProps={{
+              input: {
+                'aria-label': t('library.albums.select-item', {
+                  album: album || t('library.albums.unknown-album'),
+                }),
+              },
+            }}
+            tabIndex={-1}
+          />
+        </ListItemIcon>
+      }
       {show_covers &&
-        <ListItemAvatar>
-          <Avatar variant="rounded" alt="Cover" src={coverImage} />
+        <ListItemAvatar sx={{ minWidth: 104 }}>
+          <Avatar
+            alt="Cover"
+            src={coverImage}
+            sx={LIBRARY_AVATAR_SX}
+            variant="rounded"
+          />
         </ListItemAvatar>
       }
       <ListItemText
         primary={album || t('library.albums.unknown-album')}
-        secondary={albumartist || null}
+        secondary={[
+          albumartist,
+          provider === 'spotify'
+            ? t(`library.albums.spotify-${content_type || 'album'}`)
+            : null,
+        ].filter(Boolean).join(' · ') || null}
+        slotProps={{
+          primary: { sx: LIBRARY_PRIMARY_SX },
+          secondary: { sx: LIBRARY_SECONDARY_SX },
+        }}
       />
+      {note &&
+        <Typography color="textSecondary" variant="contentBody" sx={{ whiteSpace: 'nowrap' }}>
+          {note}
+        </Typography>
+      }
     </>
   );
 
   return (
-    <ListItem disablePadding={isButton} key={content_uri || album}>
-      {isButton
+    <ListItem
+      disablePadding={isButton || isManagementSelecting}
+      key={content_uri || album}
+    >
+      {isManagementSelecting
         ? (
-          <ListItemButton component={AlbumLink} nativeButton={false}>
+          <ListItemButton
+            onClick={() => onToggleSelected({
+              album,
+              albumartist,
+              content_type,
+              content_uri,
+              cover_url,
+              provider,
+            })}
+            selected={isSelected}
+            sx={{ minHeight: 56 }}
+          >
+            <ListItemIcon sx={{ minWidth: 44 }}>
+              <Checkbox
+                checked={isSelected}
+                edge="start"
+                slotProps={{
+                  input: {
+                    'aria-label': t('library.spotify.manager.select-item', {
+                      name: album,
+                    }),
+                  },
+                }}
+                tabIndex={-1}
+              />
+            </ListItemIcon>
+            {content}
+          </ListItemButton>
+        )
+        : isButton && onToggle
+        ? (
+          <ListItemButton onClick={onToggle} selected={isSelected} sx={LIBRARY_ROW_SX}>
+            {content}
+          </ListItemButton>
+        )
+        : isButton
+        ? (
+          <ListItemButton component={AlbumLink} nativeButton={false} sx={LIBRARY_ROW_SX}>
             {content}
           </ListItemButton>
         )

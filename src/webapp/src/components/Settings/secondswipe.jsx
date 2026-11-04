@@ -1,59 +1,52 @@
 import { useTranslation } from 'react-i18next';
 
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  Divider,
   FormControlLabel,
   Grid,
   Radio,
   RadioGroup,
 } from '@mui/material';
 
+import SettingsSection from './section';
+
 const SettingsSecondSwipe = () => {
   const { t } = useTranslation();
 
   return (
-    <Card>
-      <CardHeader
-        title={t('settings.secondswipe.title')}
-        subheader={t('settings.feature-not-enabled')}
-      />
-      <Divider />
-      <CardContent>
-        <Grid container sx={{ flexDirection: 'column' }}>
-          <Grid>
-            <RadioGroup aria-label="gender" name="gender1">
-              <FormControlLabel
-                value="restart"
-                control={<Radio />}
-                label={t('settings.secondswipe.restart')}
-                disabled={true}
-              />
-              <FormControlLabel
-                value="pause"
-                control={<Radio />}
-                label={t('settings.secondswipe.toggle')}
-                disabled={true}
-              />
-              <FormControlLabel
-                value="skipnext"
-                control={<Radio />}
-                label={t('settings.secondswipe.skip')}
-                disabled={true}
-              />
-              <FormControlLabel
-                value="noaudioplay"
-                control={<Radio />}
-                label={t('settings.secondswipe.ignore')}
-                disabled={true}
-              />
-            </RadioGroup>
-          </Grid>
-        </Grid>
-      </CardContent>
-    </Card>
+    <SettingsSection
+      id="second-swipe"
+      subheader={t('settings.feature-not-enabled')}
+      title={t('settings.secondswipe.title')}
+    >
+      <Grid container sx={{ flexDirection: 'column' }}>
+        <RadioGroup aria-label="gender" name="gender1">
+          <FormControlLabel
+            disabled={true}
+            control={<Radio />}
+            label={t('settings.secondswipe.restart')}
+            value="restart"
+          />
+          <FormControlLabel
+            disabled={true}
+            control={<Radio />}
+            label={t('settings.secondswipe.toggle')}
+            value="pause"
+          />
+          <FormControlLabel
+            disabled={true}
+            control={<Radio />}
+            label={t('settings.secondswipe.skip')}
+            value="skipnext"
+          />
+          <FormControlLabel
+            disabled={true}
+            control={<Radio />}
+            label={t('settings.secondswipe.ignore')}
+            value="noaudioplay"
+          />
+        </RadioGroup>
+      </Grid>
+    </SettingsSection>
   );
 };
 

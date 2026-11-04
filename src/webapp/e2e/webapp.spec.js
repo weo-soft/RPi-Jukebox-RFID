@@ -1,250 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-const rpcResults = {
-  get_app_settings: { show_covers: false },
-  get_autohotspot_status: 'inactive',
-  get_disk_usage: { used: 8_000, total: 32_000 },
-  get_folder_content: [
-    {
-      name: 'Albums',
-      relpath: 'Music/Rock/Albums',
-      type: 'directory',
-    },
-    {
-      name: 'sample.mp3',
-      relpath: 'Music/Rock/sample.mp3',
-      type: 'file',
-    },
-  ],
-  get_ip_address: '192.168.1.42',
-  get_outputs: {
-    active_sink: 'speaker',
-    sink_list: [
-      { alias: 'Built-in speaker', pulse_sink_name: 'speaker' },
-      { alias: 'USB audio', pulse_sink_name: 'usb' },
-    ],
-  },
-  get_soft_max_volume: 80,
-  get_state: {
-    enabled: false,
-    remaining_seconds: 0,
-    running: false,
-  },
-  get_volume: 42,
-  get_single_coverart: 'test-cover.png',
-  list_albums: [
-    { albumartist: 'Daft Punk', album: ['Discovery', 'Random Access Memories'] },
-    { albumartist: 'Massive Attack', album: 'Mezzanine' },
-  ],
-  list_songs_by_artist_and_album: [
-    {
-      album: 'Bedtime Stories',
-      artist: 'Storyteller',
-      duration: 180,
-      file: 'service:track:chapter-one',
-      provider: 'streaming',
-      title: 'Chapter One',
-      track: '1',
-    },
-  ],
-  list_cards: {
-    '0001234567': {
-      action: { args: [] },
-      from_alias: '',
-      func: 'play',
-    },
-  },
-};
-
-const socketEvents = {
-  'batt_status': { charging: false, soc: 76 },
-  'core.plugins.loaded': { battmon: true },
-  'core.version': '3.7.0-alpha',
-  'host.temperature.cpu': '47.2',
-  'host.timer.cputemp': { enabled: true },
-  'playerstatus': {
-    album: 'Discovery',
-    artist: 'Daft Punk',
-    duration: '224',
-    elapsed: '42',
-    file: 'Daft Punk/Discovery/One More Time.mp3',
-    random: '0',
-    repeat: '0',
-    single: '0',
-    songid: '1',
-    state: 'play',
-    title: 'One More Time',
-  },
-  'volume.level': { mute: false, volume: 42 },
-};
-
-async function mockBackend(
-  page,
-  {
-    failRpc = false,
-    rpcGate,
-    showCovers = false,
-    streamingLibrary = false,
-    timerEvents = {},
-  } = {},
-) {
-  const eventSockets = new Set();
-  const libraryCalls = [];
-  const rpcCalls = [];
-  const subscribedTopics = new Set();
-
-  await page.addInitScript(() => {
-    window.localStorage.setItem('i18nextLng', 'en');
-  });
-
-  await page.route('**/api/v1/library/entries**', async route => {
-    const requestUrl = new URL(route.request().url());
-    libraryCalls.push(requestUrl.searchParams.get('folder'));
-    await route.fulfill({
-      body: JSON.stringify({
-        entries: rpcResults.get_folder_content,
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-
-  await page.route('**/api/v1/rpc', async route => {
-    const request = route.request();
-    const payload = request.postDataJSON();
-    rpcCalls.push(payload);
-
-    if (rpcGate) {
-      await rpcGate;
-    }
-
-    if (failRpc) {
-      await route.fulfill({
-        body: JSON.stringify({ error: 'Backend unavailable' }),
-        contentType: 'application/json',
-        status: 503,
-      });
-      return;
-    }
-
-    const key = payload.method || payload.plugin;
-    let result = rpcResults[key] ?? null;
-    if (key === 'get_app_settings') {
-      result = { show_covers: showCovers };
-    }
-    if (key === 'list_library_sources') {
-      result = [
-        {
-          id: 'mpd',
-          label: 'Local',
-          views: [
-            {
-              id: 'albums',
-              label: 'Albums',
-              kind: 'items',
-              content_types: ['album'],
-            },
-            {
-              id: 'folders',
-              label: 'Folders',
-              kind: 'folders',
-              content_types: [],
-            },
-          ],
-        },
-        ...(streamingLibrary ? [{
-          id: 'streaming',
-          label: 'Streaming',
-          views: [
-            {
-              id: 'playlists',
-              label: 'Playlists',
-              kind: 'items',
-              content_types: ['playlist'],
-            },
-          ],
-        }] : []),
-      ];
-    }
-    if (key === 'list_library_items') {
-      const localItems = rpcResults.list_albums.flatMap(entry => (
-        (Array.isArray(entry.album) ? entry.album : [entry.album]).map(album => ({
-          ...entry,
-          album,
-          content_type: 'album',
-          provider: 'mpd',
-        }))
-      ));
-      const streamingItems = streamingLibrary ? [{
-        albumartist: 'Family',
-        album: 'Bedtime Stories',
-        content_type: 'playlist',
-        content_uri: 'service:playlist:bedtime',
-        provider: 'streaming',
-      }] : [];
-      result = [...localItems, ...streamingItems].filter(item => (
-        (!payload.kwargs.provider || item.provider === payload.kwargs.provider) &&
-        (
-          !payload.kwargs.content_types ||
-          payload.kwargs.content_types.includes(item.content_type)
-        )
-      ));
-    }
-    await route.fulfill({
-      body: JSON.stringify({
-        id: payload.id,
-        result,
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-
-  await page.route('**/cover-cache/test-cover.png', route => route.fulfill({
-    contentType: 'image/png',
-    path: 'public/logo192.png',
-    status: 200,
-  }));
-
-  await page.routeWebSocket('**/api/v1/events', socket => {
-    eventSockets.add(socket);
-    socket.onMessage(message => {
-      const payload = JSON.parse(message);
-      if (payload.type !== 'subscribe') {
-        return;
-      }
-
-      payload.topics.forEach(topic => {
-        subscribedTopics.add(topic);
-        const events = { ...socketEvents, ...timerEvents };
-        if (topic in events) {
-          socket.send(JSON.stringify({
-            type: 'event',
-            topic,
-            data: events[topic],
-          }));
-        }
-      });
-    });
-  });
-
-  const publishEvent = (topic, data) => {
-    eventSockets.forEach(socket => {
-      socket.send(JSON.stringify({
-        type: 'event',
-        topic,
-        data,
-      }));
-    });
-  };
-
-  return {
-    libraryCalls,
-    publishEvent,
-    rpcCalls,
-    subscribedTopics,
-  };
-}
+import { mockBackend, socketEvents } from './backend';
+import { expectShellFillsViewport } from './layout';
 
 async function expectStableLayout(page) {
   await expect(page.locator('#root')).not.toBeEmpty();
@@ -308,6 +65,23 @@ async function expectAbove(top, bottom) {
   expect(topBox.y + topBox.height).toBeLessThanOrEqual(bottomBox.y);
 }
 
+// A reference image is comparable only once every image of the page has
+// finished loading: a placeholder that arrives late changes the pixels below
+// it, and a loaded machine delivers it later than a warm development server.
+async function expectImagesLoaded(page) {
+  await expect.poll(() => page.evaluate(() => (
+    Array.from(document.images).every(image => image.complete)
+  ))).toBe(true);
+}
+
+// Provider sections belong to setup and start collapsed.
+async function openSettingsSection(page, name) {
+  const section = page.getByRole('button', { exact: true, name });
+  await section.scrollIntoViewIfNeeded();
+  await section.click();
+  await expect(section).toHaveAttribute('aria-expanded', 'true');
+}
+
 function collectConsoleErrors(page) {
   const errors = [];
   page.on('console', message => {
@@ -345,8 +119,13 @@ const routes = [
   },
 ];
 
+// The player carries the most text. At 375 px the font stack renders slightly
+// differently across Linux distributions, while the geometry is covered by the
+// layout checks; give this one route a wider pixel tolerance on mobile.
+const MOBILE_PLAYER_SCREENSHOT = { maxDiffPixelRatio: 0.03 };
+
 for (const route of routes) {
-  test(`${route.name} route renders`, async ({ page }) => {
+  test(`${route.name} route renders`, async ({ page }, testInfo) => {
     const consoleErrors = collectConsoleErrors(page);
     await mockBackend(page);
     await page.goto(route.path);
@@ -365,10 +144,54 @@ for (const route of routes) {
         page.getByText('0001234567', { exact: true }),
       );
     }
-    await expect(page).toHaveScreenshot(`${route.name}.png`);
+    await expectImagesLoaded(page);
+    const screenshotOptions = (
+      route.name === 'player' && testInfo.project.name === 'mobile'
+        ? MOBILE_PLAYER_SCREENSHOT
+        : {}
+    );
+    await expect(page).toHaveScreenshot(`${route.name}.png`, screenshotOptions);
     expect(consoleErrors).toEqual([]);
   });
 }
+
+test('battery indicator opens the settings', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page);
+  await page.goto('/');
+
+  const indicator = page.getByRole('link', { name: 'Battery 76 percent, Discharging' });
+  await expect(indicator).toBeVisible();
+  await indicator.click();
+
+  await expect(page).toHaveURL(/#\/settings$/);
+  expect(consoleErrors).toEqual([]);
+});
+
+test('battery indicator keeps the library search reachable', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page);
+  await page.goto('/#/library');
+
+  await expect(page.getByRole('link', { name: 'Battery 76 percent, Discharging' })).toBeVisible();
+  const search = page.getByRole('button', { name: 'Show search' });
+  await search.click();
+
+  await expect(page.getByRole('textbox', { name: 'Search' })).toBeVisible();
+  expect(consoleErrors).toEqual([]);
+});
+
+test('battery indicator keeps the selector cancel reachable', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page);
+  await page.goto('/#/library/mpd/albums?isSelecting=1');
+
+  await expect(page.getByRole('link', { name: 'Battery 76 percent, Discharging' })).toBeVisible();
+  await page.getByRole('link', { name: 'Cancel' }).click();
+
+  await expect(page).toHaveURL(/#\/cards\/register$/);
+  expect(consoleErrors).toEqual([]);
+});
 
 test('bottom navigation changes routes', async ({ page }) => {
   const consoleErrors = collectConsoleErrors(page);
@@ -386,28 +209,94 @@ test('bottom navigation changes routes', async ({ page }) => {
   expect(consoleErrors).toEqual([]);
 });
 
+// The reference image stays without cover art on purpose: a cover turns the
+// backdrop into a blurred, scaled copy of the image, and how a machine
+// rasterises that is not reproducible. The backdrop rules themselves are
+// checked in e2e/layout.spec.js.
 test('player backdrop covers its full width across the md breakpoint', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop');
   const consoleErrors = collectConsoleErrors(page);
   await page.setViewportSize({ width: 800, height: 800 });
-  await mockBackend(page, { showCovers: true });
+  await mockBackend(page);
   await page.goto('/');
 
-  await expect(page.locator('#player img')).toBeVisible();
-  for (const width of [800, 899, 900]) {
+  await expect(page.locator('#player .MuiPaper-root svg')).toBeVisible();
+  for (const width of [800, 899, 900, 1280]) {
     await page.setViewportSize({ width, height: 800 });
-    const [playerBox, backdropBox] = await Promise.all([
-      page.locator('#player').boundingBox(),
+    await expectShellFillsViewport(page);
+    const [mainBox, backdropBox] = await Promise.all([
+      page.locator('main').boundingBox(),
       page.getByTestId('player-backdrop').boundingBox(),
     ]);
 
-    expect(backdropBox.x).toBeCloseTo(playerBox.x, 0);
-    expect(backdropBox.width).toBeCloseTo(playerBox.width, 0);
-    expect(playerBox.width).toBeCloseTo(width < 900 ? width : width / 2, 0);
+    expect(backdropBox.x).toBeCloseTo(mainBox.x, 0);
+    expect(backdropBox.width).toBeCloseTo(mainBox.width, 0);
   }
 
   await page.setViewportSize({ width: 899, height: 800 });
+  await expectImagesLoaded(page);
   await expect(page).toHaveScreenshot('player-899.png');
+  expect(consoleErrors).toEqual([]);
+});
+
+// Long German titles and missing provider covers are the normal case on a box.
+// The check reads the geometry instead of comparing pixels: how many lines a
+// title takes follows the metrics of the font the system resolves, so the same
+// page renders a line taller or shorter on another machine.
+test('player route renders a long title without a cover', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page, {
+    timerEvents: {
+      playerstatus: {
+        ...socketEvents.playerstatus,
+        album: 'Benjamin Blümchen, Folge 1: … als Wetterelefant',
+        artist: 'Benjamin Blümchen',
+        title: 'Ein Elefant will hoch hinaus',
+      },
+    },
+  });
+  await page.goto('/');
+
+  const title = page.locator('#player h5');
+  await expect(title).toHaveText('Ein Elefant will hoch hinaus');
+
+  const lines = await title.evaluate(element => {
+    const style = getComputedStyle(element);
+    return {
+      clamp: Number(style.webkitLineClamp),
+      height: element.clientHeight,
+      lineHeight: parseFloat(style.lineHeight),
+    };
+  });
+  // The title breaks into at most two lines and never spills out of its box.
+  expect(lines.clamp).toBe(2);
+  expect(lines.height).toBeLessThanOrEqual((2 * lines.lineHeight) + 1);
+
+  const subtitle = page.locator('#player h5 + *');
+  const subtitleLines = await subtitle.evaluate(element => {
+    const style = getComputedStyle(element);
+    return {
+      height: element.clientHeight,
+      lineHeight: parseFloat(style.lineHeight),
+      overflow: style.textOverflow,
+      whiteSpace: style.whiteSpace,
+    };
+  });
+  // The subtitle stays on one line and is cut with an ellipsis.
+  expect(subtitleLines.whiteSpace).toBe('nowrap');
+  expect(subtitleLines.overflow).toBe('ellipsis');
+  expect(subtitleLines.height).toBeLessThanOrEqual(subtitleLines.lineHeight + 1);
+
+  // A missing cover stays a dark square with the note icon; a bright image
+  // would light up the panel in a dark room.
+  const cover = page.locator('#player .MuiPaper-root');
+  await expect(cover.locator('img')).toHaveCount(0);
+  await expect(cover.locator('svg')).toBeVisible();
+
+  const coverBox = await cover.boundingBox();
+  expect(coverBox.height).toBeCloseTo(coverBox.width, 0);
+
+  await expectStableLayout(page);
   expect(consoleErrors).toEqual([]);
 });
 
@@ -459,6 +348,83 @@ test('library playback preserves provider and content URI', async ({ page }) => 
     content_uri: 'service:playlist:bedtime',
     provider: 'streaming',
   });
+  expect(consoleErrors).toEqual([]);
+});
+
+test('Spotify library playback preserves provider and content URI', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  const { rpcCalls } = await mockBackend(page, { spotifyLibrary: true });
+  await page.goto('/#/library/spotify/playlists');
+
+  await page.getByText('Bedtime Stories', { exact: true }).click();
+  await expect(page.getByText('Chapter One', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Play' }).click();
+
+  await expect.poll(() => (
+    rpcCalls.find(call => call.method === 'play_album')?.kwargs
+  )).toEqual({
+    album: 'Bedtime Stories',
+    albumartist: 'Family',
+    content_uri: 'spotify:playlist:bedtime',
+    provider: 'spotify',
+  });
+  expect(consoleErrors).toEqual([]);
+});
+
+test('Spotify account and device status render in settings', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page);
+  await page.goto('/#/settings');
+
+  await openSettingsSection(page, 'Spotify');
+  await expect(page.getByText('Connected', { exact: true })).toBeVisible();
+  await expect(page.getByText('Phoniebox', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Disconnect' })).toBeVisible();
+  await expectStableLayout(page);
+  expect(consoleErrors).toEqual([]);
+});
+
+test('Spotify library manages curated shared links', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page);
+  await page.goto('/#/settings');
+
+  await openSettingsSection(page, 'Spotify');
+  const curated = page.getByRole('button', { name: 'Curated library' });
+  await curated.scrollIntoViewIfNeeded();
+  await curated.click();
+
+  await page.getByRole('link', { name: 'Library' }).click();
+  await page.getByRole('tab', { name: 'Spotify' }).click();
+  await page.getByRole('button', { name: 'Add link' }).click();
+  await page.getByLabel('Spotify link').fill(
+    'https://open.spotify.com/playlist/4LyGZmj7LKOUECh4ZlNCML',
+  );
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+
+  await expect(page).toHaveURL(/#\/library\/spotify\/playlists$/);
+  await expect(page.getByText('Quiet Time', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Select', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Select Quiet Time' }).click();
+  await page.getByRole('button', { name: 'Remove 1 item' }).click();
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(page.getByText('Your library is empty!')).toBeVisible();
+  expect(consoleErrors).toEqual([]);
+});
+
+test('Spotify authorization opens before fetching the redirect URL', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  await mockBackend(page, { spotifyConnected: false });
+  await page.goto('/#/settings');
+
+  await openSettingsSection(page, 'Spotify');
+
+  const popupPromise = page.waitForEvent('popup');
+  await page.getByRole('button', { name: 'Connect' }).click();
+  const popup = await popupPromise;
+
+  await expect(popup).toHaveURL(/logo192\.png#spotify-authorize$/);
+  await popup.close();
   expect(consoleErrors).toEqual([]);
 });
 

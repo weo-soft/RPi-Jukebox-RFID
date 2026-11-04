@@ -2,9 +2,12 @@ import { Suspense } from 'react';
 
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
-import Grid from '@mui/material/Grid';
 
 import AppSettingsProvider from './context/appsettings';
+import WakeOverlay from './components/display/WakeOverlay';
+import HistorySwipeProvider from './context/history-swipe';
+import NavigationVisibilityProvider from './context/navigation';
+import SimpleModeProvider from './context/simple-mode';
 import PubSubProvider from './context/pubsub';
 import PlayerProvider from './context/player';
 import Router from './router';
@@ -14,18 +17,16 @@ function App() {
     <PubSubProvider>
       <PlayerProvider>
         <AppSettingsProvider>
-          <Grid
-            container
-            id="routes"
-            sx={{
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Router />
-          </Grid>
+          <SimpleModeProvider>
+            <HistorySwipeProvider>
+              <NavigationVisibilityProvider>
+                <Router />
+              </NavigationVisibilityProvider>
+            </HistorySwipeProvider>
+          </SimpleModeProvider>
         </AppSettingsProvider>
       </PlayerProvider>
+      <WakeOverlay />
     </PubSubProvider>
   );
 }

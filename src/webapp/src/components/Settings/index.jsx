@@ -1,53 +1,42 @@
-
-import { Grid } from '@mui/material';
+import Box from '@mui/material/Box';
 
 import SettingsAudio from './audio/index';
+import SettingsDisplay from './display/index';
 import SettingsAutoHotspot from './autohotspot';
 import SettingsGeneral from './general';
+import SettingsJellyfin from './jellyfin';
+import SettingsMcp23017 from './mcp23017';
 import SettingsSecondSwipe from './secondswipe';
+import SettingsSpotify from './spotify';
 import SettingsStatus from './status/index';
 import SettingsTimers from './timers/index';
 import SystemControls from './systemcontrols';
 
-import { useTheme } from '@mui/material/styles';
-
-const Settings = () => {
-  const theme = useTheme();
-  const spacer = { marginBottom: theme.spacing(1) }
-
-  return (
-    <Grid
-      container
-      id="settings"
-      sx={{
-        '& > :not(:last-child)': spacer,
-        flexDirection: 'column',
-        padding: '10px',
-      }}
-    >
-      <Grid>
-        <SettingsStatus />
-      </Grid>
-      <Grid>
-        <SettingsGeneral />
-      </Grid>
-      <Grid>
-        <SettingsTimers />
-      </Grid>
-      <Grid>
-        <SettingsAudio />
-      </Grid>
-      <Grid>
-        <SystemControls />
-      </Grid>
-      <Grid>
-        <SettingsSecondSwipe />
-      </Grid>
-      <Grid>
-        <SettingsAutoHotspot />
-      </Grid>
-    </Grid>
-  );
-};
+const Settings = () => (
+  <Box
+    id="settings"
+    sx={{
+      // One column, on every screen size: the sections have different heights,
+      // so side by side they never line up and the page reads as unordered.
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 'var(--space-3)',
+      minWidth: 0,
+      width: '100%',
+    }}
+  >
+    <SettingsStatus />
+    <SettingsGeneral />
+    <SettingsMcp23017 />
+    <SettingsTimers />
+    <SettingsDisplay />
+    <SettingsAudio />
+    <SettingsSpotify />
+    <SettingsJellyfin />
+    <SystemControls />
+    <SettingsSecondSwipe />
+    <SettingsAutoHotspot />
+  </Box>
+);
 
 export default Settings;

@@ -15,13 +15,15 @@ LOCAL_INSTALL_SCRIPT_PATH="${LOCAL_INSTALL_SCRIPT_PATH%/}"
 # Run installation (in interactive mode)
 # y - start setup
 # y - use static ip
-# y - deactivate ipv6
 # n - setup autohotspot
 # - -   change default configuration (only with autohotspot = y)
 # y - deactivate bluetooth
 # y - disable on-chip audio
 # - - mpd overwrite config (only with existing installation)
+# n - setup Spotify
+# n - setup jellyfin
 # n - setup rfid reader
+# n - support MCP23017 buttons
 # n - setup samba
 # n - setup webapp
 # - - build webapp (only with webapp = y)
@@ -30,10 +32,12 @@ LOCAL_INSTALL_SCRIPT_PATH="${LOCAL_INSTALL_SCRIPT_PATH%/}"
 
 "${LOCAL_INSTALL_SCRIPT_PATH}/install-jukebox.sh" <<< 'y
 y
-y
 n
 y
 y
+n
+n
+n
 n
 n
 n

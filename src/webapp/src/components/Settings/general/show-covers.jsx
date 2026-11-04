@@ -28,7 +28,7 @@ const ShowCovers = () => {
   }
 
   const handleSwitch = (event) => {
-    setSettings({ show_covers: event.target.checked});
+    setSettings(current => ({ ...current, show_covers: event.target.checked }));
     updateShowCoversSetting(event.target.checked);
   }
 

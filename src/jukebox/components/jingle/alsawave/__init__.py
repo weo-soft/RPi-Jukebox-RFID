@@ -3,6 +3,8 @@ ALSA wave jingle Service for jingle.JingleFactory
 """
 import alsaaudio
 import logging
+import threading
+import time
 import wave
 import os
 import jukebox.cfghandler
@@ -10,6 +12,12 @@ import jukebox.plugs as plugin
 
 logger = logging.getLogger('jb.alsaif')
 cfg = jukebox.cfghandler.get_handler('jukebox')
+
+# Additional time granted to a playback before it is considered stuck. The
+# PipeWire ALSA plugin waits for a playback node without a timeout, so a device
+# that is still initialising can block the calling thread for an arbitrarily
+# long time. The margin covers opening the device and draining the buffer.
+PLAYBACK_TIMEOUT_MARGIN = 10.0
 
 
 # ---------------------------------------------------------------------------
@@ -43,18 +51,47 @@ class AlsaWave:
                 device.write(data)
                 data = f.readframes(period_size)
 
+    @staticmethod
+    def _playback_duration(filename):
+        """Return the duration of the wave file in seconds"""
+        with wave.open(filename, 'rb') as f:
+            return f.getnframes() / f.getframerate()
+
     @plugin.tag
     def play(self, filename):
-        """Play the wave file"""
-        if os.path.exists(filename) and os.path.isfile(filename):
-            logger.debug("Playing wave file")
+        """Play the wave file
+
+        The playback runs in a worker thread so that a missing or unresponsive
+        audio device cannot block the caller indefinitely. The caller waits for
+        the expected playback duration plus :data:`PLAYBACK_TIMEOUT_MARGIN`.
+        """
+        if not (os.path.exists(filename) and os.path.isfile(filename)):
+            logger.error(f"File does not exist: '{filename}'")
+            raise KeyError(f"File does not exist: '{filename}'")
+
+        try:
+            timeout = AlsaWave._playback_duration(filename) + PLAYBACK_TIMEOUT_MARGIN
+        except Exception as e:
+            logger.error(f"Could not read '{filename}': {e.__class__.__name__}: {e}")
+            timeout = PLAYBACK_TIMEOUT_MARGIN
+
+        def playback():
             try:
                 AlsaWave._play_wave_core(filename)
             except Exception as e:
-                logger.error(f"{type(e)}: {e}")
+                logger.error(f"{e.__class__.__name__}: {e}")
+
+        logger.debug("Playing wave file")
+        started = time.monotonic()
+        worker = threading.Thread(target=playback, name='JinglePlayback', daemon=True)
+        worker.start()
+        worker.join(timeout)
+        elapsed = time.monotonic() - started
+        if worker.is_alive():
+            logger.error(f"Playback did not complete within {timeout:.1f} s. "
+                         f"Giving up: the audio device does not accept the stream")
         else:
-            logger.error(f"File does not exist: '{filename}'")
-            raise KeyError(f"File does not exist: '{filename}'")
+            logger.debug(f"Playback finished after {elapsed:.2f} s")
 
 
 class AlsaWaveBuilder:

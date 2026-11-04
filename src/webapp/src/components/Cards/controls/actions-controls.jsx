@@ -5,10 +5,13 @@ import { useTranslation } from 'react-i18next';
 import {
   Button,
   CardActions,
+  Typography,
 } from '@mui/material';
 
 import CardsDeleteDialog from '../dialogs/delete';
+import ConflictPanel from '../bulk/conflict-panel';
 import request from '../../../utils/request';
+import { loadRegisteredCards, registeredEntry } from '../registered-cards';
 import {
   getActionAndCommand,
   getArgsValues
@@ -22,25 +25,64 @@ const ActionsControls = ({
   const navigate = useNavigate();
   const { '*': path } = useParams();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [conflict, setConflict] = useState(null);
+  const [failure, setFailure] = useState(null);
 
-  const handleRegisterCard = async () => {
+  const isRegistering = path === 'register';
+
+  const submit = async (overwrite) => {
     const args = getArgsValues(actionData);
     const { command: cmd_alias } = getActionAndCommand(actionData);
 
     const kwargs = {
       card_id: cardId.toString(),
       cmd_alias,
-      overwrite: true,
+      overwrite,
       ...(args.length && { args }),
     };
 
     const { error } = await request('registerCard', kwargs);
 
-    if (error) {
-      return console.error(error);
+    if (!error) {
+      navigate('../');
+      return;
     }
 
-    navigate('../');
+    // A card that appeared in the database in the meantime is a conflict and
+    // not a failure of the form.
+    const { cards } = await loadRegisteredCards();
+    const meanwhile = registeredEntry(cards || {}, cardId);
+
+    if (meanwhile) {
+      setConflict(meanwhile);
+      return;
+    }
+
+    setFailure(error);
+  };
+
+  const handleRegisterCard = async () => {
+    if (!isRegistering) {
+      await submit(true);
+      return;
+    }
+
+    // The register path checks the card list first; the call without overwrite
+    // stays as the safety net behind it.
+    const { cards } = await loadRegisteredCards();
+    const existing = registeredEntry(cards || {}, cardId);
+
+    if (existing) {
+      setConflict(existing);
+      return;
+    }
+
+    await submit(false);
+  };
+
+  const handleRebind = async () => {
+    setConflict(null);
+    await submit(true);
   };
 
   const handleDeleteCard = async () => {
@@ -58,15 +100,17 @@ const ActionsControls = ({
     <>
       <CardActions
         sx={{
+          flexDirection: { md: 'row', xs: 'column' },
+          gap: 'var(--space-2)',
+          justifyContent: isRegistering ? 'flex-end' : 'space-between',
           marginTop: '40px',
-          justifyContent: path === 'register' ? 'flex-end' : 'space-between'
         }}
       >
-        {path !== 'register' &&
+        {!isRegistering &&
           <Button
             color="secondary"
-            size="small"
             onClick={() => setDeleteDialogOpen(true)}
+            sx={{ width: { md: 'auto', xs: '100%' } }}
           >
             {t('general.buttons.delete')}
           </Button>
@@ -74,11 +118,25 @@ const ActionsControls = ({
         <Button
           color="primary"
           onClick={() => handleRegisterCard(cardId)}
-          size="small"
+          sx={{ width: { md: 'auto', xs: '100%' } }}
         >
           {t('general.buttons.save')}
         </Button>
       </CardActions>
+      {conflict &&
+        <ConflictPanel
+          canRebind
+          cardId={cardId}
+          existing={conflict}
+          onClose={() => setConflict(null)}
+          onRebind={handleRebind}
+        />
+      }
+      {failure &&
+        <Typography sx={{ marginTop: 'var(--space-2)' }}>
+          {t('cards.form.save-failed', { error: failure })}
+        </Typography>
+      }
       <CardsDeleteDialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}

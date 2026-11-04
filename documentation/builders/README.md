@@ -11,12 +11,15 @@
 * Audio
   * [Audio Output](./audio.md)
   * [Bluetooth audio buttons](./bluetooth-audio-buttons.md)
+  * [Spotify](./spotify.md)
 * [GPIO Recipes](./gpio.md)
+* [MCP23017 buttons](./mcp23017-buttons.md)
 * [Card Database](./card-database.md)
   * [RFID Cards synchronisation](./components/synchronisation/rfidcards.md)
 * [Auto Hotspot](./autohotspot.md)
 * File Management
   * [Network share / Samba](./samba.md)
+  * [Jellyfin (Media Server)](./jellyfin.md)
 
 ## Hardware Components
 
@@ -32,6 +35,10 @@
 
 * Application
   * [Cover Art](./webapp/cover-art.md)
+  * [Navigation on the Start View](./webapp/navigation.md)
+  * [Library Pagination](./webapp/library.md)
+  * [Simple Mode and Volume](./webapp/simple-mode.md)
+  * [History Swipe](./webapp/history-swipe.md)
 * Music
   * [Playlists, Livestreams and Podcasts](./webapp/playlists-livestreams-podcasts.md)
 
@@ -40,6 +47,7 @@
 * [Troubleshooting](./troubleshooting.md)
 * [Concepts](./concepts.md)
 * [System](./system.md)
+* [Boot time](./boot-time.md)
 * [RPC Commands](./rpc-commands.md)
 * [CLI Client for RPC](./cli-client.md)
 * [Feature Status](../developers/status.md)

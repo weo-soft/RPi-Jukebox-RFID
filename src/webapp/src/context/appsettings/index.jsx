@@ -4,6 +4,7 @@ import AppSettingsContext from './context';
 import request from '../../utils/request';
 
 const AppSettingsProvider = ({ children }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
   const [settings, setSettings] = useState({});
 
   useEffect(() => {
@@ -13,12 +14,14 @@ const AppSettingsProvider = ({ children }) => {
       if(error) {
         console.error('Error loading AppSettings');
       }
+      setIsLoaded(true);
     }
 
     loadAppSettings();
   }, []);
 
   const context = {
+    isLoaded,
     setSettings,
     settings,
   };

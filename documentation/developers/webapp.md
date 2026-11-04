@@ -64,7 +64,9 @@ npm run dev
 
 The development server listens on port `3000` and proxies `/api/` to
 `http://localhost:5556`. Set `API_PROXY_TARGET` to use another Jukebox API
-server.
+server. `/cover-cache/` is forwarded as well: nginx serves the cover cache from
+the Web App build directory, which the development server does not serve
+itself.
 
 ## Backend API
 
@@ -83,9 +85,70 @@ listing, batch deletion, and MPD refresh use the corresponding `entries` and
 `refresh` endpoints. nginx disables request buffering only for the upload
 endpoint; RPC and other JSON requests retain their 1 MiB limit.
 
+The library item lists are paginated in the browser. The configured default is
+`webapp.library_page_size` (default 100); a device can store
+`libraryPageSize` in `localStorage`. Only the visible page mounts album rows, so
+only those rows request covers.
+
+The start view has a device-local simple mode (`simpleMode`). A loopback origin
+starts with it enabled, every other origin starts with the full controls. It
+hides shuffle, repeat and the control labels; the seek bar stays visible but is
+disabled. The volume `−`/`+` buttons and the volume feedback stay available.
+
+The device-local history guard (`preventHistorySwipe`) adds
+`history-swipe-locked` to the document root; while the class is present,
+`overscroll-behavior-x: none` prevents the browser's horizontal history swipe.
+A loopback origin starts with the guard enabled.
+
 The old ZeroMQ-over-WebSocket endpoints on ports `5556` and `5557` were
 intentionally removed. Native ZeroMQ clients remain wire-compatible on TCP RPC
 port `5555` and publishing port `5558`.
+
+## Kiosk and touch displays
+
+The Web App runs on small touch panels in kiosk mode as well. The reference
+device is a 7 inch panel with 1024 x 600 CSS pixels, where one CSS pixel
+measures 0.15 mm.
+
+The navigation on the start view is device-local. The Web App stores
+`navigationVisible` in `localStorage` and seeds it on the first load: a loopback
+origin (`http://localhost`, the kiosk) takes
+`webapp.navigation_visible_kiosk_seed` (default `false`), every other origin
+starts visible. `webapp.navigation_visible_global` (default `false`) overrides
+the local value on every device. Seven taps on the player cover reveal the
+navigation again.
+
+The sizes are CSS custom properties in `src/webapp/src/index.css`, which
+`src/webapp/src/index.jsx` imports. The MUI theme in `src/webapp/src/theme.js`
+reads them through `var(...)` and defines no sizes of its own.
+
+- `--touch-min` (48 px) is the lower bound for everything clickable;
+  `--touch-comfort`, `--touch-secondary` and `--touch-primary` follow at 56,
+  64 and 96 px. The icon sizes derive from them.
+- On a coarse pointer (`@media (pointer: coarse)`) the touch tokens scale with
+  the short viewport edge, so a denser panel of the same physical size keeps
+  the millimetre minimum. The upper bounds of the `clamp()` expressions keep a
+  large touch screen from inflating the controls.
+- The shell limits its width to `min(100%, 1100px)` for readability. The
+  bottom navigation carries the same limit, so its tabs line up with the
+  content.
+- The type scale uses `clamp()` with `min(vw, vh)`, so a title grows with both
+  axes and still fits on a wide but low viewport.
+
+The Playwright projects `mobile` (375 x 812) and `kiosk` (1024 x 600) emulate a
+coarse pointer with `hasTouch: true`; that is what makes the token tier apply
+during a test run. `e2e/layout.js` holds the shared invariants.
+`e2e/layout.spec.js` checks the touch minimum, the shell width, the missing
+dead space and the scroll behaviour of every route, `e2e/settings.spec.js`
+checks the collapsed settings sections.
+
+Reference images are stored per route and project. Update them per route and
+look at each generated image:
+
+```bash
+cd src/webapp
+npx playwright test --update-snapshots -g 'route renders'
+```
 
 ## Checks and production build
 

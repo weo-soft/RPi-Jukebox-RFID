@@ -1,7 +1,9 @@
 import { createContext } from 'react';
 
 const AppSettingsContext = createContext({
-  showCovers: true,
+  isLoaded: false,
+  setSettings: () => {},
+  settings: {},
 });
 
 export default AppSettingsContext;

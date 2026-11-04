@@ -30,6 +30,7 @@ const CardsRegister = () => {
     <CardsForm
       title={t('cards.register.register-card')}
       cardId={cardId}
+      onCardIdChange={setCardId}
       actionData={actionData}
       setActionData={setActionData}
     />

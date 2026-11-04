@@ -1,16 +1,17 @@
 import { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import Box from '@mui/material/Box';
+import Slider from '@mui/material/Slider';
+import Typography from '@mui/material/Typography';
+
 import PlayerContext from '../../context/player/context';
+import { useSimpleMode } from '../../context/simple-mode';
 import {
   progressToTime,
   timeToProgress,
   toHHMMSS,
 } from '../../utils/utils';
-
-import Grid from '@mui/material/Grid';
-import Slider from '@mui/material/Slider';
-import Typography from '@mui/material/Typography';
 
 import request from '../../utils/request';
 
@@ -18,6 +19,7 @@ const SeekBar = () => {
   const { t } = useTranslation();
   const { state } = useContext(PlayerContext);
   const { playerstatus } = state;
+  const { simpleMode } = useSimpleMode();
 
   const [isSeeking, setIsSeeking] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -52,39 +54,34 @@ const SeekBar = () => {
     }
   }, [isSeeking, playerstatus?.elapsed, timeTotal]);
 
-  return <>
-    <Grid container>
-      <Grid size="grow">
-        <Slider
-          aria-labelledby={t('player.seekbar.song-position')}
-          disabled={!playerstatus?.title}
-          onChange={handleSeekToPosition}
-          onChangeCommitted={playFromNewTime}
-          size="small"
-          value={progress || 0}
-        />
-      </Grid>
-    </Grid>
-    <Grid
-      container
-      sx={{
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: '-10px',
-      }}
-    >
-      <Grid>
-        <Typography color="textSecondary">
+  return (
+    <Box>
+      <Slider
+        aria-label={t('player.seekbar.song-position')}
+        disabled={simpleMode || !playerstatus?.title}
+        getAriaValueText={(value) => toHHMMSS(
+          parseInt(progressToTime(timeTotal, value)),
+        )}
+        onChange={handleSeekToPosition}
+        onChangeCommitted={playFromNewTime}
+        value={progress || 0}
+      />
+      <Box
+        sx={{
+          alignItems: 'center',
+          display: 'flex',
+          justifyContent: 'space-between',
+        }}
+      >
+        <Typography color="textSecondary" variant="timeLabel">
           {toHHMMSS(parseInt(timeElapsed))}
         </Typography>
-      </Grid>
-      <Grid>
-        <Typography color="textSecondary">
+        <Typography color="textSecondary" variant="timeLabel">
           {toHHMMSS(parseInt(timeTotal))}
         </Typography>
-      </Grid>
-    </Grid>
-  </>;
+      </Box>
+    </Box>
+  );
 };
 
 export default SeekBar;

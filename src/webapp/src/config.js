@@ -5,6 +5,7 @@ const SUBSCRIPTIONS = [
   'batt_status',
   'core.plugins.loaded',
   'core.version',
+  'display.status',
   'core.started_at',
   'host.timer.cputemp',
   'host.temperature.cpu',

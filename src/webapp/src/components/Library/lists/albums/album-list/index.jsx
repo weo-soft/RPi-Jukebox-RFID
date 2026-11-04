@@ -8,15 +8,27 @@ import {
 
 import AlbumListItem from './album-list-item';
 
-const AlbumList = ({ albums, musicFilter, view }) => {
+import { LIBRARY_LIST_SX } from '../../list-layout';
+
+const AlbumList = ({
+  albums,
+  isManagementSelecting = false,
+  musicFilter,
+  onToggleSelected,
+  selectedUris = new Set(),
+  view,
+}) => {
   const { t } = useTranslation();
 
   if (albums?.length) {
     return (
-      <List sx={{ width: '100%' }}>
+      <List data-testid="library-album-list" sx={LIBRARY_LIST_SX}>
         {albums.map((entry, i) => (
           <AlbumListItem
             key={entry.content_uri || `${entry.provider}:${entry.albumartist}:${entry.album}:${i}`}
+            isManagementSelecting={isManagementSelecting}
+            isSelected={selectedUris.has(entry.content_uri)}
+            onToggleSelected={onToggleSelected}
             view={view}
             {...entry}
           />

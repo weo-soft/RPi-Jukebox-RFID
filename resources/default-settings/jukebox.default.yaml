@@ -18,7 +18,9 @@ modules:
     host: hostif.linux
     bluetooth_audio_buttons: controls.bluetooth_audio_buttons
     gpio: gpio.gpioz.plugin
+    mcp23017: gpio.mcp23017.plugin
     sync_rfidcards: synchronisation.rfidcards
+    display: display
   others:
   - misc
 pulse:
@@ -93,6 +95,43 @@ playermpd:
   stopped_prev_action: prev
   # Must be one of: 'none', 'next', 'rewind':
   stopped_next_action: next
+players:
+  spotify:
+    # Requires Premium, a user-owned Spotify developer app, and librespot.
+    enabled: false
+    client_id: ''
+    # Must exactly match a redirect URI configured in the Spotify developer app.
+    redirect_uri: ''
+    device_name: Phoniebox
+    token_file: ../../shared/settings/spotify_tokens.json
+    library_file: ../../shared/settings/spotify_library.json
+  jellyfin:
+    # Activate by setting enabled to true. The Jellyfin player backend
+    # streams audio through MPD, so no extra playback daemon is installed.
+    enabled: false
+    # Full URL to your Jellyfin server (12.0 or newer).
+    host: ''
+    # Credentials of a Jellyfin user. The login token inherits that user's
+    # library permissions, so a dedicated user with access to the music
+    # library is recommended. Stored directly in jukebox.yaml.
+    username: ''
+    password: ''
+    # Stores the access token, the identity it was issued for and the Jellyfin
+    # device id (written atomically, owner-only permissions). Reusing the token
+    # keeps the device entry and stream URLs that are still queued in MPD valid
+    # across restarts.
+    token_file: ../../shared/settings/jellyfin_token.json
+    # Jellyfin device id of this Phoniebox. Empty generates one on first use
+    # and stores it in token_file. Set it explicitly when several boxes share
+    # the same Jellyfin user, or on a cloned SD card image.
+    device_id: ''
+    # Seconds the album catalog is cached before a refresh. Larger values
+    # reduce Jellyfin load on a Raspberry Pi; new/removed albums are only
+    # picked up after the cache expires.
+    catalog_cache_ttl: 300
+    # Seconds to wait for a response from the Jellyfin server before a
+    # request is considered failed.
+    request_timeout: 30
 rpc:
   tcp_port: 5555
 api:
@@ -107,6 +146,9 @@ rfid:
 gpioz:
   enable: false
   config_file: ../../shared/settings/gpio.yaml
+mcp23017:
+  enable: false
+  config_file: ../../shared/settings/mcp23017.yaml
 timers:
   idle_shutdown:
     # If you want the box to shutdown on inactivity automatically, configure timeout_sec with a number of seconds (at least 60).
@@ -161,3 +203,56 @@ webapp:
   # when handling a lot of music
   # Defaults to true
   show_covers: true
+  # Show the navigation on the start view on every device, overriding the
+  # per-device setting in the browser
+  # Defaults to false
+  navigation_visible_global: false
+  # Local default that the kiosk browser stores when it first loads the Web App
+  # Defaults to false; every other origin starts with the navigation visible
+  navigation_visible_kiosk_seed: false
+  # Number of library entries rendered per page; a device can override it in the
+  # library
+  # Defaults to 100
+  library_page_size: 100
+
+display:
+  # Sysfs backlight device. Empty = auto-detect through /sys/class/backlight/*
+  # (for example "rpi_backlight" for the official 7" display).
+  # The installer writes the name only when exactly one device exists.
+  backlight_device: ""
+  # DDC/CI brightness for HDMI monitors without a sysfs backlight.
+  #   auto : use only when no sysfs device exists
+  #   on   : prefer DDC/CI, even when a sysfs device exists
+  #   off  : never use DDC/CI
+  ddc_control: auto
+  # Display number for `ddcutil -d <n>`.
+  ddc_display: 1
+  # X11 software fallback (gamma for brightness, DPMS for standby).
+  #   auto : only for capabilities without a hardware solution
+  #   off  : never use X11
+  x11_control: auto
+  # X11 output for xrandr, for example "HDMI-1". Empty = auto-detect.
+  x11_output: ""
+  # Active brightness in percent (1-100).
+  brightness: 100
+  # Brightness of the dimmed stage in percent (0-100).
+  dim_brightness: 10
+  # Inactivity until dimming, in minutes. 0 disables the dim stage.
+  dim_timeout_min: 2
+  # Inactivity until standby, in minutes. 0 disables standby.
+  # Must be 0 or at least dim_timeout_min.
+  standby_timeout_min: 5
+  # Standby mechanic:
+  #   auto      : backlight for sysfs/DDC, otherwise power_off
+  #   backlight : brightness 0 through the active source
+  #   power_off : complete power-off through vcgencmd, DDC/CI or X11 DPMS
+  standby_mechanic: auto
+  # Music policy:
+  #   normal            : timers run independently of playback
+  #   on_while_playing  : stay active while music is playing
+  #   dim_while_playing : allow dimming, no standby while playing
+  music_mode: normal
+  # Evdev touch device name or substring. Empty = auto-detect.
+  touch_device: ""
+  # Additional evdev devices whose key events count as interaction.
+  button_devices: []

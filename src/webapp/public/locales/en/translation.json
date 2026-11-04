@@ -11,8 +11,8 @@
   "cards": {
     "controls": {
       "command-selector": {
-        "title": "Commands",
-        "label": "{{title}} commands",
+        "title": "Command",
+        "label": "Command",
         "placeholder": "Select a command",
         "commands": {
           "change_volume": "Change volume by",
@@ -35,10 +35,10 @@
         }
       },
       "controls-selector": {
-        "label": "Jukebox action"
+        "label": "Action"
       },
       "select-command-aliases": {
-        "label": "Actions",
+        "label": "Action",
         "placeholder": "Select an action",
         "actions": {
           "play_music": "Play music",
@@ -98,6 +98,9 @@
         }
       }
     },
+    "card-id": {
+      "label": "Card ID"
+    },
     "dialogs": {
       "delete": {
         "title": "Delete Card '{{cardId}}'",
@@ -109,18 +112,101 @@
     },
     "form": {
       "no-card-swiped": "Please swipe a card to receive an ID which will be used to register a new action.",
-      "no-card-id": "No card ID"
+      "no-card-id": "No card ID",
+      "card-id-hint": "Swiping a card fills in the ID.",
+      "save-failed": "Saving failed: {{error}}"
     },
     "list": {
-      "no-cards-registered": "No cards registered!"
+      "no-cards-registered": "No cards registered!",
+      "search": "Search content or card ID",
+      "group-by-source": "Group by source",
+      "unassignable": "Not assignable",
+      "unknown-content": "No content",
+      "no-match": "No card matches the search."
     },
     "overview": {
       "cards": "Cards",
       "loading-error": "An error occurred while loading cards list.",
-      "register-card": "Register a card"
+      "register-bulk": "Bulk registration",
+      "register-card": "Register a card",
+      "register-single": "Single registration"
     },
     "register": {
       "register-card": "Register a card"
+    },
+    "bulk": {
+      "title": "Bulk registration",
+      "source": "Source",
+      "order": "Order",
+      "orders": {
+        "album-natural": "Albums A→Z",
+        "artist-album": "Artist, then album",
+        "source": "Order of the source"
+      },
+      "start-at": "Starts at no. {{number}} of {{total}}.",
+      "start": "Start bulk registration",
+      "open-list": "Bulk list",
+      "last-at": "Last at no. {{number}}.",
+      "continue": "Continue there",
+      "bind": "Bind",
+      "bound-at": "Just bound: no. {{number}}",
+      "undo": "Undo",
+      "conflict": "Card {{cardId}} is already registered with {{content}}.",
+      "conflict-unknown": "a hand-written entry",
+      "conflict-list": "Check in the card list",
+      "rebind": "Reassign",
+      "dismiss": "Close",
+      "binding-failed": "The binding failed: {{error}}",
+      "selection": "Selection",
+      "choice": {
+        "title": "Choose albums",
+        "confirm": "Confirm the selection",
+        "change": "Change the selection",
+        "clear": "Clear the selection",
+        "group-by": "Group by",
+        "groupings": {
+          "albumartist": "Album artist",
+          "albumartist-initial": "First letter of the album artist",
+          "album-initial": "First letter of the album"
+        },
+        "search": "Search album or artist",
+        "no-albumartist": "Without an album artist",
+        "group-count": "{{chosen}} of {{total}} chosen, open: {{open}}",
+        "select-group": "Select {{group}}",
+        "chosen_one": "{{count}} album chosen, open: {{open}}",
+        "chosen_other": "{{count}} albums chosen, open: {{open}}",
+        "select-all": "Select all",
+        "deselect-all": "Deselect all",
+        "open-only": "Only open ones",
+        "no-match": "No album matches the search.",
+        "selected-all": "all albums of the source",
+        "selected_one": "{{count}} album, open: {{open}}",
+        "selected_other": "{{count}} albums, open: {{open}}",
+        "missing_one": "The source no longer delivers {{count}} chosen album.",
+        "missing_other": "The source no longer delivers {{count}} chosen albums.",
+        "empty": "The selection holds no album of this source.",
+        "empty-hint": "Choose other albums or clear the selection."
+      },
+      "position": "No. {{number}} of {{total}}",
+      "open-count": "open: {{count}}",
+      "place-card": "Place a card",
+      "back": "Back to start",
+      "interrupt": "Pause",
+      "to-cards": "To the card list",
+      "to-library": "To the library",
+      "empty-source": "This source delivers no album.",
+      "empty-source-hint": "Add music in the library or choose another source above.",
+      "exhausted": "All {{count}} albums of the selection have a card.",
+      "exhausted-hint": "New cards are created through the existing form.",
+      "loading-error": "The bulk registration could not be loaded. Without the card list nothing is bound.",
+      "retry": "Load again",
+      "list": {
+        "search": "Search album or artist",
+        "row": "{{number}}. {{album}}",
+        "start-here": "Start here",
+        "bound": "bound",
+        "no-match": "No album matches the search."
+      }
     }
   },
   "header": {
@@ -140,8 +226,14 @@
       "playlists": "Playlists",
       "tracks": "Tracks"
     },
+    "pagination": {
+      "page-size": "Items per page",
+      "pages": "Pages"
+    },
     "sources": {
-      "mpd": "Local"
+      "mpd": "Local",
+      "spotify": "Spotify",
+      "jellyfin": "Jellyfin"
     },
     "overview": {
       "group": "{{source}} {{view}}",
@@ -213,10 +305,35 @@
         }
       }
     },
+    "spotify": {
+      "manager": {
+        "actions-label": "Curated Spotify library actions",
+        "add": "Add link",
+        "select": "Select",
+        "select-item": "Select {{name}}",
+        "delete-selected_one": "Remove {{count}} item",
+        "delete-selected_other": "Remove {{count}} items",
+        "add-dialog": {
+          "title": "Add Spotify content",
+          "link": "Spotify link",
+          "confirm": "Add"
+        },
+        "delete": {
+          "title_one": "Remove {{count}} item?",
+          "title_other": "Remove {{count}} items?",
+          "description": "This only removes the selection from the curated Phoniebox library. Spotify content is not deleted."
+        }
+      }
+    },
     "albums": {
       "unknown-album": "Unknown album",
       "unknown-artist": "Unknown artist",
       "unknown-title": "Unknown title",
+      "spotify-album": "Spotify album",
+      "spotify-playlist": "Spotify playlist",
+      "spotify-collection": "Spotify collection",
+      "spotify-track": "Spotify track",
+      "select-item": "Select {{album}}",
       "no-music": "No music found!",
       "empty-library": "Your library is empty!",
       "no-songs-in-album": "Strange, no songs in this album.",
@@ -233,16 +350,20 @@
     "controls": {
       "shuffle": {
         "enable": "Enable shuffle",
-        "disable": "Disable shuffle"
+        "disable": "Disable shuffle",
+        "label": "Shuffle"
       },
       "prev_song": "Skip to previous track",
+      "prev": "Previous",
       "play": "Play",
       "pause": "Pause",
       "next_song": "Skip to next track",
+      "next": "Next",
       "repeat": {
         "enable": "Enable Playlist repeat",
         "enable-single": "Enable Song repeat",
-        "disable": "Disable repeat"
+        "disable": "Disable repeat",
+        "label": "Repeat"
       }
     },
     "cover": {
@@ -254,13 +375,22 @@
       "unknown-artist": "Unknown artists",
       "no-song-in-queue": "No song in queue"
     },
+    "empty": {
+      "title": "No playback",
+      "hint": "Tap a card or pick music",
+      "open-library": "Open library"
+    },
     "seekbar": {
       "song-position": "Current position"
     },
     "volume": {
       "slider": "Volume Slider",
       "mute": "Mute volume",
-      "unmute": "Unmute volume"
+      "unmute": "Unmute volume",
+      "decrease": "Decrease volume",
+      "increase": "Increase volume",
+      "muted": "Muted",
+      "sound-on": "Sound on"
     }
   },
   "settings": {
@@ -293,7 +423,103 @@
       "title": "General Settings",
       "show_covers": {
         "title": "Show Cover Art"
+      },
+      "navigation_local": {
+        "title": "Show navigation (local)",
+        "description": "Applies to this device. Hidden by default in the kiosk; tap the cover seven times to show it again."
+      },
+      "navigation_global": {
+        "title": "Show navigation (global)",
+        "description": "Overrides the local setting on all devices."
+      },
+      "library_page_size": {
+        "title": "Items per page (default)",
+        "description": "Applies to devices without their own choice in the library."
+      },
+      "simple_mode": {
+        "title": "Simple mode",
+        "description": "Hides shuffle and repeat; the seek bar stays visible but cannot be dragged."
+      },
+      "history_swipe": {
+        "title": "Prevent history swipe",
+        "description": "Prevents navigating back or forward with a horizontal swipe. Enabled by default in the kiosk."
       }
+    },
+    "spotify": {
+      "title": "Spotify",
+      "status": "Account",
+      "device": "Spotify Connect device",
+      "redirect-uri": "OAuth redirect URI",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "refresh": "Refresh Spotify status",
+      "popup-blocked": "Allow pop-ups to connect the Spotify account.",
+      "states": {
+        "disabled": "Disabled",
+        "not-configured": "Not configured",
+        "not-connected": "Not connected",
+        "connected": "Connected"
+      },
+      "library": {
+        "title": "Library",
+        "mode": "Spotify library mode",
+        "account": "Account library",
+        "curated": "Curated library"
+      }
+    },
+    "jellyfin": {
+      "title": "Jellyfin",
+      "enabled": "Enable Jellyfin",
+      "host": "Server host",
+      "username": "Username",
+      "password": "Password",
+      "catalog-cache-ttl": "Catalog cache TTL (seconds)",
+      "request-timeout": "Request timeout (seconds)",
+      "user-hint": "Recommended: a dedicated Jellyfin user with access to the music library. The login token inherits that user's permissions.",
+      "secret-configured": "Configured",
+      "secret-keep": "Leave empty to keep the stored value",
+      "secret-warning": "The password is never displayed for security reasons. Enter a new value to change it.",
+      "restart-hint": "Changes take effect after a restart of the jukebox.",
+      "save": "Save",
+      "saved": "Settings saved.",
+      "test": "Test",
+      "test-found": "Jellyfin server found at {{url}}",
+      "test-adopt": "Use this address",
+      "test-not-found": "No Jellyfin server found at any of the tested addresses.",
+      "test-candidates": "Tested addresses:"
+    },
+    "display": {
+      "title": "Display",
+      "state": "State",
+      "state-active": "On",
+      "state-dimmed": "Dimmed",
+      "state-standby": "Standby",
+      "source": "Source",
+      "source-sysfs": "Backlight",
+      "source-ddc": "DDC/CI",
+      "source-x11": "Software dimming (gamma)",
+      "source-none": "None",
+      "device": "Device",
+      "brightness": "Brightness",
+      "dim-brightness": "Dim brightness",
+      "dim-timeout": "Dim after (minutes)",
+      "standby-timeout": "Standby after (minutes)",
+      "music-mode": "While music is playing",
+      "music-mode-normal": "Normal",
+      "music-mode-on": "Stay on while playing",
+      "music-mode-dim": "Dim while playing",
+      "standby-mechanic": "Standby mechanic",
+      "standby-mechanic-auto": "Automatic",
+      "standby-mechanic-backlight": "Dark (backlight 0)",
+      "standby-mechanic-power-off": "Off (display power)",
+      "power": "Display on",
+      "busy": "Applying…",
+      "unavailable": "Display cannot be controlled.",
+      "no-backlight": "No backlight device found. Standby is still available.",
+      "no-input": "No permission to read input devices. Buttons will not wake the display.",
+      "software-dim": "Software dimming (gamma) – the backlight stays on.",
+      "errors": "Errors",
+      "tap-to-wake": "Touch to wake"
     },
     "timers": {
       "option-label-timeslot": "{{value}} min",
@@ -339,7 +565,18 @@
       "battery": {
         "title": "Battery",
         "charging": "Battery is charging",
-        "not-charging": "Battery is not charging"
+        "not-charging": "Battery is not charging",
+        "unavailable": "Unavailable",
+        "states": {
+          "charging": "Charging",
+          "discharging": "Discharging",
+          "idle": "Idle",
+          "unknown": "Unknown"
+        },
+        "details": "{{voltage}} V · {{current}} A · {{power}} W",
+        "indicator": {
+          "aria-label": "Battery {{soc}} percent, {{state}}"
+        }
       },
       "cpu-temp": {
         "label": "CPU Temperature",
@@ -373,6 +610,45 @@
     },
     "systemcontrols": {
       "title": "System Controls"
+    },
+    "mcp23017": {
+      "title": "MCP23017 buttons",
+      "description": "Only assigned buttons are listed. Add a new assignment or edit and remove an existing one.",
+      "empty": "No buttons are assigned yet.",
+      "add": "Add assignment",
+      "edit": "Edit {{pin}}",
+      "delete": "Delete {{pin}}",
+      "remove-title": "Remove assignment?",
+      "remove-text": "{{pin}} will no longer trigger {{action}}.",
+      "remove": "Remove",
+      "cancel": "Cancel",
+      "dialog-add-title": "Add button assignment",
+      "dialog-edit-title": "Change button assignment",
+      "mode-direct": "Choose input and action",
+      "mode-learn": "Assign by pressing",
+      "pin": "Input",
+      "action": "Action",
+      "choose-action": "Choose an action",
+      "save": "Save",
+      "no-free-pins": "All inputs are assigned.",
+      "advanced": "Advanced YAML definition ({{type}})",
+      "advanced-label": "Advanced ({{type}})",
+      "advanced-edit": "This input has an advanced YAML definition. Saving replaces it.",
+      "not-running": "The MCP23017 plugin is {{state}}.",
+      "learn-description": "Choose an action and press the button you want to use within 15 seconds.",
+      "learn-start": "Start learning",
+      "learn-waiting": "Press a button now…",
+      "learn-timeout": "No button was pressed in time.",
+      "actions": {
+        "play_pause": "Play/Pause",
+        "next": "Next title",
+        "previous": "Previous title",
+        "volume_up": "Volume up",
+        "volume_down": "Volume down",
+        "shutdown": "Shut down",
+        "reboot": "Reboot",
+        "say_ip": "Say IP address"
+      }
     }
   }
 }

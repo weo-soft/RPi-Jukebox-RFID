@@ -9,9 +9,10 @@ import {
 } from 'react-router-dom';
 
 import {
-  CircularProgress,
   Grid,
 } from '@mui/material';
+
+import { Loading } from '../../general';
 
 import Albums from './albums';
 import LibraryOverview from './overview';
@@ -63,7 +64,7 @@ const LibrarySourceView = ({
   const { provider, view } = useParams();
   const sourceView = findSourceView(sources, provider, view);
 
-  if (!sourceView && isLoadingSources) return <CircularProgress />;
+  if (!sourceView && isLoadingSources) return <Loading />;
   if (!sourceView) return <RedirectWithSearch to="/library/overview" />;
   if (sourceView.kind === 'folders') {
     return (
@@ -94,7 +95,7 @@ const LibraryFolderView = ({
   const { provider, view } = useParams();
   const sourceView = findSourceView(sources, provider, view);
 
-  if (!sourceView && isLoadingSources) return <CircularProgress />;
+  if (!sourceView && isLoadingSources) return <Loading />;
   if (sourceView?.kind !== 'folders') {
     return <RedirectWithSearch to="/library/overview" />;
   }
@@ -117,7 +118,7 @@ const LibraryItemView = ({
   const { provider, view } = useParams();
   const sourceView = findSourceView(sources, provider, view);
 
-  if (!sourceView && isLoadingSources) return <CircularProgress />;
+  if (!sourceView && isLoadingSources) return <Loading />;
   if (!sourceView || sourceView.kind === 'folders') {
     return <RedirectWithSearch to="/library/overview" />;
   }
@@ -192,7 +193,7 @@ const LibraryLists = () => {
   return (
     <Grid container id="library">
       {isSelecting && <SelectorHeader />}
-      <Grid container size={12} sx={{ padding: '10px' }}>
+      <Grid container size={12} sx={{ minWidth: 0 }}>
         <LibraryHeader
           handleMusicFilter={handleMusicFilter}
           musicFilter={musicFilter}
@@ -201,10 +202,9 @@ const LibraryLists = () => {
         <Grid
           container
           size={12}
-          spacing={1}
           sx={{
-            display: 'flex',
             justifyContent: 'center',
+            minWidth: 0,
           }}
         >
           <Routes>

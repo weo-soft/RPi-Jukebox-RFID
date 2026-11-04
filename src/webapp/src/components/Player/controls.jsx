@@ -1,8 +1,9 @@
-import { memo, useContext, useEffect } from 'react';
+import { memo, useContext, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
 import PlayCircleFilledRoundedIcon from '@mui/icons-material/PlayCircleFilledRounded';
 import PauseCircleFilledRoundedIcon from '@mui/icons-material/PauseCircleFilledRounded';
 import SkipPreviousRoundedIcon from '@mui/icons-material/SkipPreviousRounded';
@@ -12,11 +13,91 @@ import RepeatRoundedIcon from '@mui/icons-material/RepeatRounded';
 import RepeatOneRoundedIcon from '@mui/icons-material/RepeatOneRounded';
 
 import PlayerContext from '../../context/player/context';
+import { useSimpleMode } from '../../context/simple-mode';
 import request from '../../utils/request';
+
+// The box of a control comes from its token, the icon size from the matching
+// icon token; padding would couple the hit area to the icon instead.
+const touchBox = (token) => ({
+  height: `var(${token})`,
+  minHeight: `var(${token})`,
+  minWidth: `var(${token})`,
+  padding: 0,
+  width: `var(${token})`,
+});
+
+const ACTIVE_SURFACE = 'rgba(0, 150, 136, .18)';
+const PRESS_FEEDBACK_MS = 400;
+
+
+// A tap leaves no hover state on a touch screen. Keep a short visual press
+// response on the button so the action is visible before the player state
+// changes.
+const FeedbackIconButton = ({
+  children,
+  onClick,
+  sx,
+  ...props
+}) => {
+  const [pressed, setPressed] = useState(false);
+  const timer = useRef();
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const handleClick = (event) => {
+    setPressed(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setPressed(false), PRESS_FEEDBACK_MS);
+    onClick?.(event);
+  };
+
+  return (
+    <IconButton
+      {...props}
+      data-pressed={pressed ? 'true' : 'false'}
+      onClick={handleClick}
+      sx={[
+        { transition: 'transform 120ms ease, background-color 120ms ease' },
+        ...(Array.isArray(sx) ? sx : [sx]),
+        pressed && {
+          backgroundColor: ACTIVE_SURFACE,
+          transform: 'scale(.94)',
+        },
+      ]}
+    >
+      {children}
+    </IconButton>
+  );
+};
+
+const Control = ({ children, label, showLabel }) => (
+  <Box
+    sx={{
+      alignItems: 'center',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 'var(--space-1)',
+      minWidth: 0,
+    }}
+  >
+    {children}
+    {showLabel &&
+      <Typography
+        color="textSecondary"
+        noWrap
+        sx={{ maxWidth: 'var(--touch-primary)' }}
+        variant="timeLabel"
+      >
+        {label}
+      </Typography>
+    }
+  </Box>
+);
 
 // TODO: Should be broken up in sub-modules
 const Controls = () => {
   const { t } = useTranslation();
+  const { simpleMode } = useSimpleMode();
   const {
     state,
     setState,
@@ -50,8 +131,6 @@ const Controls = () => {
     }));
   }, [playerstatus, setState]);
 
-  const iconStyles = { padding: '7px' };
-
   const labelShuffle = () => (
     isShuffle
       ? t('player.controls.shuffle.disable')
@@ -64,98 +143,104 @@ const Controls = () => {
     if (isRepeat && isSingle) return t('player.controls.repeat.disable');
   };
 
+  // An active toggle is marked by a filled surface and by its color
+  const toggleStyle = (isActive) => ({
+    ...touchBox('--touch-comfort'),
+    backgroundColor: isActive ? ACTIVE_SURFACE : 'transparent',
+    color: isActive ? 'primary.light' : undefined,
+  });
+
+  const playLabel = isPlaying
+    ? t('player.controls.pause')
+    : t('player.controls.play');
+  const secondaryToken = simpleMode ? '--touch-simple-secondary' : '--touch-secondary';
+  const secondaryIcon = simpleMode ? '--icon-simple-secondary' : '--icon-secondary';
+  const primaryToken = simpleMode ? '--touch-simple-primary' : '--touch-primary';
+  const primaryIcon = simpleMode ? '--icon-simple-primary' : '--icon-primary';
+
   return (
-    <Grid
-      container
+    <Box
       sx={{
         alignItems: 'center',
-        flexWrap: 'nowrap',
-        justifyContent: 'space-evenly',
+        display: 'flex',
+        gap: 'var(--touch-gap)',
+        justifyContent: 'center',
       }}
     >
 
-      {/* Shuffle */}
-      <IconButton
-        aria-label={labelShuffle()}
-        color={isShuffle ? 'primary' : undefined}
-        onClick={toggleShuffle}
-        size="large"
-        sx={iconStyles}
-        title={labelShuffle()}
-      >
-        <ShuffleRoundedIcon style={{ fontSize: 22 }} />
-      </IconButton>
+      {!simpleMode &&
+        <Control label={t('player.controls.shuffle.label')} showLabel>
+          <FeedbackIconButton
+            aria-label={labelShuffle()}
+            onClick={toggleShuffle}
+            sx={toggleStyle(isShuffle)}
+            title={labelShuffle()}
+          >
+            <ShuffleRoundedIcon sx={{ fontSize: 'var(--icon-comfort)' }} />
+          </FeedbackIconButton>
+        </Control>
+      }
 
-      {/* Skip to previous song */}
-      <IconButton
-        aria-label={t('player.controls.prev_song')}
-        disabled={!songIsScheduled}
-        onClick={() => request('prev_song')}
-        size="large"
-        sx={iconStyles}
-        title={t('player.controls.prev_song')}
-      >
-        <SkipPreviousRoundedIcon style={{ fontSize: 35 }} />
-      </IconButton>
-
-      {/* Play */}
-      {!isPlaying &&
-        <IconButton
-          aria-label={t('player.controls.play')}
-          onClick={() => request('play')}
+      <Control label={t('player.controls.prev')} showLabel={!simpleMode}>
+        <FeedbackIconButton
+          aria-label={t('player.controls.prev_song')}
           disabled={!songIsScheduled}
-          size="large"
-          sx={iconStyles}
-          title={t('player.controls.play')}
+          onClick={() => request('prev_song')}
+          sx={touchBox(secondaryToken)}
+          title={t('player.controls.prev_song')}
         >
-          <PlayCircleFilledRoundedIcon style={{ fontSize: 75 }} />
-        </IconButton>
-      }
-      {/* Pause */}
-      {isPlaying &&
-        <IconButton
-          aria-label={t('player.controls.pause')}
-          onClick={() => request('pause')}
-          size="large"
-          sx={iconStyles}
-          title={t('player.controls.pause')}
+          <SkipPreviousRoundedIcon sx={{ fontSize: `var(${secondaryIcon})` }} />
+        </FeedbackIconButton>
+      </Control>
+
+      <Control label={playLabel} showLabel={!simpleMode}>
+        <FeedbackIconButton
+          aria-label={playLabel}
+          disabled={!songIsScheduled}
+          onClick={() => request(isPlaying ? 'pause' : 'play')}
+          sx={touchBox(primaryToken)}
+          title={playLabel}
         >
-          <PauseCircleFilledRoundedIcon style={{ fontSize: 75 }} />
-        </IconButton>
+          {!isPlaying &&
+            <PlayCircleFilledRoundedIcon sx={{ fontSize: `var(${primaryIcon})` }} />
+          }
+          {isPlaying &&
+            <PauseCircleFilledRoundedIcon sx={{ fontSize: `var(${primaryIcon})` }} />
+          }
+        </FeedbackIconButton>
+      </Control>
+
+      <Control label={t('player.controls.next')} showLabel={!simpleMode}>
+        <FeedbackIconButton
+          aria-label={t('player.controls.next_song')}
+          disabled={!songIsScheduled}
+          onClick={() => request('next_song')}
+          sx={touchBox(secondaryToken)}
+          title={t('player.controls.next_song')}
+        >
+          <SkipNextRoundedIcon sx={{ fontSize: `var(${secondaryIcon})` }} />
+        </FeedbackIconButton>
+      </Control>
+
+      {!simpleMode &&
+        <Control label={t('player.controls.repeat.label')} showLabel>
+          <FeedbackIconButton
+            aria-label={labelRepeat()}
+            onClick={toggleRepeat}
+            sx={toggleStyle(isRepeat)}
+            title={labelRepeat()}
+          >
+            {!isSingle &&
+              <RepeatRoundedIcon sx={{ fontSize: 'var(--icon-comfort)' }} />
+            }
+            {isSingle &&
+              <RepeatOneRoundedIcon sx={{ fontSize: 'var(--icon-comfort)' }} />
+            }
+          </FeedbackIconButton>
+        </Control>
       }
 
-      {/* Skip to next song */}
-      <IconButton
-        aria-label={t('player.controls.next_song')}
-        disabled={!songIsScheduled}
-        onClick={() => request('next_song')}
-        size="large"
-        sx={iconStyles}
-        title={t('player.controls.next_song')}
-      >
-        <SkipNextRoundedIcon style={{ fontSize: 35 }} />
-      </IconButton>
-
-      {/* Repeat */}
-      <IconButton
-        aria-label={labelRepeat()}
-        color={isRepeat ? 'primary' : undefined}
-        onClick={toggleRepeat}
-        size="large"
-        sx={iconStyles}
-        title={labelRepeat()}
-      >
-        {
-          !isSingle &&
-          <RepeatRoundedIcon style={{ fontSize: 22 }} />
-        }
-        {
-          isSingle &&
-          <RepeatOneRoundedIcon style={{ fontSize: 22 }} />
-        }
-      </IconButton>
-
-    </Grid>
+    </Box>
   );
 };
 

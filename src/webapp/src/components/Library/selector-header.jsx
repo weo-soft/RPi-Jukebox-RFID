@@ -17,6 +17,7 @@ const SelectorHeader = () => {
     <Grid container size={12} sx={{
       backgroundColor: theme.palette.primary.main,
       padding: '10px',
+      paddingRight: '80px',
       position: 'sticky',
       top: '0',
       zIndex: '1000',

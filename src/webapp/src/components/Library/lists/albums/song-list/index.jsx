@@ -3,11 +3,12 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import {
-  CircularProgress,
   Grid,
   List,
   Typography,
 } from '@mui/material';
+
+import { Loading } from '../../../../general';
 
 import request from '../../../../../utils/request';
 
@@ -15,6 +16,8 @@ import SongListHeader from './song-list-header';
 import SongListHeadline from './song-list-headline';
 import SongListControls from './song-list-controls';
 import SongListItem from './song-list-item';
+
+import { LIBRARY_LIST_SX } from '../../list-layout';
 
 const SongList = ({
   isSelecting,
@@ -82,8 +85,8 @@ const SongList = ({
         }}
       >
         {isLoading
-          ? <CircularProgress />
-          : <List sx={{ width: '100%' }}>
+          ? <Loading />
+          : <List sx={LIBRARY_LIST_SX}>
               {songs.map(song =>
                 <SongListItem
                   key={song.file || song.track}

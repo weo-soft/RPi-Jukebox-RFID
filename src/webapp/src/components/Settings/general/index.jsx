@@ -3,13 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@mui/material/styles';
 
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  Divider,
   Grid,
 } from '@mui/material';
+
+import SettingsSection from '../section';
+import HistorySwipe from './history-swipe';
+import LibraryPageSize from './library-page-size';
+import NavigationVisibility from './navigation-visibility';
 import ShowCovers from './show-covers';
+import SimpleMode from './simple-mode';
 
 const SettingsGeneral = () => {
   const { t } = useTranslation();
@@ -17,23 +19,21 @@ const SettingsGeneral = () => {
   const spacer = { marginBottom: theme.spacing(2) }
 
   return (
-    <Card>
-      <CardHeader
-        title={t('settings.general.title')}
-      />
-      <Divider />
-      <CardContent>
-        <Grid
-          container
-          sx={{
-            '& > .MuiGrid-root:not(:last-child)': spacer,
-            flexDirection: 'column',
-          }}
-        >
-          <ShowCovers />
-        </Grid>
-      </CardContent>
-    </Card>
+    <SettingsSection id="general" title={t('settings.general.title')}>
+      <Grid
+        container
+        sx={{
+          '& > .MuiGrid-root:not(:last-child)': spacer,
+          flexDirection: 'column',
+        }}
+      >
+        <ShowCovers />
+        <NavigationVisibility />
+        <SimpleMode />
+        <HistorySwipe />
+        <LibraryPageSize />
+      </Grid>
+    </SettingsSection>
   );
 };
 

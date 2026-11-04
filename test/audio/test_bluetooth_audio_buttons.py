@@ -7,6 +7,7 @@ import pytest
 
 import jukebox.plugs as plugin
 
+_saved_publishing = sys.modules.get('jukebox.publishing')
 sys.modules.setdefault('jukebox.publishing', MagicMock())
 
 
@@ -20,6 +21,11 @@ plugin.atexit = dummy_decorator
 
 sys.modules.setdefault('evdev', MagicMock())
 from components.controls import bluetooth_audio_buttons  # noqa: E402
+
+if _saved_publishing is None:
+    sys.modules.pop('jukebox.publishing', None)
+else:
+    sys.modules['jukebox.publishing'] = _saved_publishing
 
 
 @patch.object(bluetooth_audio_buttons, 'activate')

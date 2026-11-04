@@ -18,6 +18,11 @@ export default defineConfig({
         ws: true,
         changeOrigin: false,
       },
+      // nginx serves the cover cache under the same origin as the Web App
+      '/cover-cache': {
+        target: apiTarget,
+        changeOrigin: false,
+      },
     },
   },
   test: {

@@ -6,8 +6,17 @@ import IconButton from '@mui/material/IconButton';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 
-const Header = ({ title, backLink }) => {
+/*
+ * A screen header: a title and, where the screen has somewhere to go back to,
+ * an arrow. A screen that keeps its states inside itself steps back through
+ * 'onBack'; a screen that is a route of its own leaves through 'backLink'.
+ */
+const Header = ({ title, backLink, onBack }) => {
   const { t } = useTranslation();
+
+  const backProps = onBack
+    ? { onClick: onBack }
+    : { component: Link, nativeButton: false, to: backLink };
 
   return (
     <Grid
@@ -15,33 +24,30 @@ const Header = ({ title, backLink }) => {
       size={12}
       spacing={1}
       sx={{
-        display: 'flex',
         alignItems: 'center',
+        backgroundColor: 'background.default',
+        minHeight: 56,
+        position: 'sticky',
+        top: 0,
+        zIndex: 2,
       }}
     >
-      {backLink &&
+      {(backLink || onBack) &&
         <IconButton
           aria-label={t('header.back')}
-          component={Link}
-          nativeButton={false}
-          to={backLink}
-          size="large"
+          {...backProps}
+          sx={{
+            height: 'var(--touch-comfort)',
+            minHeight: 'var(--touch-comfort)',
+            minWidth: 'var(--touch-comfort)',
+            width: 'var(--touch-comfort)',
+          }}
           title={t('header.back')}
         >
           <ArrowBackIcon />
         </IconButton>
       }
-      <Typography
-        variant="h6"
-        sx={
-          !backLink
-          ? {
-              marginTop: '10px',
-              marginLeft: '20px',
-            }
-          : {}
-        }
-      >
+      <Typography component="h2" variant="sectionTitle">
         {title}
       </Typography>
     </Grid>

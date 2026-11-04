@@ -12,7 +12,7 @@
     "controls": {
       "command-selector": {
         "title": "Befehl",
-        "label": "{{title}} Befehle",
+        "label": "Befehl",
         "placeholder": "Wähle einen Befehl aus",
         "commands": {
           "change_volume": "Lautstärke anpassen",
@@ -35,10 +35,10 @@
         }
       },
       "controls-selector": {
-        "label": "Jukebox Aktion"
+        "label": "Aktion"
       },
       "select-command-aliases": {
-        "label": "Aktionen",
+        "label": "Aktion",
         "placeholder": "Wähle eine Aktion aus",
         "actions": {
           "play_music": "Musik abspielen",
@@ -98,6 +98,9 @@
         }
       }
     },
+    "card-id": {
+      "label": "Karten-ID"
+    },
     "dialogs": {
       "delete": {
         "title": "Karte löschen '{{cardId}}'",
@@ -109,18 +112,101 @@
     },
     "form": {
       "no-card-swiped": "Bitte scanne eine Karte um einen ID zu erhalten. Diese wird dann zur Registrierung einer neuen Aktion verwendet.",
-      "no-card-id": "Keine Karten-ID vorhanden"
+      "no-card-id": "Keine Karten-ID vorhanden",
+      "card-id-hint": "Eine aufgelegte Karte füllt die ID.",
+      "save-failed": "Speichern fehlgeschlagen: {{error}}"
     },
     "list": {
-      "no-cards-registered": "Es wurden noch keine Karten registriert!"
+      "no-cards-registered": "Es wurden noch keine Karten registriert!",
+      "search": "Nach Inhalt oder ID suchen",
+      "group-by-source": "Nach Quelle gruppieren",
+      "unassignable": "Nicht zuordenbar",
+      "unknown-content": "Ohne Inhalt",
+      "no-match": "Keine Karte passt zur Suche."
     },
     "overview": {
       "cards": "Karten",
       "loading-error": "Während des Ladens der Karten ist ein Fehler aufgetreten",
-      "register-card": "Registriere eine Karte"
+      "register-bulk": "Sammelregistrierung",
+      "register-card": "Karte registrieren",
+      "register-single": "Einzelregistrierung"
     },
     "register": {
       "register-card": "Registriere eine Karte"
+    },
+    "bulk": {
+      "title": "Sammelregistrierung",
+      "source": "Quelle",
+      "order": "Ordnung",
+      "orders": {
+        "album-natural": "Alben A→Z",
+        "artist-album": "Interpret, dann Album",
+        "source": "Reihenfolge der Quelle"
+      },
+      "start-at": "Beginnt bei Nr. {{number}} von {{total}}.",
+      "start": "Sammelregistrierung starten",
+      "open-list": "Sammelliste",
+      "last-at": "Zuletzt bei Nr. {{number}}.",
+      "continue": "Dort weitermachen",
+      "bind": "Binden",
+      "bound-at": "Gerade gebunden: Nr. {{number}}",
+      "undo": "Zurücknehmen",
+      "conflict": "Karte {{cardId}} ist bereits belegt mit {{content}}.",
+      "conflict-unknown": "einem handgeschriebenen Eintrag",
+      "conflict-list": "In der Kartenliste prüfen",
+      "rebind": "Umhängen",
+      "dismiss": "Schließen",
+      "binding-failed": "Die Bindung ist fehlgeschlagen: {{error}}",
+      "selection": "Auswahl",
+      "choice": {
+        "title": "Alben auswählen",
+        "confirm": "Auswahl bestätigen",
+        "change": "Auswahl ändern",
+        "clear": "Auswahl aufheben",
+        "group-by": "Gruppieren nach",
+        "groupings": {
+          "albumartist": "Album-Interpret",
+          "albumartist-initial": "Anfangsbuchstabe des Interpreten",
+          "album-initial": "Anfangsbuchstabe des Albums"
+        },
+        "search": "Album oder Interpret suchen",
+        "no-albumartist": "Ohne Album-Interpret",
+        "group-count": "{{chosen}} von {{total}} gewählt, offen: {{open}}",
+        "select-group": "{{group}} auswählen",
+        "chosen_one": "{{count}} Album gewählt, offen: {{open}}",
+        "chosen_other": "{{count}} Alben gewählt, offen: {{open}}",
+        "select-all": "Alle auswählen",
+        "deselect-all": "Alle abwählen",
+        "open-only": "Nur offene",
+        "no-match": "Kein Album passt zur Suche.",
+        "selected-all": "alle Alben der Quelle",
+        "selected_one": "{{count}} Album, offen: {{open}}",
+        "selected_other": "{{count}} Alben, offen: {{open}}",
+        "missing_one": "{{count}} gewähltes Album liefert die Quelle nicht mehr.",
+        "missing_other": "{{count}} gewählte Alben liefert die Quelle nicht mehr.",
+        "empty": "Die Auswahl enthält kein Album dieser Quelle.",
+        "empty-hint": "Andere Alben wählen oder die Auswahl aufheben."
+      },
+      "position": "Nr. {{number}} von {{total}}",
+      "open-count": "offen: {{count}}",
+      "place-card": "Karte auflegen",
+      "back": "Zurück zum Start",
+      "interrupt": "Unterbrechen",
+      "to-cards": "Zur Kartenliste",
+      "to-library": "Zur Bibliothek",
+      "empty-source": "Diese Quelle liefert kein Album.",
+      "empty-source-hint": "In der Bibliothek Musik hinzufügen oder oben eine andere Quelle wählen.",
+      "exhausted": "Alle {{count}} Alben der Auswahl haben eine Karte.",
+      "exhausted-hint": "Neue Karten entstehen über das bestehende Formular.",
+      "loading-error": "Die Sammelregistrierung konnte nicht geladen werden. Ohne Kartenliste wird nicht gebunden.",
+      "retry": "Erneut laden",
+      "list": {
+        "search": "Album oder Interpret suchen",
+        "row": "{{number}}. {{album}}",
+        "start-here": "Hier starten",
+        "bound": "gebunden",
+        "no-match": "Kein Album passt zur Suche."
+      }
     }
   },
   "header": {
@@ -140,8 +226,14 @@
       "playlists": "Playlists",
       "tracks": "Titel"
     },
+    "pagination": {
+      "page-size": "Einträge pro Seite",
+      "pages": "Seiten"
+    },
     "sources": {
-      "mpd": "Lokal"
+      "mpd": "Lokal",
+      "spotify": "Spotify",
+      "jellyfin": "Jellyfin"
     },
     "overview": {
       "group": "{{source}}: {{view}}",
@@ -213,10 +305,35 @@
         }
       }
     },
+    "spotify": {
+      "manager": {
+        "actions-label": "Aktionen für die kuratierte Spotify-Bibliothek",
+        "add": "Link hinzufügen",
+        "select": "Auswählen",
+        "select-item": "{{name}} auswählen",
+        "delete-selected_one": "{{count}} Element entfernen",
+        "delete-selected_other": "{{count}} Elemente entfernen",
+        "add-dialog": {
+          "title": "Spotify-Inhalt hinzufügen",
+          "link": "Spotify-Link",
+          "confirm": "Hinzufügen"
+        },
+        "delete": {
+          "title_one": "{{count}} Element entfernen?",
+          "title_other": "{{count}} Elemente entfernen?",
+          "description": "Die Auswahl wird nur aus der kuratierten Phoniebox-Bibliothek entfernt. Spotify-Inhalte werden nicht gelöscht."
+        }
+      }
+    },
     "albums": {
       "unknown-album": "Unbekanntes Album",
       "unknown-artist": "Unbekannter Künstler",
       "unknown-title": "Unbekannter Titel",
+      "spotify-album": "Spotify-Album",
+      "spotify-playlist": "Spotify-Playlist",
+      "spotify-collection": "Spotify-Sammlung",
+      "spotify-track": "Spotify-Titel",
+      "select-item": "{{album}} auswählen",
       "no-music": "Keine Musik vorhanden!",
       "empty-library": "Deine Bibliothek ist noch leer!",
       "no-songs-in-album": "Komisch, in diesem Album gibt es keine Songs.",
@@ -233,16 +350,20 @@
     "controls": {
       "shuffle": {
         "enable": "Zufallswiedergabe aktivieren",
-        "disable": "Zufallswiedergabe deaktivieren"
+        "disable": "Zufallswiedergabe deaktivieren",
+        "label": "Zufall"
       },
       "prev_song": "Zurück",
+      "prev": "Zurück",
       "play": "Abspielen",
       "pause": "Pause",
       "next_song": "Weiter",
+      "next": "Weiter",
       "repeat": {
         "enable": "Wiedergabeliste Wiederholen aktivieren",
         "enable-single": "Song Wiederholen aktivieren",
-        "disable": "Wiederholen deaktivieren"
+        "disable": "Wiederholen deaktivieren",
+        "label": "Wiederholen"
       }
     },
     "cover": {
@@ -254,13 +375,22 @@
       "unknown-artist": "Unbekannter Künstler",
       "no-song-in-queue": "Es wird kein Titel abgespielt"
     },
+    "empty": {
+      "title": "Keine Wiedergabe",
+      "hint": "Karte auflegen oder Musik auswählen",
+      "open-library": "Bibliothek öffnen"
+    },
     "seekbar": {
       "song-position": "Aktuelle Position"
     },
     "volume": {
       "slider": "Lautstärkeregler",
       "mute": "Stumm schalten",
-      "unmute": "Stumm schalten deaktivieren"
+      "unmute": "Stumm schalten deaktivieren",
+      "decrease": "Lautstärke verringern",
+      "increase": "Lautstärke erhöhen",
+      "muted": "Stumm",
+      "sound-on": "Ton an"
     }
   },
   "settings": {
@@ -293,7 +423,103 @@
       "title": "Allgmeine Einstellungen",
       "show_covers": {
         "title": "Cover anzeigen"
+      },
+      "navigation_local": {
+        "title": "Anzeige der Navigation (Local)",
+        "description": "Gilt für dieses Gerät. Im Kiosk standardmäßig ausgeblendet; sieben Tipps auf das Cover zeigen sie wieder an."
+      },
+      "navigation_global": {
+        "title": "Anzeige der Navigation (Global)",
+        "description": "Übersteuert die lokale Einstellung für alle Geräte."
+      },
+      "library_page_size": {
+        "title": "Einträge pro Seite (Standard)",
+        "description": "Gilt für Geräte ohne eigene Auswahl in der Bibliothek."
+      },
+      "simple_mode": {
+        "title": "Einfach-Modus",
+        "description": "Blendet Zufall und Wiederholen aus; die Zeitleiste bleibt sichtbar, ist aber nicht bedienbar."
+      },
+      "history_swipe": {
+        "title": "Verlaufswischen verhindern",
+        "description": "Verhindert das Vor- und Zurückblättern per horizontalem Wischen. Im Kiosk standardmäßig aktiv."
       }
+    },
+    "spotify": {
+      "title": "Spotify",
+      "status": "Konto",
+      "device": "Spotify-Connect-Gerät",
+      "redirect-uri": "OAuth-Weiterleitungs-URI",
+      "connect": "Verbinden",
+      "disconnect": "Trennen",
+      "refresh": "Spotify-Status aktualisieren",
+      "popup-blocked": "Pop-ups müssen für die Spotify-Verbindung erlaubt sein.",
+      "states": {
+        "disabled": "Deaktiviert",
+        "not-configured": "Nicht konfiguriert",
+        "not-connected": "Nicht verbunden",
+        "connected": "Verbunden"
+      },
+      "library": {
+        "title": "Bibliothek",
+        "mode": "Spotify-Bibliotheksmodus",
+        "account": "Kontobibliothek",
+        "curated": "Kuratierte Bibliothek"
+      }
+    },
+    "jellyfin": {
+      "title": "Jellyfin",
+      "enabled": "Jellyfin aktivieren",
+      "host": "Server-Adresse",
+      "username": "Benutzername",
+      "password": "Passwort",
+      "catalog-cache-ttl": "Katalog-Cache (Sekunden)",
+      "request-timeout": "Anfrage-Timeout (Sekunden)",
+      "user-hint": "Empfohlen: ein eigener Jellyfin-Benutzer mit Zugriff auf die Musikbibliothek. Das Login-Token erbt dessen Bibliotheksberechtigungen.",
+      "secret-configured": "Konfiguriert",
+      "secret-keep": "Leer lassen, um den gespeicherten Wert beizubehalten",
+      "secret-warning": "Das Passwort wird aus Sicherheitsgründen niemals angezeigt. Gib einen neuen Wert ein, um es zu ändern.",
+      "restart-hint": "Die Änderungen werden erst nach einem Neustart der Jukebox übernommen.",
+      "save": "Speichern",
+      "saved": "Einstellungen gespeichert.",
+      "test": "Testen",
+      "test-found": "Jellyfin-Server gefunden unter {{url}}",
+      "test-adopt": "Adresse übernehmen",
+      "test-not-found": "Kein Jellyfin-Server unter den getesteten Adressen gefunden.",
+      "test-candidates": "Getestete Adressen:"
+    },
+    "display": {
+      "title": "Display",
+      "state": "State",
+      "state-active": "On",
+      "state-dimmed": "Dimmed",
+      "state-standby": "Standby",
+      "source": "Source",
+      "source-sysfs": "Backlight",
+      "source-ddc": "DDC/CI",
+      "source-x11": "Software dimming (gamma)",
+      "source-none": "None",
+      "device": "Device",
+      "brightness": "Brightness",
+      "dim-brightness": "Dim brightness",
+      "dim-timeout": "Dim after (minutes)",
+      "standby-timeout": "Standby after (minutes)",
+      "music-mode": "While music is playing",
+      "music-mode-normal": "Normal",
+      "music-mode-on": "Stay on while playing",
+      "music-mode-dim": "Dim while playing",
+      "standby-mechanic": "Standby mechanic",
+      "standby-mechanic-auto": "Automatic",
+      "standby-mechanic-backlight": "Dark (backlight 0)",
+      "standby-mechanic-power-off": "Off (display power)",
+      "power": "Display on",
+      "busy": "Applying…",
+      "unavailable": "Display cannot be controlled.",
+      "no-backlight": "No backlight device found. Standby is still available.",
+      "no-input": "No permission to read input devices. Buttons will not wake the display.",
+      "software-dim": "Software dimming (gamma) – the backlight stays on.",
+      "errors": "Errors",
+      "tap-to-wake": "Touch to wake"
     },
     "timers": {
       "option-label-timeslot": "{{value}} min",
@@ -339,7 +565,18 @@
       "battery": {
         "title": "Batterieladung",
         "charging": "Batterie wird geladen",
-        "not-charging": "Batterie wird nicht geladen"
+        "not-charging": "Batterie wird nicht geladen",
+        "unavailable": "Nicht verfügbar",
+        "states": {
+          "charging": "Wird geladen",
+          "discharging": "Wird entladen",
+          "idle": "Leerlauf",
+          "unknown": "Unbekannt"
+        },
+        "details": "{{voltage}} V · {{current}} A · {{power}} W",
+        "indicator": {
+          "aria-label": "Batterie {{soc}} Prozent, {{state}}"
+        }
       },
       "cpu-temp": {
         "label": "CPU Temperatur",
@@ -371,6 +608,45 @@
     },
     "systemcontrols": {
       "title": "Systemsteuerung"
+    },
+    "mcp23017": {
+      "title": "MCP23017-Taster",
+      "description": "Es werden nur zugeordnete Taster angezeigt. Füge eine neue Zuordnung hinzu oder bearbeite bzw. entferne eine bestehende.",
+      "empty": "Es sind noch keine Taster zugeordnet.",
+      "add": "Zuordnung hinzufügen",
+      "edit": "{{pin}} bearbeiten",
+      "delete": "{{pin}} löschen",
+      "remove-title": "Zuordnung entfernen?",
+      "remove-text": "{{pin}} löst dann nicht mehr „{{action}}“ aus.",
+      "remove": "Entfernen",
+      "cancel": "Abbrechen",
+      "dialog-add-title": "Tasterzuordnung hinzufügen",
+      "dialog-edit-title": "Tasterzuordnung ändern",
+      "mode-direct": "Eingang und Aktion wählen",
+      "mode-learn": "Durch Drücken zuordnen",
+      "pin": "Eingang",
+      "action": "Aktion",
+      "choose-action": "Aktion wählen",
+      "save": "Speichern",
+      "no-free-pins": "Alle Eingänge sind belegt.",
+      "advanced": "Erweiterte YAML-Definition ({{type}})",
+      "advanced-label": "Erweitert ({{type}})",
+      "advanced-edit": "Dieser Eingang hat eine erweiterte YAML-Definition. Speichern ersetzt sie.",
+      "not-running": "Das MCP23017-Plugin ist {{state}}.",
+      "learn-description": "Wähle eine Aktion und drücke innerhalb von 15 Sekunden den gewünschten Taster.",
+      "learn-start": "Anlernen starten",
+      "learn-waiting": "Jetzt einen Taster drücken …",
+      "learn-timeout": "Es wurde kein Taster gedrückt.",
+      "actions": {
+        "play_pause": "Play/Pause",
+        "next": "Nächster Titel",
+        "previous": "Vorheriger Titel",
+        "volume_up": "Lautstärke erhöhen",
+        "volume_down": "Lautstärke senken",
+        "shutdown": "Herunterfahren",
+        "reboot": "Neustart",
+        "say_ip": "IP-Adresse ansagen"
+      }
     }
   }
 }

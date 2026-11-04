@@ -20,12 +20,19 @@ plugin.atexit = dummy_decorator
 
 # Mock the jukebox.publishing module to prevent issues with zmq
 # which is currently hard to install(see issue #2050)
-# and not installed properly for CI
+# and not installed properly for CI. The original entry is restored below so
+# that other tests do not inherit the mock.
+_saved_publishing = sys.modules.get('jukebox.publishing')
 sys.modules['jukebox.publishing'] = MagicMock()
-
-# Import uses the patched decorators
-from components.controls.event_devices import _input_devices_to_key_mapping  # noqa: E402
-from components.controls.event_devices import parse_device_config  # noqa: E402
+try:
+    # Import uses the patched decorators
+    from components.controls.event_devices import _input_devices_to_key_mapping  # noqa: E402
+    from components.controls.event_devices import parse_device_config  # noqa: E402
+finally:
+    if _saved_publishing is None:
+        sys.modules.pop('jukebox.publishing', None)
+    else:
+        sys.modules['jukebox.publishing'] = _saved_publishing
 
 
 class TestInputDevicesToKeyMapping(unittest.TestCase):

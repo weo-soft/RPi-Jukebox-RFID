@@ -79,7 +79,8 @@ const commands = {
     _package: 'player',
     plugin: 'ctrl',
     method: 'play_folder',
-    argKeys: ['folder']
+    argKeys: ['folder', 'recursive'],
+    argDefaults: { recursive: false },
   },
   play_album: {
     _package: 'player',
@@ -296,6 +297,98 @@ const commands = {
     argKeys: ['settings'],
   },
 
+  getJellyfinSettings: {
+    _package: 'misc',
+    plugin: 'get_jellyfin_settings',
+  },
+
+  setJellyfinSettings: {
+    _package: 'misc',
+    plugin: 'set_jellyfin_settings',
+    argKeys: ['settings'],
+  },
+
+  testJellyfinConnection: {
+    _package: 'misc',
+    plugin: 'test_jellyfin_connection',
+    argKeys: ['host'],
+  },
+
+  // MCP23017 buttons
+  mcp23017Settings: {
+    _package: 'mcp23017',
+    plugin: 'ctrl',
+    method: 'get_button_settings',
+  },
+
+  mcp23017SetButton: {
+    _package: 'mcp23017',
+    plugin: 'ctrl',
+    method: 'set_button',
+    argKeys: ['pin', 'action_id'],
+  },
+
+  mcp23017ClearButton: {
+    _package: 'mcp23017',
+    plugin: 'ctrl',
+    method: 'clear_button',
+    argKeys: ['pin'],
+  },
+
+  mcp23017StartLearn: {
+    _package: 'mcp23017',
+    plugin: 'ctrl',
+    method: 'start_learn',
+    argKeys: ['action_id'],
+  },
+
+  mcp23017LearnState: {
+    _package: 'mcp23017',
+    plugin: 'ctrl',
+    method: 'get_learn_state',
+  },
+
+  mcp23017CancelLearn: {
+    _package: 'mcp23017',
+    plugin: 'ctrl',
+    method: 'cancel_learn',
+  },
+
+  // Display
+  displayStatus: {
+    _package: 'display',
+    plugin: 'status',
+  },
+  displaySetBrightness: {
+    _package: 'display',
+    plugin: 'set_brightness',
+    argKeys: ['percent'],
+  },
+  displaySetDimBrightness: {
+    _package: 'display',
+    plugin: 'set_dim_brightness',
+    argKeys: ['percent'],
+  },
+  displaySetTimeouts: {
+    _package: 'display',
+    plugin: 'set_timeouts',
+    argKeys: ['dim_min', 'standby_min'],
+  },
+  displaySetMusicMode: {
+    _package: 'display',
+    plugin: 'set_music_mode',
+    argKeys: ['mode'],
+  },
+  displaySetStandbyMechanic: {
+    _package: 'display',
+    plugin: 'set_standby_mechanic',
+    argKeys: ['mechanic'],
+  },
+  displaySetPower: {
+    _package: 'display',
+    plugin: 'set_power',
+    argKeys: ['on'],
+  },
   // Synchronisation
   'sync_rfidcards_all': {
     _package: 'sync_rfidcards',
@@ -308,6 +401,8 @@ const commands = {
     method: 'sync_change_on_rfid_scan',
     argKeys: ['option']
   },
+
+
 };
 
 export default commands;
